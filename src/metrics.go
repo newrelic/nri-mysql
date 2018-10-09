@@ -146,6 +146,7 @@ var slaveMetrics = map[string][]interface{}{
 	"cluster.relayMasterLogFile":  {"Relay_Master_Log_File", metric.ATTRIBUTE},
 	"cluster.execMasterLogPos":    {"Exec_Master_Log_Pos", metric.GAUGE},
 	"db.relayLogSpace":            {"Relay_Log_Space", metric.GAUGE},
+	"cluster.masterHost":          {"Master_Host", metric.ATTRIBUTE},
 }
 
 var innodbMetrics = map[string][]interface{}{
