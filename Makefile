@@ -12,7 +12,7 @@ TARGET_DIR       = $(WORKDIR)/$(TARGET)
 
 all: build
 
-build: clean validate compile test
+build: clean validate-deps validate compile test
 
 clean:
 	@echo "=== $(INTEGRATION) === [ clean ]: removing binaries and coverage file..."
