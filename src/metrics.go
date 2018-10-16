@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/newrelic/infra-integrations-sdk/metric"
+	"gopkg.in/newrelic/infra-integrations-sdk.v2/metric"
 )
 
 var defaultMetrics = map[string][]interface{}{

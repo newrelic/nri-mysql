@@ -4,7 +4,7 @@ import (
 	"database/sql"
 
 	_ "github.com/go-sql-driver/mysql"
-	"github.com/newrelic/infra-integrations-sdk/log"
+	"gopkg.in/newrelic/infra-integrations-sdk.v2/log"
 )
 
 type dataSource interface {
