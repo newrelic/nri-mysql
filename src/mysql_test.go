@@ -3,8 +3,8 @@ package main
 import (
 	"testing"
 
-	"github.com/newrelic/infra-integrations-sdk/metric"
-	"github.com/newrelic/infra-integrations-sdk/sdk"
+	"gopkg.in/newrelic/infra-integrations-sdk.v2/metric"
+	"gopkg.in/newrelic/infra-integrations-sdk.v2/sdk"
 )
 
 func TestAsValue(t *testing.T) {

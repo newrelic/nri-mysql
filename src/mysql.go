@@ -3,9 +3,9 @@ package main
 import (
 	"fmt"
 
-	sdk_args "github.com/newrelic/infra-integrations-sdk/args"
-	"github.com/newrelic/infra-integrations-sdk/log"
-	"github.com/newrelic/infra-integrations-sdk/sdk"
+	sdk_args "gopkg.in/newrelic/infra-integrations-sdk.v2/args"
+	"gopkg.in/newrelic/infra-integrations-sdk.v2/log"
+	"gopkg.in/newrelic/infra-integrations-sdk.v2/sdk"
 )
 
 const (

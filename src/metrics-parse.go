@@ -3,9 +3,9 @@ package main
 import (
 	"strconv"
 
-	"github.com/newrelic/infra-integrations-sdk/log"
-	"github.com/newrelic/infra-integrations-sdk/metric"
-	"github.com/newrelic/infra-integrations-sdk/sdk"
+	"gopkg.in/newrelic/infra-integrations-sdk.v2/log"
+	"gopkg.in/newrelic/infra-integrations-sdk.v2/metric"
+	"gopkg.in/newrelic/infra-integrations-sdk.v2/sdk"
 )
 
 const (
