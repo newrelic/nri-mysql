@@ -13,7 +13,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## 1.1.1 (2018-09-07)
 ### Changed
-- Update Makefile
+- Updated Makefile
 
 ## 1.1.0 (2018-08-02)
 ### Added
@@ -21,7 +21,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Added packaging script
 
 ### Changed
-- Update Makefile
+- Updated Makefile
 
 ## 1.0.0 (2018-07-24)
 ### Added
