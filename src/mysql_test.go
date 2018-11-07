@@ -1,10 +1,13 @@
 package main
 
 import (
+	"flag"
+	"os"
 	"testing"
 
 	"github.com/newrelic/infra-integrations-sdk/data/inventory"
 	"github.com/newrelic/infra-integrations-sdk/data/metric"
+	"github.com/newrelic/infra-integrations-sdk/integration"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -159,4 +162,22 @@ func TestPopulateMetricsWithZeroValuesInData(t *testing.T) {
 			t.Errorf("For metric '%s', expected value: %f. Actual value: %f", metricName, expected, actual)
 		}
 	}
+}
+
+func TestGenerateDSNPriorizesCliOverEnvArgs(t *testing.T) {
+	os.Setenv("USERNAME", "dbuser")
+	os.Setenv("HOSTNAME", "foo")
+
+	os.Args = []string{
+		"cmd",
+		"-hostname=bar",
+		"-port=1234",
+		"-password=dbpwd",
+	}
+	_, err := integration.New(integrationName, integrationVersion, integration.Args(&args))
+	fatalIfErr(err)
+
+	assert.Equal(t, "dbuser:dbpwd@tcp(bar:1234)/", generateDSN(args))
+
+	flag.CommandLine = flag.NewFlagSet("cmd", flag.ContinueOnError)
 }
