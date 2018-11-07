@@ -3,9 +3,9 @@ package main
 import (
 	"strconv"
 
-	"gopkg.in/newrelic/infra-integrations-sdk.v2/log"
-	"gopkg.in/newrelic/infra-integrations-sdk.v2/metric"
-	"gopkg.in/newrelic/infra-integrations-sdk.v2/sdk"
+	"github.com/newrelic/infra-integrations-sdk/data/inventory"
+	"github.com/newrelic/infra-integrations-sdk/data/metric"
+	"github.com/newrelic/infra-integrations-sdk/log"
 )
 
 const (
@@ -61,13 +61,13 @@ func getRawData(db dataSource) (map[string]interface{}, map[string]interface{}, 
 	return inventory, metrics, nil
 }
 
-func populateInventory(inventory sdk.Inventory, rawData map[string]interface{}) {
+func populateInventory(inventory *inventory.Inventory, rawData map[string]interface{}) {
 	for name, value := range rawData {
 		inventory.SetItem(name, "value", value)
 	}
 }
 
-func populateMetrics(sample *metric.MetricSet, rawMetrics map[string]interface{}) {
+func populateMetrics(sample *metric.Set, rawMetrics map[string]interface{}) {
 	if rawMetrics["node_type"] != "slave" {
 		delete(defaultMetrics, "cluster.slaveRunning")
 	}
@@ -89,7 +89,7 @@ func populateMetrics(sample *metric.MetricSet, rawMetrics map[string]interface{}
 	}
 
 }
-func populatePartialMetrics(sample *metric.MetricSet, metrics map[string]interface{}, metricsDefinition map[string][]interface{}) {
+func populatePartialMetrics(ms *metric.Set, metrics map[string]interface{}, metricsDefinition map[string][]interface{}) {
 	for metricName, metricConf := range metricsDefinition {
 		rawSource := metricConf[0]
 		metricType := metricConf[1].(metric.SourceType)
@@ -114,7 +114,7 @@ func populatePartialMetrics(sample *metric.MetricSet, metrics map[string]interfa
 			continue
 		}
 
-		err := sample.SetMetric(metricName, rawMetric, metricType)
+		err := ms.SetMetric(metricName, rawMetric, metricType)
 
 		if err != nil {
 			log.Warn("Error setting value: %s", err)

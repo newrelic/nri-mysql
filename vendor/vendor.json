@@ -3,54 +3,6 @@
 	"ignore": "test",
 	"package": [
 		{
-			"path": "appengine/cloudsql",
-			"revision": ""
-		},
-		{
-			"path": "bufio",
-			"revision": ""
-		},
-		{
-			"path": "bytes",
-			"revision": ""
-		},
-		{
-			"path": "crypto/sha1",
-			"revision": ""
-		},
-		{
-			"path": "crypto/tls",
-			"revision": ""
-		},
-		{
-			"path": "database/sql",
-			"revision": ""
-		},
-		{
-			"path": "database/sql/driver",
-			"revision": ""
-		},
-		{
-			"path": "encoding/binary",
-			"revision": ""
-		},
-		{
-			"path": "encoding/json",
-			"revision": ""
-		},
-		{
-			"path": "errors",
-			"revision": ""
-		},
-		{
-			"path": "flag",
-			"revision": ""
-		},
-		{
-			"path": "fmt",
-			"revision": ""
-		},
-		{
 			"checksumSHA1": "xmTgJXWHguGKHPuZE50FIbs88L0=",
 			"path": "github.com/go-sql-driver/mysql",
 			"revision": "a0583e0143b1624142adab07e0e97fe106d99561",
@@ -65,8 +17,52 @@
 			"revisionTime": "2018-10-04T22:41:46Z"
 		},
 		{
-			"path": "github.com/newrelic/nri-mysql/src",
-			"revision": ""
+			"checksumSHA1": "WUtPqOvTzvtf4U6AYPwHpEkr3Do=",
+			"path": "github.com/newrelic/infra-integrations-sdk/args",
+			"revision": "370db6824c4d07b3a92e24c8d7307fe1d56b422e",
+			"revisionTime": "2018-11-02T07:56:48Z"
+		},
+		{
+			"checksumSHA1": "KaZLSd/JUZz/mqfW3jFd1j2QdWA=",
+			"path": "github.com/newrelic/infra-integrations-sdk/data/event",
+			"revision": "370db6824c4d07b3a92e24c8d7307fe1d56b422e",
+			"revisionTime": "2018-11-02T07:56:48Z"
+		},
+		{
+			"checksumSHA1": "EOoxXGqFDPkCvj7wec2S5kCXY2I=",
+			"path": "github.com/newrelic/infra-integrations-sdk/data/inventory",
+			"revision": "370db6824c4d07b3a92e24c8d7307fe1d56b422e",
+			"revisionTime": "2018-11-02T07:56:48Z"
+		},
+		{
+			"checksumSHA1": "39SDqHpLpE9J1nrIwYI+8ukzXJs=",
+			"path": "github.com/newrelic/infra-integrations-sdk/data/metric",
+			"revision": "370db6824c4d07b3a92e24c8d7307fe1d56b422e",
+			"revisionTime": "2018-11-02T07:56:48Z"
+		},
+		{
+			"checksumSHA1": "SmqfH71xpQsY3JjNHUNUVCq7pCA=",
+			"path": "github.com/newrelic/infra-integrations-sdk/integration",
+			"revision": "370db6824c4d07b3a92e24c8d7307fe1d56b422e",
+			"revisionTime": "2018-11-02T07:56:48Z"
+		},
+		{
+			"checksumSHA1": "6/DhD+/LhC/k3NaLgkpd6iE8b5E=",
+			"path": "github.com/newrelic/infra-integrations-sdk/log",
+			"revision": "370db6824c4d07b3a92e24c8d7307fe1d56b422e",
+			"revisionTime": "2018-11-02T07:56:48Z"
+		},
+		{
+			"checksumSHA1": "BsHp62Etporko0d+4GpVxrP2qtw=",
+			"path": "github.com/newrelic/infra-integrations-sdk/persist",
+			"revision": "370db6824c4d07b3a92e24c8d7307fe1d56b422e",
+			"revisionTime": "2018-11-02T07:56:48Z"
+		},
+		{
+			"checksumSHA1": "DTy0iJ2w5C+FDsN9EnzfhNmvS+o=",
+			"path": "github.com/pkg/errors",
+			"revision": "059132a15dd08d6704c67711dae0cf35ab991756",
+			"revisionTime": "2018-10-23T23:59:46Z"
 		},
 		{
 			"checksumSHA1": "CTNL2npfkPx1H73GvS2Yl+snMAs=",
@@ -91,126 +87,6 @@
 			"path": "golang.org/x/sys/windows",
 			"revision": "fa43e7bc11baaae89f3f902b2b4d832b68234844",
 			"revisionTime": "2018-10-11T14:35:51Z"
-		},
-		{
-			"checksumSHA1": "JMvFh266L9vEH0jhmt2IFI7BNZs=",
-			"path": "gopkg.in/newrelic/infra-integrations-sdk.v2/args",
-			"revision": "4595ced465e2523b9589827f0cec2146ec15a53e",
-			"revisionTime": "2018-10-16T14:17:36Z",
-			"version": "v2.2.0",
-			"versionExact": "v2.2.0"
-		},
-		{
-			"checksumSHA1": "fB0LH+cTTSapjpU+NW8XOaRMv0Q=",
-			"path": "gopkg.in/newrelic/infra-integrations-sdk.v2/cache",
-			"revision": "4595ced465e2523b9589827f0cec2146ec15a53e",
-			"revisionTime": "2018-10-16T14:17:36Z",
-			"version": "v2.2.0",
-			"versionExact": "v2.2.0"
-		},
-		{
-			"checksumSHA1": "Iag59h2qU45jlWZPae0XDjaSBUM=",
-			"path": "gopkg.in/newrelic/infra-integrations-sdk.v2/log",
-			"revision": "4595ced465e2523b9589827f0cec2146ec15a53e",
-			"revisionTime": "2018-10-16T14:17:36Z",
-			"version": "v2.2.0",
-			"versionExact": "v2.2.0"
-		},
-		{
-			"checksumSHA1": "fKin2059w1cqe2ithIkemJLJBLQ=",
-			"path": "gopkg.in/newrelic/infra-integrations-sdk.v2/metric",
-			"revision": "4595ced465e2523b9589827f0cec2146ec15a53e",
-			"revisionTime": "2018-10-16T14:17:36Z",
-			"version": "v2.2.0",
-			"versionExact": "v2.2.0"
-		},
-		{
-			"checksumSHA1": "r9fFexZs1blo+6ZqZsgYM6QZiZs=",
-			"path": "gopkg.in/newrelic/infra-integrations-sdk.v2/sdk",
-			"revision": "4595ced465e2523b9589827f0cec2146ec15a53e",
-			"revisionTime": "2018-10-16T14:17:36Z",
-			"version": "v2.2.0",
-			"versionExact": "v2.2.0"
-		},
-		{
-			"path": "io",
-			"revision": ""
-		},
-		{
-			"path": "io/ioutil",
-			"revision": ""
-		},
-		{
-			"path": "log",
-			"revision": ""
-		},
-		{
-			"path": "math",
-			"revision": ""
-		},
-		{
-			"path": "net",
-			"revision": ""
-		},
-		{
-			"path": "net/url",
-			"revision": ""
-		},
-		{
-			"path": "os",
-			"revision": ""
-		},
-		{
-			"path": "path/filepath",
-			"revision": ""
-		},
-		{
-			"path": "reflect",
-			"revision": ""
-		},
-		{
-			"path": "regexp",
-			"revision": ""
-		},
-		{
-			"path": "runtime",
-			"revision": ""
-		},
-		{
-			"path": "sort",
-			"revision": ""
-		},
-		{
-			"path": "strconv",
-			"revision": ""
-		},
-		{
-			"path": "strings",
-			"revision": ""
-		},
-		{
-			"path": "sync",
-			"revision": ""
-		},
-		{
-			"path": "sync/atomic",
-			"revision": ""
-		},
-		{
-			"path": "syscall",
-			"revision": ""
-		},
-		{
-			"path": "testing",
-			"revision": ""
-		},
-		{
-			"path": "time",
-			"revision": ""
-		},
-		{
-			"path": "unsafe",
-			"revision": ""
 		}
 	],
 	"rootPath": "github.com/newrelic/nri-mysql"

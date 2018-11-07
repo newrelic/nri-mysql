@@ -3,9 +3,9 @@ package main
 import (
 	"fmt"
 
-	sdk_args "gopkg.in/newrelic/infra-integrations-sdk.v2/args"
-	"gopkg.in/newrelic/infra-integrations-sdk.v2/log"
-	"gopkg.in/newrelic/infra-integrations-sdk.v2/sdk"
+	sdk_args "github.com/newrelic/infra-integrations-sdk/args"
+	"github.com/newrelic/infra-integrations-sdk/integration"
+	"github.com/newrelic/infra-integrations-sdk/log"
 )
 
 const (
@@ -32,11 +32,12 @@ func generateDSN(args argumentList) string {
 var args argumentList
 
 func main() {
-	integration, err := sdk.NewIntegration(integrationName, integrationVersion, &args)
+	i, err := integration.New(integrationName, integrationVersion, integration.Args(&args))
 	fatalIfErr(err)
 	log.SetupLogging(args.Verbose)
 
-	sample := integration.NewMetricSet("MysqlSample")
+	e := i.LocalEntity()
+	ms := e.NewMetricSet("MysqlSample")
 
 	db, err := openDB(generateDSN(args))
 	fatalIfErr(err)
@@ -45,15 +46,15 @@ func main() {
 	rawInventory, rawMetrics, err := getRawData(db)
 	fatalIfErr(err)
 
-	if args.All || args.Inventory {
-		populateInventory(integration.Inventory, rawInventory)
+	if args.HasInventory() {
+		populateInventory(e.Inventory, rawInventory)
 	}
 
-	if args.All || args.Metrics {
-		populateMetrics(sample, rawMetrics)
+	if args.HasMetrics() {
+		populateMetrics(ms, rawMetrics)
 	}
 
-	fatalIfErr(integration.Publish())
+	fatalIfErr(i.Publish())
 }
 
 func fatalIfErr(err error) {

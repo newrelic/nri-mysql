@@ -3,8 +3,9 @@ package main
 import (
 	"testing"
 
-	"gopkg.in/newrelic/infra-integrations-sdk.v2/metric"
-	"gopkg.in/newrelic/infra-integrations-sdk.v2/sdk"
+	"github.com/newrelic/infra-integrations-sdk/data/inventory"
+	"github.com/newrelic/infra-integrations-sdk/data/metric"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestAsValue(t *testing.T) {
@@ -61,29 +62,15 @@ func TestPopulatePartialMetrics(t *testing.T) {
 		"functionSource": {functionSource, metric.GAUGE},
 	}
 
-	var sample = metric.NewMetricSet("eventType")
-	populatePartialMetrics(&sample, rawMetrics, metricDefinition)
+	var ms = metric.NewSet("eventType", nil)
+	populatePartialMetrics(ms, rawMetrics, metricDefinition)
 
-	if sample["rawMetric1"] != 1 {
-		t.Error()
-	}
-	if sample["rawMetric2"] != 2 {
-		t.Error()
-	}
-	if sample["rawMetric3"] != "foo" {
-		t.Error()
-	}
-
-	if sample["unknownMetric"] != nil {
-		t.Error()
-	}
-	if sample["badRawSource"] != nil {
-		t.Error()
-	}
-	if sample["functionSource"] != float64(3) {
-		t.Error()
-	}
-
+	assert.Equal(t, 1., ms.Metrics["rawMetric1"])
+	assert.Equal(t, 2., ms.Metrics["rawMetric2"])
+	assert.Equal(t, "foo", ms.Metrics["rawMetric3"])
+	assert.Nil(t, ms.Metrics["unknownMetric"])
+	assert.Nil(t, ms.Metrics["badRawSource"])
+	assert.Equal(t, 3., ms.Metrics["functionSource"])
 }
 
 func TestPopulateInventory(t *testing.T) {
@@ -93,12 +80,12 @@ func TestPopulateInventory(t *testing.T) {
 		"key_3": "foo",
 	}
 
-	inventory := make(sdk.Inventory)
-	populateInventory(inventory, rawInventory)
+	i := inventory.New()
+	populateInventory(i, rawInventory)
 	for key, value := range rawInventory {
-		if inventory[key]["value"] != value {
-			t.Error()
-		}
+		v, exists := i.Item(key)
+		assert.True(t, exists)
+		assert.Equal(t, value, v["value"])
 	}
 }
 
@@ -158,16 +145,16 @@ func TestPopulateMetricsWithZeroValuesInData(t *testing.T) {
 		"Key_cache_block_size": 0,
 		"Key_buffer_size":      0,
 	}
-	ms := metric.NewMetricSet("eventType")
-	populatePartialMetrics(&ms, rawMetrics, defaultMetrics)
-	populatePartialMetrics(&ms, rawMetrics, extendedMetrics)
-	populatePartialMetrics(&ms, rawMetrics, myisamMetrics)
+	ms := metric.NewSet("eventType", nil)
+	populatePartialMetrics(ms, rawMetrics, defaultMetrics)
+	populatePartialMetrics(ms, rawMetrics, extendedMetrics)
+	populatePartialMetrics(ms, rawMetrics, myisamMetrics)
 
 	testMetrics := []string{"db.qCacheUtilization", "db.qCacheHitRatio", "db.threadCacheMissRate", "db.myisam.keyCacheUtilization"}
 
 	expected := float64(0)
 	for _, metricName := range testMetrics {
-		actual, _ := ms[metricName]
+		actual, _ := ms.Metrics[metricName]
 		if actual != expected {
 			t.Errorf("For metric '%s', expected value: %f. Actual value: %f", metricName, expected, actual)
 		}
