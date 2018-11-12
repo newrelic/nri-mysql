@@ -3,9 +3,9 @@ package main
 import (
 	"fmt"
 
-	sdk_args "gopkg.in/newrelic/infra-integrations-sdk.v2/args"
-	"gopkg.in/newrelic/infra-integrations-sdk.v2/log"
-	"gopkg.in/newrelic/infra-integrations-sdk.v2/sdk"
+	sdk_args "github.com/newrelic/infra-integrations-sdk/args"
+	"github.com/newrelic/infra-integrations-sdk/integration"
+	"github.com/newrelic/infra-integrations-sdk/log"
 )
 
 const (
@@ -23,20 +23,27 @@ type argumentList struct {
 	ExtendedMetrics       bool   `default:"false" help:"Enable extended metrics"`
 	ExtendedInnodbMetrics bool   `default:"false" help:"Enable InnoDB extended metrics"`
 	ExtendedMyIsamMetrics bool   `default:"false" help:"Enable MyISAM extended metrics"`
+	OldPasswords          bool   `default:"false" help:"Allow old passwords: https://dev.mysql.com/doc/refman/5.6/en/server-system-variables.html#sysvar_old_passwords"`
 }
 
 func generateDSN(args argumentList) string {
-	return fmt.Sprintf("%s:%s@tcp(%s:%d)/%s", args.Username, args.Password, args.Hostname, args.Port, args.Database)
+	params := ""
+	if args.OldPasswords {
+		params = "?allowOldPasswords=true"
+	}
+
+	return fmt.Sprintf("%s:%s@tcp(%s:%d)/%s%s", args.Username, args.Password, args.Hostname, args.Port, args.Database, params)
 }
 
 var args argumentList
 
 func main() {
-	integration, err := sdk.NewIntegration(integrationName, integrationVersion, &args)
+	i, err := integration.New(integrationName, integrationVersion, integration.Args(&args))
 	fatalIfErr(err)
 	log.SetupLogging(args.Verbose)
 
-	sample := integration.NewMetricSet("MysqlSample")
+	e := i.LocalEntity()
+	ms := e.NewMetricSet("MysqlSample")
 
 	db, err := openDB(generateDSN(args))
 	fatalIfErr(err)
@@ -45,15 +52,15 @@ func main() {
 	rawInventory, rawMetrics, err := getRawData(db)
 	fatalIfErr(err)
 
-	if args.All || args.Inventory {
-		populateInventory(integration.Inventory, rawInventory)
+	if args.HasInventory() {
+		populateInventory(e.Inventory, rawInventory)
 	}
 
-	if args.All || args.Metrics {
-		populateMetrics(sample, rawMetrics)
+	if args.HasMetrics() {
+		populateMetrics(ms, rawMetrics)
 	}
 
-	fatalIfErr(integration.Publish())
+	fatalIfErr(i.Publish())
 }
 
 func fatalIfErr(err error) {
