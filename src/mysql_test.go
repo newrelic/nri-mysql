@@ -181,3 +181,20 @@ func TestGenerateDSNPriorizesCliOverEnvArgs(t *testing.T) {
 
 	flag.CommandLine = flag.NewFlagSet("cmd", flag.ContinueOnError)
 }
+
+func TestGenerateDSNSupportsOldPasswords(t *testing.T) {
+	os.Args = []string{
+		"cmd",
+		"-hostname=dbhost",
+		"-username=dbuser",
+		"-password=dbpwd",
+		"-port=1234",
+		"-old_passwords",
+	}
+	_, err := integration.New(integrationName, integrationVersion, integration.Args(&args))
+	fatalIfErr(err)
+
+	assert.Equal(t, "dbuser:dbpwd@tcp(dbhost:1234)/?allowOldPasswords=true", generateDSN(args))
+
+	flag.CommandLine = flag.NewFlagSet("cmd", flag.ContinueOnError)
+}

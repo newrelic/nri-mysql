@@ -23,10 +23,16 @@ type argumentList struct {
 	ExtendedMetrics       bool   `default:"false" help:"Enable extended metrics"`
 	ExtendedInnodbMetrics bool   `default:"false" help:"Enable InnoDB extended metrics"`
 	ExtendedMyIsamMetrics bool   `default:"false" help:"Enable MyISAM extended metrics"`
+	OldPasswords          bool   `default:"false" help:"Allow old passwords: https://dev.mysql.com/doc/refman/5.6/en/server-system-variables.html#sysvar_old_passwords"`
 }
 
 func generateDSN(args argumentList) string {
-	return fmt.Sprintf("%s:%s@tcp(%s:%d)/%s", args.Username, args.Password, args.Hostname, args.Port, args.Database)
+	params := ""
+	if args.OldPasswords {
+		params = "?allowOldPasswords=true"
+	}
+
+	return fmt.Sprintf("%s:%s@tcp(%s:%d)/%s%s", args.Username, args.Password, args.Hostname, args.Port, args.Database, params)
 }
 
 var args argumentList
