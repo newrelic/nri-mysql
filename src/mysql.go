@@ -4,13 +4,14 @@ import (
 	"fmt"
 
 	sdk_args "github.com/newrelic/infra-integrations-sdk/args"
+	"github.com/newrelic/infra-integrations-sdk/data/metric"
 	"github.com/newrelic/infra-integrations-sdk/integration"
 	"github.com/newrelic/infra-integrations-sdk/log"
 )
 
 const (
 	integrationName    = "com.newrelic.mysql"
-	integrationVersion = "1.1.0"
+	integrationVersion = "1.1.3"
 )
 
 type argumentList struct {
@@ -43,7 +44,7 @@ func main() {
 	log.SetupLogging(args.Verbose)
 
 	e := i.LocalEntity()
-	ms := e.NewMetricSet("MysqlSample")
+	ms := e.NewMetricSet("MysqlSample", metric.Attr("hostname", args.Hostname))
 
 	db, err := openDB(generateDSN(args))
 	fatalIfErr(err)
