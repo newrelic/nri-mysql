@@ -44,7 +44,6 @@ func main() {
 	log.SetupLogging(args.Verbose)
 
 	e := i.LocalEntity()
-	ms := e.NewMetricSet("MysqlSample", metric.Attr("hostname", args.Hostname))
 
 	db, err := openDB(generateDSN(args))
 	fatalIfErr(err)
@@ -58,6 +57,7 @@ func main() {
 	}
 
 	if args.HasMetrics() {
+		ms := e.NewMetricSet("MysqlSample", metric.Attr("hostname", args.Hostname))
 		populateMetrics(ms, rawMetrics)
 	}
 
