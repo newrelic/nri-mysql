@@ -5,6 +5,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## Next Release (date TBD)
+
+## 1.1.5 (2018-12-05)
+
 ### Fixed
 - Issue where the plugin returned metrics when only inventory was requested.
 
