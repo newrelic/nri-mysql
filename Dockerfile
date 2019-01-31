@@ -5,6 +5,5 @@ RUN go get -d github.com/newrelic/nri-mysql/... && \
     strip ./bin/nr-mysql
 
 FROM newrelic/infrastructure:latest
-COPY . .
 COPY --from=builder /go/src/github.com/newrelic/nri-mysql/bin/nr-mysql /var/db/newrelic-infra/newrelic-integrations/bin/nr-mysql
 COPY --from=builder /go/src/github.com/newrelic/nri-mysql/mysql-definition.yml /var/db/newrelic-infra/newrelic-integrations/definition.yaml
