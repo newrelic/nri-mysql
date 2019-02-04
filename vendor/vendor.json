@@ -87,6 +87,24 @@
 			"versionExact": "v3.1.0"
 		},
 		{
+			"checksumSHA1": "VnkNO/q6ZVTYCd/F7nmHosHC5a4=",
+			"path": "github.com/opencontainers/go-digest",
+			"revision": "4eb64ca734023ea9a10c70ff11dc0e3f69d38482",
+			"revisionTime": "2019-01-29T23:24:53Z"
+		},
+		{
+			"checksumSHA1": "Yd/Bw+xjDW+66s4mr4yaHFY/EeE=",
+			"path": "github.com/opencontainers/image-spec/specs-go",
+			"revision": "befc3cba3ffdf76e2f72f52a248a20a2727cc4c9",
+			"revisionTime": "2019-01-20T15:25:14Z"
+		},
+		{
+			"checksumSHA1": "jdbXRRzeu0njLE9/nCEZG+Yg/Jk=",
+			"path": "github.com/opencontainers/image-spec/specs-go/v1",
+			"revision": "befc3cba3ffdf76e2f72f52a248a20a2727cc4c9",
+			"revisionTime": "2019-01-20T15:25:14Z"
+		},
+		{
 			"checksumSHA1": "DTy0iJ2w5C+FDsN9EnzfhNmvS+o=",
 			"path": "github.com/pkg/errors",
 			"revision": "059132a15dd08d6704c67711dae0cf35ab991756",

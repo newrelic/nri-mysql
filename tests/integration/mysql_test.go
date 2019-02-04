@@ -24,28 +24,46 @@ import (
 var (
 	iName = "mysql"
 
+	defaultContainer = "integration_nri-mysql_1"
 	// mysql config
-	defaultBinPath   = "/var/db/newrelic-infra/newrelic-integrations/bin/nr-mysql"
+	defaultBinPath   = "/nr-mysql"
 	defaultMysqlUser = "dbuser"
 	defaultMysqlPass = "DBpwd1234!"
-	defaultMysqlHost = "127.0.0.1"
+	defaultMysqlHost = "mysql"
 	defaultMysqlPort = 3306
 
 	// cli flags
-	update  = flag.Bool("test.update", false, "update json-schema file")
-	binPath = flag.String("bin", defaultBinPath, "Integration binary path")
-	user    = flag.String("user", defaultMysqlUser, "Mysql user name")
-	psw     = flag.String("psw", defaultMysqlPass, "Mysql user password")
-	host    = flag.String("host", defaultMysqlHost, "Mysql host ip address")
-	port    = flag.Int("port", defaultMysqlPort, "Mysql port")
-
-	// container conf
-	image         = "mysql:5.6"
-	containerName = "mysql56"
-
-	// runtime vars
-	containerID string
+	container = flag.String("container", defaultContainer, "container where the integration is installed")
+	update    = flag.Bool("test.update", false, "update json-schema file")
+	binPath   = flag.String("bin", defaultBinPath, "Integration binary path")
+	user      = flag.String("user", defaultMysqlUser, "Mysql user name")
+	psw       = flag.String("psw", defaultMysqlPass, "Mysql user password")
+	host      = flag.String("host", defaultMysqlHost, "Mysql host ip address")
+	port      = flag.Int("port", defaultMysqlPort, "Mysql port")
 )
+
+func runCommand(container string, command []string) (string, string, error) {
+	cmdLine := make([]string, 0, 3+len(command))
+	cmdLine = append(cmdLine, "exec", "-i", container)
+	cmdLine = append(cmdLine, command...)
+
+	fmt.Println(cmdLine)
+	cmd := exec.Command("docker", cmdLine...)
+
+	var outbuf, errbuf bytes.Buffer
+	cmd.Stdout = &outbuf
+	cmd.Stderr = &errbuf
+
+	err := cmd.Run()
+	stdout := outbuf.String()
+	stderr := errbuf.String()
+
+	if err != nil {
+		return "", "", err
+	}
+
+	return stdout, stderr, nil
+}
 
 func setup() error {
 	flag.Parse()
@@ -54,34 +72,10 @@ func setup() error {
 		log.SetLevel(log.DebugLevel)
 	}
 
-	err := helpers.CheckPathsExist([]string{
-		*binPath,
-	})
-	if err != nil {
-		return fmt.Errorf("MySQL integration files not found. Err: %s", err)
-	}
-
-	// TODO move to container based testing
-	//containerPort := strconv.Itoa(*port)
-	//hostPort := strconv.Itoa(*port)
-	//envs := []string{
-	//	fmt.Sprintf("MYSQL_ROOT_PASSWORD=%s", *psw),
-	//}
-	//
-	//containerID, err = helpers.RunContainer(image, containerName, containerPort, hostPort, envs)
-	//if err != nil {
-	//	return fmt.Errorf("Error running container %s: %s\n", containerName, err)
-	//}
-
 	return nil
 }
 
 func teardown() error {
-	//err := helpers.StopContainer(containerID)
-	//if err != nil {
-	//	log.Fatalf("Error stopping container %s: %s", containerID, err)
-	//}
-
 	return nil
 }
 
@@ -107,24 +101,14 @@ func TestMain(m *testing.M) {
 }
 
 func TestOutputIsValidJSON(t *testing.T) {
-	cmd := exec.Command(*binPath)
-	cmd.Env = []string{
-		fmt.Sprintf("USERNAME=%s", *user),
-		fmt.Sprintf("PASSWORD=%s", *psw),
-		fmt.Sprintf("HOSTNAME=%s", *host),
-		fmt.Sprintf("PORT=%d", *port),
-	}
-
-	var outbuf, errbuf bytes.Buffer
-	cmd.Stdout = &outbuf
-	cmd.Stderr = &errbuf
-	err := cmd.Run()
+	stdout, _, err := runCommand(*container, []string{*binPath,
+		"--username", *user, "--password", *psw, "--hostname", *host, "--port", fmt.Sprint(*port)})
 	if err != nil {
-		t.Fatalf("It isn't possible to execute MySQL integration binary. Err: %s -- %s", err, errbuf.String())
+		t.Fatal(err)
 	}
 
 	var j map[string]interface{}
-	err = json.Unmarshal(outbuf.Bytes(), &j)
+	err = json.Unmarshal([]byte(stdout), &j)
 	if err != nil {
 		t.Error("Integration output should be a JSON dict")
 	}

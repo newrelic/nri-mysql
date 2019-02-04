@@ -11,28 +11,6 @@ import (
 	"github.com/xeipuuv/gojsonschema"
 )
 
-// CheckIntegrationIsInstalled accepts an integration name as an argument and
-// checks if the integration files are placed in the proper directories.
-func CheckIntegrationIsInstalled(iName string) error {
-	iPaths := []string{
-		fmt.Sprintf("/var/db/newrelic-infra/newrelic-integrations/bin/nr-%s", iName),
-		fmt.Sprintf("/var/db/newrelic-infra/newrelic-integrations/%s-definition.yml", iName),
-		fmt.Sprintf("/etc/newrelic-infra/integrations.d/%s-config.yml.sample", iName),
-	}
-
-	return CheckPathsExist(iPaths)
-}
-
-func CheckPathsExist(iPaths []string) error {
-	
-	for i := range iPaths {
-		_, err := os.Stat(iPaths[i])
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
 
 // ValidateJSONSchema validates the input argument against JSON schema. If the
 // input is not valid the error is returned. The first argument is the file name
