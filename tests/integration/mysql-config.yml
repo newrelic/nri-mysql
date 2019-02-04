@@ -1,0 +1,13 @@
+integration_name: com.newrelic.mysql
+
+instances:
+  - name: mysql-server
+    command: status
+    arguments:
+      hostname: mysql
+      port: 3306
+      username: dbuser
+      password: DBpwd1234!
+    labels:
+      env: production
+      role: write-replica
