@@ -179,6 +179,14 @@
 			"revisionTime": "2018-12-19T16:01:44Z"
 		},
 		{
+			"checksumSHA1": "3DvkGtpbJW8oXepRr3wYSs72LmQ=",
+			"path": "github.com/stretchr/testify/require",
+			"revision": "ffdc059bfe9ce6a4e144ba849dbedead332c6053",
+			"revisionTime": "2018-12-05T02:12:43Z",
+			"version": "=v1.3.0",
+			"versionExact": "v1.3.0"
+		},
+		{
 			"checksumSHA1": "BGm8lKZmvJbf/YOJLeL1rw2WVjA=",
 			"path": "golang.org/x/crypto/ssh/terminal",
 			"revision": "0c41d7ab0a0ee717d4590a44bcb987dfd9e183eb",
