@@ -42,28 +42,18 @@ var (
 	port      = flag.Int("port", defaultMysqlPort, "Mysql port")
 )
 
-func runCommand(container string, command []string) (string, string, error) {
-	cmdLine := make([]string, 0, 3+len(command))
-	cmdLine = append(cmdLine, "exec", "-i", container)
-	cmdLine = append(cmdLine, command...)
+// Returns the standard output, or fails testing if the command returned an error
+func runIntegration(t *testing.T) string {
+	t.Helper()
 
-	fmt.Println(cmdLine)
-	cmd := exec.Command("docker", cmdLine...)
+	stdout, stderr, err := helpers.ExecInContainer(*container, []string{*binPath,
+		"--username", *user, "--password", *psw, "--hostname", *host, "--port", fmt.Sprint(*port)})
 
-	var outbuf, errbuf bytes.Buffer
-	cmd.Stdout = &outbuf
-	cmd.Stderr = &errbuf
-
-	err := cmd.Run()
-	stdout := outbuf.String()
-	stderr := errbuf.String()
-
-	if err != nil {
-		return "", "", err
-	}
-
-	return stdout, stderr, nil
+	log.Debug("Integration command Standard Error: ", stderr)
+	assert
 }
+
+
 
 func setup() error {
 	flag.Parse()
@@ -101,8 +91,7 @@ func TestMain(m *testing.M) {
 }
 
 func TestOutputIsValidJSON(t *testing.T) {
-	stdout, _, err := runCommand(*container, []string{*binPath,
-		"--username", *user, "--password", *psw, "--hostname", *host, "--port", fmt.Sprint(*port)})
+	stdout, _, err :=
 	if err != nil {
 		t.Fatal(err)
 	}

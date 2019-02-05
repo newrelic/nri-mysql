@@ -77,9 +77,11 @@ test-only:
 
 test: test-deps test-only
 
-integration-test: package test-deps
+integration-test: test-deps
 	@echo "=== $(INTEGRATION) === [ test ]: running integration tests..."
-	@go test -tags=integration ./...
+	@docker-compose -f tests/integration/docker-compose.yml up -d
+	@go test -v -tags=integration ./tests/integration/. || (ret=$$?; docker-compose -f tests/integration/docker-compose.yml down && exit $$ret)
+	@docker-compose -f tests/integration/docker-compose.yml down
 
 install: bin/$(BINARY_NAME)
 	@echo "=== $(INTEGRATION) === [ install ]: installing bin/$(BINARY_NAME)..."

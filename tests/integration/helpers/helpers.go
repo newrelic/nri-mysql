@@ -1,8 +1,10 @@
 package helpers
 
 import (
+	"bytes"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"reflect"
 	"testing"
@@ -10,7 +12,6 @@ import (
 	"github.com/bitly/go-simplejson"
 	"github.com/xeipuuv/gojsonschema"
 )
-
 
 // ValidateJSONSchema validates the input argument against JSON schema. If the
 // input is not valid the error is returned. The first argument is the file name
@@ -163,4 +164,31 @@ func ModifyJSONSchemaInventoryPresent(schema *simplejson.Json) error {
 	// `required` section for `inventory` should be empty, as none of the inventory data is obligatory
 	mainProperties.Get("inventory").Set("required", make([]interface{}, 0))
 	return nil
+}
+
+// ExecInContainer executes the given command inside the specified container. It returns three values:
+// 1st - Standard Output
+// 2nd - Standard Error
+// 3rd - Runtime error, if any
+func ExecInContainer(container string, command []string) (string, string, error) {
+	cmdLine := make([]string, 0, 3+len(command))
+	cmdLine = append(cmdLine, "exec", "-i", container)
+	cmdLine = append(cmdLine, command...)
+
+	fmt.Println(cmdLine)
+	cmd := exec.Command("docker", cmdLine...)
+
+	var outbuf, errbuf bytes.Buffer
+	cmd.Stdout = &outbuf
+	cmd.Stderr = &errbuf
+
+	err := cmd.Run()
+	stdout := outbuf.String()
+	stderr := errbuf.String()
+
+	if err != nil {
+		return "", "", err
+	}
+
+	return stdout, stderr, nil
 }
