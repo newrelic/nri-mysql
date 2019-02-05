@@ -16,6 +16,8 @@ import (
 
 	"github.com/bitly/go-simplejson"
 	log "github.com/sirupsen/logrus"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/newrelic/nri-mysql/tests/integration/helpers"
 	"github.com/newrelic/nri-mysql/tests/integration/jsonschema"
@@ -27,10 +29,11 @@ var (
 	defaultContainer = "integration_nri-mysql_1"
 	// mysql config
 	defaultBinPath   = "/nr-mysql"
-	defaultMysqlUser = "dbuser"
+	defaultMysqlUser = "root"
 	defaultMysqlPass = "DBpwd1234!"
 	defaultMysqlHost = "mysql"
 	defaultMysqlPort = 3306
+	defaultMysqlDB   = "database"
 
 	// cli flags
 	container = flag.String("container", defaultContainer, "container where the integration is installed")
@@ -40,17 +43,23 @@ var (
 	psw       = flag.String("psw", defaultMysqlPass, "Mysql user password")
 	host      = flag.String("host", defaultMysqlHost, "Mysql host ip address")
 	port      = flag.Int("port", defaultMysqlPort, "Mysql port")
+	database  = flag.String("database", defaultMysqlDB, "Mysql database")
 )
 
 // Returns the standard output, or fails testing if the command returned an error
-func runIntegration(t *testing.T) string {
+func runIntegration(t *testing.T, envVars... string) string {
 	t.Helper()
 
 	stdout, stderr, err := helpers.ExecInContainer(*container, []string{*binPath,
-		"--username", *user, "--password", *psw, "--hostname", *host, "--port", fmt.Sprint(*port)})
+		"--username", *user, "--password", *psw, "--hostname", *host, "--port", fmt.Sprint(*port), "--database", *database},
+		envVars...)
 
-	log.Debug("Integration command Standard Error: ", stderr)
-	assert
+	if stderr != "" {
+		log.Debug("Integration command Standard Error: ", stderr)
+	}
+	require.NoError(t, err)
+
+	return stdout
 }
 
 
@@ -91,193 +100,111 @@ func TestMain(m *testing.M) {
 }
 
 func TestOutputIsValidJSON(t *testing.T) {
-	stdout, _, err :=
-	if err != nil {
-		t.Fatal(err)
-	}
+	stdout := runIntegration(t)
 
 	var j map[string]interface{}
-	err = json.Unmarshal([]byte(stdout), &j)
-	if err != nil {
-		t.Error("Integration output should be a JSON dict")
-	}
+	err := json.Unmarshal([]byte(stdout), &j)
+	assert.NoError(t, err, "Integration output should be a JSON dict")
 }
 
 func TestMySQLIntegrationValidArguments(t *testing.T) {
 	testName := helpers.GetTestName(t)
-	cmd := exec.Command(*binPath)
-	cmd.Env = []string{
-		fmt.Sprintf("USERNAME=%s", *user),
-		fmt.Sprintf("PASSWORD=%s", *psw),
-		fmt.Sprintf("HOSTNAME=%s", *host),
-		fmt.Sprintf("PORT=%d", *port),
-		fmt.Sprintf("NRIA_CACHE_PATH=%v", testName),
-	}
-
-	var outbuf, errbuf bytes.Buffer
-	cmd.Stdout = &outbuf
-	cmd.Stderr = &errbuf
-	err := cmd.Run()
-	if err != nil {
-		t.Fatalf("It isn't possible to execute MySQL integration binary. Err: %s -- %s", err, errbuf.String())
-	}
+	stdout := runIntegration(t, fmt.Sprintf("NRIA_CACHE_PATH=%v", testName))
 
 	schemaPath := filepath.Join("json-schema-files", "mysql-schema-master.json")
 	if *update {
-		schema, err := jsonschema.Generate(outbuf.String())
-		if err != nil {
-			t.Fatal(err)
-		}
+		schema, err := jsonschema.Generate(stdout)
+		require.NoError(t, err)
 
 		schemaJSON, err := simplejson.NewJson(schema)
-		if err != nil {
-			t.Fatalf("Cannot unmarshal JSON schema, got error: %v", err)
-		}
-		err = helpers.ModifyJSONSchemaGlobal(schemaJSON, iName, 1, "1.1.0")
-		if err != nil {
-			t.Fatal(err)
-		}
+		require.NoError(t, err, "Unmarshaling JSON schema")
+
+		err = helpers.ModifyJSONSchemaGlobal(schemaJSON, iName, 2, "1.2.0")
+		require.NoError(t, err)
+
 		err = helpers.ModifyJSONSchemaInventoryPresent(schemaJSON)
-		if err != nil {
-			t.Fatal(err)
-		}
+		require.NoError(t, err)
+
 		err = helpers.ModifyJSONSchemaMetricsPresent(schemaJSON, "MysqlSample")
-		if err != nil {
-			t.Fatal(err)
-		}
+		require.NoError(t, err)
+
 		schema, err = schemaJSON.MarshalJSON()
-		if err != nil {
-			t.Fatalf("Cannot marshal JSON schema, got error: %v", err)
-		}
+		require.NoError(t, err, "Marshaling JSON schema")
+
 		err = ioutil.WriteFile(schemaPath, schema, 0644)
-		if err != nil {
-			t.Fatal(err)
-		}
+		require.NoError(t, err)
 	}
 
-	err = jsonschema.Validate(schemaPath, outbuf.String())
-	if err != nil {
-		t.Fatalf("The output of MySQL integration doesn't have expected format. Err: %s", err)
-	}
+	err := jsonschema.Validate(schemaPath, stdout)
+	require.NoError(t, err, "The output of MySQL integration doesn't have expected format")
 }
 
 func TestMySQLIntegrationOnlyMetrics(t *testing.T) {
-	testName := helpers.GetTestName(t)
-	cmd := exec.Command(*binPath)
-	cmd.Env = []string{
-		fmt.Sprintf("USERNAME=%s", *user),
-		fmt.Sprintf("PASSWORD=%s", *psw),
-		fmt.Sprintf("HOSTNAME=%s", *host),
-		fmt.Sprintf("PORT=%d", *port),
-		"METRICS=true",
-		fmt.Sprintf("NRIA_CACHE_PATH=%v", testName),
-	}
 
-	var outbuf, errbuf bytes.Buffer
-	cmd.Stdout = &outbuf
-	cmd.Stderr = &errbuf
-	err := cmd.Run()
-	if err != nil {
-		t.Fatalf("It isn't possible to execute MySQL integration binary. Err: %s -- %s", err, errbuf.String())
-	}
+	testName := helpers.GetTestName(t)
+	stdout := runIntegration(t, "METRICS=true", fmt.Sprintf("NRIA_CACHE_PATH=%v", testName))
 
 	schemaPath := filepath.Join("json-schema-files", "mysql-schema-metrics-master.json")
 	if *update {
-		schema, err := jsonschema.Generate(outbuf.String())
-		if err != nil {
-			t.Fatal(err)
-		}
+		schema, err := jsonschema.Generate(stdout)
+		require.NoError(t, err)
 
 		schemaJSON, err := simplejson.NewJson(schema)
-		if err != nil {
-			t.Fatalf("Cannot unmarshal JSON schema, got error: %v", err)
-		}
-		err = helpers.ModifyJSONSchemaGlobal(schemaJSON, iName, 1, "1.1.0")
-		if err != nil {
-			t.Fatal(err)
-		}
+		require.NoError(t, err, "Cannot unmarshal JSON schema")
+
+		err = helpers.ModifyJSONSchemaGlobal(schemaJSON, iName, 2, "1.2.0")
+		require.NoError(t, err)
+
 		err = helpers.ModifyJSONSchemaNoInventory(schemaJSON)
-		if err != nil {
-			t.Fatal(err)
-		}
+		require.NoError(t, err)
+
 		err = helpers.ModifyJSONSchemaMetricsPresent(schemaJSON, "MysqlSample")
-		if err != nil {
-			t.Fatal(err)
-		}
+		require.NoError(t, err)
+
 		schema, err = schemaJSON.MarshalJSON()
-		if err != nil {
-			t.Fatalf("Cannot marshal JSON schema, got error: %v", err)
-		}
+		require.NoError(t, err)
+
 		err = ioutil.WriteFile(schemaPath, schema, 0644)
-		if err != nil {
-			t.Fatal(err)
-		}
+		require.NoError(t, err)
 	}
 
-	err = jsonschema.Validate(schemaPath, outbuf.String())
-	if err != nil {
-		t.Fatalf("The output of MySQL integration doesn't have expected format. Err: %s", err)
-	}
+	err := jsonschema.Validate(schemaPath,stdout)
+	require.NoError(t, err, "The output of MySQL integration doesn't have expected format.")
 }
 
 func TestMySQLIntegrationOnlyInventory(t *testing.T) {
-	t.Skip("Skipping test - fix in the MySQL integration required")
 	testName := helpers.GetTestName(t)
-	cmd := exec.Command(*binPath)
-	cmd.Env = []string{
-		fmt.Sprintf("USERNAME=%s", *user),
-		fmt.Sprintf("PASSWORD=%s", *psw),
-		fmt.Sprintf("HOSTNAME=%s", *host),
-		fmt.Sprintf("PORT=%d", *port),
-		"INVENTORY=true",
-		fmt.Sprintf("NRIA_CACHE_PATH=%v", testName),
-	}
-
-	var outbuf, errbuf bytes.Buffer
-	cmd.Stdout = &outbuf
-	cmd.Stderr = &errbuf
-	err := cmd.Run()
-	if err != nil {
-		t.Fatalf("It isn't possible to execute MySQL integration binary. Err: %s -- %s", err, errbuf.String())
-	}
+	stdout := runIntegration(t, "INTEGRATION=true", fmt.Sprintf("NRIA_CACHE_PATH=%v", testName))
 
 	schemaPath := filepath.Join("json-schema-files", "mysql-schema-inventory-master.json")
 	if *update {
-		schema, err := jsonschema.Generate(outbuf.String())
+		schema, err := jsonschema.Generate(stdout)
 		if err != nil {
 			t.Fatal(err)
 		}
 
 		schemaJSON, err := simplejson.NewJson(schema)
-		if err != nil {
-			t.Fatalf("Cannot unmarshal JSON schema, got error: %v", err)
-		}
-		err = helpers.ModifyJSONSchemaGlobal(schemaJSON, iName, 1, "1.1.0")
-		if err != nil {
-			t.Fatal(err)
-		}
+		require.NoError(t, err, "Cannot unmarshal JSON schema")
+
+		err = helpers.ModifyJSONSchemaGlobal(schemaJSON, iName, 2, "1.2.0")
+		require.NoError(t, err)
+
 		err = helpers.ModifyJSONSchemaInventoryPresent(schemaJSON)
-		if err != nil {
-			t.Fatal(err)
-		}
+		require.NoError(t, err)
+
 		err = helpers.ModifyJSONSchemaNoMetrics(schemaJSON)
-		if err != nil {
-			t.Fatal(err)
-		}
+		require.NoError(t, err)
+
 		schema, err = schemaJSON.MarshalJSON()
-		if err != nil {
-			t.Fatalf("Cannot marshal JSON schema, got error: %v", err)
-		}
+		require.NoError(t, err, "Cannot marshal JSON schema")
+
 		err = ioutil.WriteFile(schemaPath, schema, 0644)
-		if err != nil {
-			t.Fatal(err)
-		}
+		require.NoError(t, err)
 	}
 
-	err = jsonschema.Validate(schemaPath, outbuf.String())
-	if err != nil {
-		t.Fatalf("The output of MySQL integration doesn't have expected format. Err: %s", err)
-	}
+	err := jsonschema.Validate(schemaPath, stdout)
+	require.NoError(t, err, "The output of MySQL integration doesn't have expected format.")
+
 }
 
 func TestMySQLIntegrationErrorNoPassword(t *testing.T) {
@@ -377,7 +304,7 @@ func TestMySQLIntegrationErrorNoUsername(t *testing.T) {
 			if err != nil {
 				t.Fatalf("Cannot unmarshal JSON schema, got error: %v", err)
 			}
-			err = helpers.ModifyJSONSchemaGlobal(schemaJSON, iName, 1, "1.1.0")
+			err = helpers.ModifyJSONSchemaGlobal(schemaJSON, iName, 2, "1.2.0")
 			if err != nil {
 				t.Fatal(err)
 			}

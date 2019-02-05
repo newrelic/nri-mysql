@@ -7,9 +7,11 @@ import (
 	"os/exec"
 	"path/filepath"
 	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/bitly/go-simplejson"
+	"github.com/sirupsen/logrus"
 	"github.com/xeipuuv/gojsonschema"
 )
 
@@ -170,12 +172,19 @@ func ModifyJSONSchemaInventoryPresent(schema *simplejson.Json) error {
 // 1st - Standard Output
 // 2nd - Standard Error
 // 3rd - Runtime error, if any
-func ExecInContainer(container string, command []string) (string, string, error) {
+func ExecInContainer(container string, command []string, envVars ...string) (string, string, error) {
 	cmdLine := make([]string, 0, 3+len(command))
-	cmdLine = append(cmdLine, "exec", "-i", container)
+	cmdLine = append(cmdLine, "exec", "-i")
+
+	for _, envVar := range envVars {
+		cmdLine = append(cmdLine, "-e", envVar)
+	}
+
+	cmdLine = append(cmdLine, container)
 	cmdLine = append(cmdLine, command...)
 
-	fmt.Println(cmdLine)
+	logrus.Debugf("executing: docker %s", strings.Join(cmdLine, " "))
+
 	cmd := exec.Command("docker", cmdLine...)
 
 	var outbuf, errbuf bytes.Buffer
@@ -187,7 +196,7 @@ func ExecInContainer(container string, command []string) (string, string, error)
 	stderr := errbuf.String()
 
 	if err != nil {
-		return "", "", err
+		return stdout, stderr, err
 	}
 
 	return stdout, stderr, nil
