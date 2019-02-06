@@ -6,4 +6,10 @@ go:
 services:
   - docker
 
-script: make clean validate test integration-test
+before_script:
+  - docker-compose -f tests/integration/docker-compose.yml up -d --build
+
+after_script:
+  - docker-compose -f tests/integration/docker-compose.yml down
+
+gobuild_args: -v -tags=integration
