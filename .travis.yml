@@ -6,7 +6,9 @@ go:
 services:
   - docker
 
-install:
-  - # Do nothing. This is needed to prevent default install action "go get -t -v ./..."
+env:
+  - GO111MODULE=off
+
+install: true
 
 script: make clean validate test integration-test
