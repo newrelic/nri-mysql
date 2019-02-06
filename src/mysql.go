@@ -23,6 +23,7 @@ type argumentList struct {
 	Username              string `help:"Username for accessing the database."`
 	Password              string `help:"Password for the given user."`
 	Database              string `help:"Database name"`
+	RemoteMonitoring      bool   `default:"false" help:"Identifies the monitored entity as 'remote'. In doubt: set to true"`
 	ExtendedMetrics       bool   `default:"false" help:"Enable extended metrics"`
 	ExtendedInnodbMetrics bool   `default:"false" help:"Enable InnoDB extended metrics"`
 	ExtendedMyIsamMetrics bool   `default:"false" help:"Enable MyISAM extended metrics"`
@@ -62,7 +63,13 @@ func main() {
 
 	log.SetupLogging(args.Verbose)
 
-	e := i.LocalEntity()
+	var e *integration.Entity
+	if args.RemoteMonitoring {
+		e, err = i.Entity(fmt.Sprint(args.Hostname, ":", args.Port), "mysql")
+		fatalIfErr(err)
+	} else {
+		e = i.LocalEntity()
+	}
 
 	db, err := openDB(generateDSN(args))
 	fatalIfErr(err)
