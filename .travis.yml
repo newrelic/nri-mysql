@@ -12,4 +12,4 @@ before_script:
 after_script:
   - docker-compose -f tests/integration/docker-compose.yml down
 
-gobuild_args: -v -tags=integration
+script: go test -v -tags=integration ./...
