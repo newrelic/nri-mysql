@@ -1,14 +1,9 @@
 language: go
 
 go:
-  - 1.11
+  - 1.10
 
 services:
   - docker
-
-env:
-  - GO111MODULE=off
-
-install: true
 
 script: make clean validate test integration-test
