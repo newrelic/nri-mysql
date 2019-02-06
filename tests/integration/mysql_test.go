@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/bitly/go-simplejson"
 	log "github.com/sirupsen/logrus"
@@ -29,7 +30,7 @@ var (
 	defaultMysqlUser = "root"
 	defaultMysqlPass = "DBpwd1234!"
 	defaultMysqlHost = "mysql"
-	defaultMysqlPort = 13306
+	defaultMysqlPort = 3306
 	defaultMysqlDB   = "database"
 
 	// cli flags
@@ -81,7 +82,7 @@ func setup() error {
 		log.SetLevel(log.DebugLevel)
 	}
 
-	return nil
+	return helpers.WaitForPort(*container, *host, *port, 30*time.Second)
 }
 
 func teardown() error {

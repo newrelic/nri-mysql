@@ -9,6 +9,7 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/bitly/go-simplejson"
 	"github.com/sirupsen/logrus"
@@ -200,4 +201,21 @@ func ExecInContainer(container string, command []string, envVars ...string) (str
 	}
 
 	return stdout, stderr, nil
+}
+
+// WaitForPort waits for a host:port to be accessible inside a container
+func WaitForPort(fromContainer, host string, port int, timeout time.Duration) error {
+	endTime := time.Now().Add(timeout)
+	address := fmt.Sprintf("%s:%d", host, port)
+
+	var err error
+	for endTime.After(time.Now()) {
+		_, _, err = ExecInContainer(fromContainer, []string{"nc", "-z", address})
+		if err == nil {
+			return nil
+		}
+		time.Sleep(500 * time.Millisecond)
+	}
+
+	return fmt.Errorf("address %s:%d is not reachable after %v: %v", host, port, timeout, err)
 }
