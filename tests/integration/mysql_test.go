@@ -29,7 +29,7 @@ var (
 	defaultMysqlUser = "root"
 	defaultMysqlPass = "DBpwd1234!"
 	defaultMysqlHost = "mysql"
-	defaultMysqlPort = 3306
+	defaultMysqlPort = 13306
 	defaultMysqlDB   = "database"
 
 	// cli flags

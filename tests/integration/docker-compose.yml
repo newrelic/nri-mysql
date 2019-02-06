@@ -11,8 +11,9 @@ services:
       MYSQL_USER: dbuser
       MYSQL_PASSWORD: DBpwd1234!
       MYSQL_ROOT_PASSWORD: DBpwd1234!
+      MYSQL_PORT: 13306
     ports:
-      - "3306:3306"
+      - "13306:13306"
     links:
       - nri-mysql
 
