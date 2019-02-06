@@ -163,7 +163,7 @@ func TestMySQLIntegrationOnlyMetrics(t *testing.T) {
 		schemaJSON, err := simplejson.NewJson(schema)
 		require.NoError(t, err, "Cannot unmarshal JSON schema")
 
-		err = helpers.ModifyJSONSchemaGlobal(schemaJSON, iName, 2, "1.2.0")
+		err = helpers.ModifyJSONSchemaGlobal(schemaJSON, iName, 2, "1.1.0") //todo fixme
 		require.NoError(t, err)
 
 		err = helpers.ModifyJSONSchemaNoInventory(schemaJSON)
