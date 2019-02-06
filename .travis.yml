@@ -7,6 +7,6 @@ services:
   - docker
 
 install:
-  - # Do nothing. This is needed to prevent default install action "go get -t -v ./..." from happening here (we want it to happen inside script step).
+  - # Do nothing. This is needed to prevent default install action "go get -t -v ./..."
 
 script: make clean validate test integration-test
