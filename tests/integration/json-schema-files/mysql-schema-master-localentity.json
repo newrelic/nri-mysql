@@ -19,17 +19,6 @@
       "items": {
         "type": "object",
         "properties": {
-          "entity": {
-            "minProperties": 2,
-            "properties": {
-              "name" : {
-                "type": "string"
-              },
-              "type": {
-                "type": "string"
-              }
-            }
-          },
           "inventory": {
             "minProperties": 1,
             "properties": {
@@ -5871,14 +5860,17 @@
             "minItems": 1,
             "type": "array",
             "uniqueItems": true
+          },
+          "events" : {
+            "type": "array"
           }
         },
         "required": [
           "metrics",
           "inventory",
-          "events",
-          "entity"
-        ]
+          "events"
+        ],
+        "additionalProperties": false
       }
     },
     "name": {

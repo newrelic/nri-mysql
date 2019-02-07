@@ -118,11 +118,43 @@ func TestOutputIsValidJSON(t *testing.T) {
 	assert.NoError(t, err, "Integration output should be a JSON dict")
 }
 
-func TestMySQLIntegrationValidArguments(t *testing.T) {
+func TestMySQLIntegrationValidArguments_RemoteEntity(t *testing.T) {
+	testName := helpers.GetTestName(t)
+	stdout := runIntegration(t, fmt.Sprintf("NRIA_CACHE_PATH=/tmp/%v.json", testName), "REMOTE_MONITORING=true")
+
+	schemaPath := filepath.Join("json-schema-files", "mysql-schema-master.json")
+	if *update {
+		schema, err := jsonschema.Generate(stdout)
+		require.NoError(t, err)
+
+		schemaJSON, err := simplejson.NewJson(schema)
+		require.NoError(t, err, "Unmarshaling JSON schema")
+
+		err = helpers.ModifyJSONSchemaGlobal(schemaJSON, iName, 2, "1.2.0")
+		require.NoError(t, err)
+
+		err = helpers.ModifyJSONSchemaInventoryPresent(schemaJSON)
+		require.NoError(t, err)
+
+		err = helpers.ModifyJSONSchemaMetricsPresent(schemaJSON, "MysqlSample")
+		require.NoError(t, err)
+
+		schema, err = schemaJSON.MarshalJSON()
+		require.NoError(t, err, "Marshaling JSON schema")
+
+		err = ioutil.WriteFile(schemaPath, schema, 0644)
+		require.NoError(t, err)
+	}
+
+	err := jsonschema.Validate(schemaPath, stdout)
+	require.NoError(t, err, "The output of MySQL integration doesn't have expected format")
+}
+
+func TestMySQLIntegrationValidArguments_LocalEntity(t *testing.T) {
 	testName := helpers.GetTestName(t)
 	stdout := runIntegration(t, fmt.Sprintf("NRIA_CACHE_PATH=/tmp/%v.json", testName))
 
-	schemaPath := filepath.Join("json-schema-files", "mysql-schema-master.json")
+	schemaPath := filepath.Join("json-schema-files", "mysql-schema-master-localentity.json")
 	if *update {
 		schema, err := jsonschema.Generate(stdout)
 		require.NoError(t, err)
