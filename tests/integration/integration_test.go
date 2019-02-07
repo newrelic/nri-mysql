@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strconv"
 	"testing"
 	"time"
 
@@ -60,13 +61,12 @@ func runIntegration(t *testing.T, envVars ...string) string {
 		command = append(command, "--hostname", *host)
 	}
 	if port != nil {
-		command = append(command, "--port", fmt.Sprint(*port))
+		command = append(command, "--port", strconv.Itoa(*port))
 	}
 	if database != nil {
 		command = append(command, "--database", *database)
 	}
 	stdout, stderr, err := helpers.ExecInContainer(*container, command, envVars...)
-
 	if stderr != "" {
 		log.Debug("Integration command Standard Error: ", stderr)
 	}
