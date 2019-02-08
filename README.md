@@ -44,6 +44,18 @@ $ ./bin/nr-mysql -help
 
 For managing external dependencies [govendor tool](https://github.com/kardianos/govendor) is used. It is required to lock all external dependencies to specific version (if possible) into vendor directory.
 
+### Integration testing
+
+Requirements:
+
+* `docker` and `docker-compose` commands
+
+To run integration tests:
+
+```
+$ make integration-test
+```
+
 ## Contributing Code
 
 We welcome code contributions (in the form of pull requests) from our user

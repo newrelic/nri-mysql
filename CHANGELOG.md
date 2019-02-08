@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## Next Release (date TBD)
 
+## 1.2.0 (TBD)
+
+- Restored `NRIA_CACHE_PATH` legacy environment variable, for backwards-compatibility.
+
 ## 1.1.5 (2018-12-05)
 
 ### Fixed

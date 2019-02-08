@@ -9,6 +9,14 @@
 			"revisionTime": "2018-08-30T19:11:22Z"
 		},
 		{
+			"checksumSHA1": "4+wnUoVOdK9cHy7rqdQdweYKiOA=",
+			"path": "github.com/bitly/go-simplejson",
+			"revision": "aabad6e819789e569bd6aabf444c935aa9ba1e44",
+			"revisionTime": "2015-09-15T16:53:35Z",
+			"version": "v0.5.0",
+			"versionExact": "v0.5.0"
+		},
+		{
 			"checksumSHA1": "xmTgJXWHguGKHPuZE50FIbs88L0=",
 			"path": "github.com/go-sql-driver/mysql",
 			"revision": "a0583e0143b1624142adab07e0e97fe106d99561",
@@ -79,6 +87,24 @@
 			"versionExact": "v3.1.0"
 		},
 		{
+			"checksumSHA1": "VnkNO/q6ZVTYCd/F7nmHosHC5a4=",
+			"path": "github.com/opencontainers/go-digest",
+			"revision": "4eb64ca734023ea9a10c70ff11dc0e3f69d38482",
+			"revisionTime": "2019-01-29T23:24:53Z"
+		},
+		{
+			"checksumSHA1": "Yd/Bw+xjDW+66s4mr4yaHFY/EeE=",
+			"path": "github.com/opencontainers/image-spec/specs-go",
+			"revision": "befc3cba3ffdf76e2f72f52a248a20a2727cc4c9",
+			"revisionTime": "2019-01-20T15:25:14Z"
+		},
+		{
+			"checksumSHA1": "jdbXRRzeu0njLE9/nCEZG+Yg/Jk=",
+			"path": "github.com/opencontainers/image-spec/specs-go/v1",
+			"revision": "befc3cba3ffdf76e2f72f52a248a20a2727cc4c9",
+			"revisionTime": "2019-01-20T15:25:14Z"
+		},
+		{
 			"checksumSHA1": "DTy0iJ2w5C+FDsN9EnzfhNmvS+o=",
 			"path": "github.com/pkg/errors",
 			"revision": "059132a15dd08d6704c67711dae0cf35ab991756",
@@ -133,6 +159,24 @@
 			"revisionTime": "2018-12-05T02:12:43Z",
 			"version": "v1.3.0",
 			"versionExact": "v1.3.0"
+		},
+		{
+			"checksumSHA1": "+SLRfCdnZzt59tTsNUp6ie39zjo=",
+			"path": "github.com/xeipuuv/gojsonpointer",
+			"revision": "4e3ac2762d5f479393488629ee9370b50873b3a6",
+			"revisionTime": "2018-01-27T04:07:02Z"
+		},
+		{
+			"checksumSHA1": "cjCjdAbLpKV1bxMpMRzC5Fn4R34=",
+			"path": "github.com/xeipuuv/gojsonreference",
+			"revision": "bd5ef7bd5415a7ac448318e64f11a24cd21e594b",
+			"revisionTime": "2018-01-27T04:06:03Z"
+		},
+		{
+			"checksumSHA1": "iBtaaPC5g5BHnPbfIjfkoPojotc=",
+			"path": "github.com/xeipuuv/gojsonschema",
+			"revision": "f971f3cd73b2899de6923801c147f075263e0c50",
+			"revisionTime": "2018-12-19T16:01:44Z"
 		},
 		{
 			"checksumSHA1": "3DvkGtpbJW8oXepRr3wYSs72LmQ=",
