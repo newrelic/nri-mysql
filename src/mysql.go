@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"strconv"
 
 	sdk_args "github.com/newrelic/infra-integrations-sdk/args"
 	"github.com/newrelic/infra-integrations-sdk/data/metric"
@@ -41,6 +42,23 @@ func generateDSN(args argumentList) string {
 
 var args argumentList
 
+func newNodeEntity(
+	i *integration.Integration,
+	remoteMonitoring bool,
+	hostname string,
+	port int,
+) (e *integration.Entity) {
+
+	if remoteMonitoring {
+		var err error
+		e, err = i.Entity(fmt.Sprint(hostname, ":", port), "node")
+		fatalIfErr(err)
+	} else {
+		e = i.LocalEntity()
+	}
+	return e
+}
+
 func main() {
 
 	var i *integration.Integration
@@ -63,13 +81,7 @@ func main() {
 
 	log.SetupLogging(args.Verbose)
 
-	var e *integration.Entity
-	if args.RemoteMonitoring {
-		e, err = i.Entity(fmt.Sprint(args.Hostname, ":", args.Port), "mysql")
-		fatalIfErr(err)
-	} else {
-		e = i.LocalEntity()
-	}
+	e := newNodeEntity(i, args.RemoteMonitoring, args.Hostname, args.Port)
 
 	db, err := openDB(generateDSN(args))
 	fatalIfErr(err)
@@ -83,7 +95,11 @@ func main() {
 	}
 
 	if args.HasMetrics() {
-		ms := e.NewMetricSet("MysqlSample", metric.Attr("hostname", args.Hostname))
+		ms := e.NewMetricSet(
+			"MysqlSample",
+			metric.Attr("hostname", args.Hostname),
+			metric.Attr("port", strconv.Itoa(args.Port)),
+		)
 		populateMetrics(ms, rawMetrics)
 	}
 
