@@ -15,6 +15,7 @@ import (
 const (
 	integrationName    = "com.newrelic.mysql"
 	integrationVersion = "1.2.0"
+	nodeEntityType     = "node"
 )
 
 type argumentList struct {
@@ -42,46 +43,50 @@ func generateDSN(args argumentList) string {
 
 var args argumentList
 
-func newNodeEntity(
+func createNodeEntity(
 	i *integration.Integration,
 	remoteMonitoring bool,
 	hostname string,
 	port int,
-) (e *integration.Entity) {
+) (*integration.Entity, error) {
 
 	if remoteMonitoring {
-		var err error
-		e, err = i.Entity(fmt.Sprint(hostname, ":", port), "node")
-		fatalIfErr(err)
-	} else {
-		e = i.LocalEntity()
+		return i.Entity(fmt.Sprint(hostname, ":", port), nodeEntityType)
 	}
-	return e
+	return i.LocalEntity(), nil
+}
+
+func createIntegration() (*integration.Integration, error) {
+	cachePath := os.Getenv("NRIA_CACHE_PATH")
+	if cachePath == "" {
+		return integration.New(integrationName, integrationVersion, integration.Args(&args))
+	}
+
+	l := log.NewStdErr(args.Verbose)
+	s, err := persist.NewFileStore(cachePath, l, persist.DefaultTTL)
+	if err != nil {
+		return nil, err
+	}
+
+	return integration.New(
+		integrationName,
+		integrationVersion,
+		integration.Args(&args),
+		integration.Storer(s),
+		integration.Logger(l),
+	)
+
 }
 
 func main() {
 
-	var i *integration.Integration
-	var err error
-	cachePath := os.Getenv("NRIA_CACHE_PATH")
-	if cachePath == "" {
-		i, err = integration.New(integrationName, integrationVersion, integration.Args(&args))
-	} else {
-		var storer persist.Storer
-
-		logger := log.NewStdErr(args.Verbose)
-		storer, err = persist.NewFileStore(cachePath, logger, persist.DefaultTTL)
-		fatalIfErr(err)
-
-		i, err = integration.New(integrationName, integrationVersion, integration.Args(&args),
-			integration.Storer(storer), integration.Logger(logger))
-	}
-
+	i, err := createIntegration()
 	fatalIfErr(err)
 
 	log.SetupLogging(args.Verbose)
 
-	e := newNodeEntity(i, args.RemoteMonitoring, args.Hostname, args.Port)
+	e, err := createNodeEntity(i, args.RemoteMonitoring, args.Hostname, args.Port)
+	fatalIfErr(err)
 
 	db, err := openDB(generateDSN(args))
 	fatalIfErr(err)
