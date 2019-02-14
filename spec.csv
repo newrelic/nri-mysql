@@ -1,0 +1,123 @@
+integration,metric_name,metric_type,metric_enabled,metric_description
+Mysql,net.abortedClientsPerSecond,rate,true,Aborted clients
+Mysql,net.abortedConnectsPerSecond,rate,true,Aborted connects
+Mysql,net.bytesReceivedPerSecond,rate,true,Bytes received
+Mysql,net.bytesSentPerSecond,rate,true,Bytes sent
+Mysql,net.connectionErrorsMaxConnectionsPerSecond,rate,true,Connection errors max connections
+Mysql,net.connectionsPerSecond,rate,true,Connections
+Mysql,net.maxUsedConnections,gauge,true,Max used connections
+Mysql,net.threadsConnected,gauge,true,Threads connected
+Mysql,net.threadsRunning,gauge,true,Threads running
+Mysql,query.comDeletePerSecond,rate,true,Com delete
+Mysql,query.comDeleteMultiPerSecond,rate,true,Com delete multi
+Mysql,query.comInsertPerSecond,rate,true,Com insert
+Mysql,query.comInsertSelectPerSecond,rate,true,Com insert select
+Mysql,query.comReplaceSelectPerSecond,rate,true,Com replace select
+Mysql,query.comSelectPerSecond,rate,true,Com select
+Mysql,query.comUpdatePerSecond,rate,true,Com update
+Mysql,query.comUpdateMultiPerSecond,rate,true,Com update multi
+Mysql,db.handlerRollbackPerSecond,rate,true,Handler rollback
+Mysql,query.preparedStmtCountPerSecond,rate,true,Prepared stmt count
+Mysql,query.queriesPerSecond,rate,true,Queries
+Mysql,query.questionsPerSecond,rate,true,Questions
+Mysql,query.slowQueriesPerSecond,rate,true,Slow queries
+Mysql,db.innodb.bufferPoolPagesData,gauge,true,Innodb buffer pool pages data
+Mysql,db.innodb.bufferPoolPagesFree,gauge,true,Innodb buffer pool pages free
+Mysql,db.innodb.bufferPoolPagesTotal,gauge,true,Innodb buffer pool pages total
+Mysql,db.innodb.dataReadBytesPerSecond,rate,true,Innodb data read
+Mysql,db.innodb.dataWrittenBytesPerSecond,rate,true,Innodb data written
+Mysql,db.innodb.logWaitsPerSecond,rate,true,Innodb log waits
+Mysql,db.innodb.rowLockCurrentWaits,gauge,true,Innodb row lock current waits
+Mysql,db.innodb.rowLockTimeAvg,gauge,true,Innodb row lock time avg
+Mysql,db.innodb.rowLockWaitsPerSecond,rate,true,Innodb row lock waits
+Mysql,db.openFiles,gauge,true,Open files
+Mysql,db.openTables,gauge,true,Open tables
+Mysql,db.openedTablesPerSecond,rate,true,Opened tables
+Mysql,db.qCacheFreeMemoryBytes,gauge,true,Qcache free memory
+Mysql,db.qCacheNotCachedPerSecond,rate,true,Qcache not cached
+Mysql,db.tablesLocksWaitedPerSecond,rate,true,Table locks waited
+Mysql,db.qCacheUtilization,gauge,true,Qcache utilization
+Mysql,db.qCacheHitRatio,gauge,true,Qcache hit ratio
+Mysql,software.edition,attribute,true,version comment
+Mysql,software.version,attribute,true,version
+Mysql,cluster.nodeType,attribute,true,node type
+Mysql,cluster.slaveRunning, {slaveRunningAsNumber,true, metric.GAUGE},
+Mysql,db.createdTmpDiskTablesPerSecond,rate,true,Created tmp disk tables
+Mysql,db.createdTmpFilesPerSecond,rate,true,Created tmp files
+Mysql,db.createdTmpTablesPerSecond,rate,true,Created tmp tables
+Mysql,db.handlerDeletePerSecond,rate,true,Handler delete
+Mysql,db.handlerReadFirstPerSecond,rate,true,Handler read first
+Mysql,db.handlerReadKeyPerSecond,rate,true,Handler read key
+Mysql,db.handlerReadRndPerSecond,rate,true,Handler read rnd
+Mysql,db.handlerReadRndNextPerSecond,rate,true,Handler read rnd next
+Mysql,db.handlerUpdatePerSecond,rate,true,Handler update
+Mysql,db.handlerWritePerSecond,rate,true,Handler write
+Mysql,db.maxExecutionTimeExceededPerSecond,rate,true,Max execution time exceeded
+Mysql,db.qCacheFreeBlocks,gauge,true,Qcache free blocks
+Mysql,db.qCacheHitsPerSecond,rate,true,Qcache hits
+Mysql,db.qCacheInserts,gauge,true,Qcache inserts
+Mysql,db.qCacheLowmemPrunesPerSecond,rate,true,Qcache lowmem prunes
+Mysql,db.qCacheQueriesInCachePerSecond,rate,true,Qcache queries in cache
+Mysql,db.qCacheTotalBlocks,gauge,true,Qcache total blocks
+Mysql,db.selectFullJoinPerSecond,rate,true,Select full join
+Mysql,db.selectFullJoinRangePerSecond,rate,true,Select full range join
+Mysql,db.selectRangePerSecond,rate,true,Select range
+Mysql,db.selectRangeCheckPerSecond,rate,true,Select range check
+Mysql,db.sortMergePassesPerSecond,rate,true,Sort merge passes
+Mysql,db.sortRangePerSecond,rate,true,Sort range
+Mysql,db.sortRowsPerSecond,rate,true,Sort rows
+Mysql,db.sortScanPerSecond,rate,true,Sort scan
+Mysql,db.tableOpenCacheHitsPerSecond,rate,true,Table open cache hits
+Mysql,db.tableOpenCacheMissesPerSecond,rate,true,Table open cache misses
+Mysql,db.tableOpenCacheOverflowsPerSecond,rate,true,Table open cache overflows
+Mysql,db.threadsCached,gauge,true,Threads cached
+Mysql,db.threadsCreatedPerSecond,rate,true,Threads created
+Mysql,db.threadCacheMissRate,gauge,true,Thread cache miss rate
+Mysql,cluster.secondsBehindMaster,gauge,true,Seconds Behind Master
+Mysql,cluster.slaveIORunning,attribute,true,Slave IO Running
+Mysql,cluster.slaveSQLRunning,attribute,true,Slave SQL Running
+Mysql,cluster.lastIOErrno,gauge,true,Last IO Errno
+Mysql,cluster.lastIOError,attribute,true,Last IO Error
+Mysql,cluster.lastSQLErrno,gauge,true,Last SQL Errno
+Mysql,cluster.lastSQLError,attribute,true,Last SQL Error
+Mysql,cluster.masterLogFile,attribute,true,Master Log File
+Mysql,cluster.readMasterLogPos,gauge,true,Read Master Log Pos
+Mysql,cluster.relayMasterLogFile,attribute,true,Relay Master Log File
+Mysql,cluster.execMasterLogPos,gauge,true,Exec Master Log Pos
+Mysql,db.relayLogSpace,gauge,true,Relay Log Space
+Mysql,cluster.masterHost,attribute,true,Master Host
+Mysql,db.innodb.bufferPoolPagesDirty,gauge,true,Innodb buffer pool pages dirty
+Mysql,db.innodb.bufferPoolPagesFlushedPerSecond,rate,true,Innodb buffer pool pages flushed
+Mysql,db.innodb.bufferPoolReadAheadPerSecond,rate,true,Innodb buffer pool read ahead
+Mysql,db.innodb.bufferPoolReadAheadEvictedPerSecond,rate,true,Innodb buffer pool read ahead evicted
+Mysql,db.innodb.bufferPoolReadAheadRndPerSecond,rate,true,Innodb buffer pool read ahead rnd
+Mysql,db.innodb.bufferPoolReadRequestsPerSecond,rate,true,Innodb buffer pool read requests
+Mysql,db.innodb.bufferPoolReadsPerSecond,rate,true,Innodb buffer pool reads
+Mysql,db.innodb.bufferPoolWaitFreePerSecond,rate,true,Innodb buffer pool wait free
+Mysql,db.innodb.bufferPoolWriteRequestsPerSecond,rate,true,Innodb buffer pool write requests
+Mysql,db.innodb.dataFsyncsPerSecond,rate,true,Innodb data fsyncs
+Mysql,db.innodb.dataPendingFsyncs,gauge,true,Innodb data pending fsyncs
+Mysql,db.innodb.dataPendingReads,gauge,true,Innodb data pending reads
+Mysql,db.innodb.dataPendingWrites,gauge,true,Innodb data pending writes
+Mysql,db.innodb.dataReadsPerSecond,rate,true,Innodb data reads
+Mysql,db.innodb.dataWritesPerSecond,rate,true,Innodb data writes
+Mysql,db.innodb.logWriteRequestsPerSecond,rate,true,Innodb log write requests
+Mysql,db.innodb.logWritesPerSecond,rate,true,Innodb log writes
+Mysql,db.innodb.numOpenFiles,gauge,true,Innodb num open files
+Mysql,db.innodb.osLogFsyncsPerSecond,rate,true,Innodb os log fsyncs
+Mysql,db.innodb.osLogPendingFsyncs,gauge,true,Innodb os log pending fsyncs
+Mysql,db.innodb.osLogPendingWrites,gauge,true,Innodb os log pending writes
+Mysql,db.innodb.osLogWrittenBytesPerSecond,rate,true,Innodb os log written
+Mysql,db.innodb.pagesCreatedPerSecond,rate,true,Innodb pages created
+Mysql,db.innodb.pagesReadPerSecond,rate,true,Innodb pages read
+Mysql,db.innodb.pagesWrittenPerSecond,rate,true,Innodb pages written
+Mysql,db.innodb.rowsDeletedPerSecond,rate,true,Innodb rows deleted
+Mysql,db.innodb.rowsInsertedPerSecond,rate,true,Innodb rows inserted
+Mysql,db.innodb.rowsReadPerSecond,rate,true,Innodb rows read
+Mysql,db.innodb.rowsUpdatedPerSecond,rate,true,Innodb rows updated
+Mysql,db.myisam.keyBlocksNotFlushed,gauge,true,Key blocks not flushed
+Mysql,db.myisam.keyCacheUtilization,gauge,true,Key cache utilization
+Mysql,db.myisam.keyReadRequestsPerSecond,rate,true,Key read requests
+Mysql,db.myisam.keyReadsPerSecond,rate,true,Key reads
+Mysql,db.myisam.keyWriteRequestsPerSecond,rate,true,Key write requests
+Mysql,db.myisam.keyWritesPerSecond,rate,true,Key_writes

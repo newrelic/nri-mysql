@@ -1,0 +1,2 @@
+entity type,inventory source,inventory path
+node,config/mysql,*
