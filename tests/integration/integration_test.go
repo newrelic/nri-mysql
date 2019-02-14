@@ -6,14 +6,12 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strconv"
 	"testing"
 	"time"
 
-	"github.com/bitly/go-simplejson"
 	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -36,7 +34,6 @@ var (
 
 	// cli flags
 	container = flag.String("container", defaultContainer, "container where the integration is installed")
-	update    = flag.Bool("test.update", false, "update json-schema file")
 	binPath   = flag.String("bin", defaultBinPath, "Integration binary path")
 	user      = flag.String("user", defaultMysqlUser, "Mysql user name")
 	psw       = flag.String("psw", defaultMysqlPass, "Mysql user password")
@@ -121,31 +118,7 @@ func TestOutputIsValidJSON(t *testing.T) {
 func TestMySQLIntegrationValidArguments_RemoteEntity(t *testing.T) {
 	testName := helpers.GetTestName(t)
 	stdout := runIntegration(t, fmt.Sprintf("NRIA_CACHE_PATH=/tmp/%v.json", testName), "REMOTE_MONITORING=true")
-
 	schemaPath := filepath.Join("json-schema-files", "mysql-schema-master.json")
-	if *update {
-		schema, err := jsonschema.Generate(stdout)
-		require.NoError(t, err)
-
-		schemaJSON, err := simplejson.NewJson(schema)
-		require.NoError(t, err, "Unmarshaling JSON schema")
-
-		err = helpers.ModifyJSONSchemaGlobal(schemaJSON, iName, 2, "1.2.0")
-		require.NoError(t, err)
-
-		err = helpers.ModifyJSONSchemaInventoryPresent(schemaJSON)
-		require.NoError(t, err)
-
-		err = helpers.ModifyJSONSchemaMetricsPresent(schemaJSON, "MysqlSample")
-		require.NoError(t, err)
-
-		schema, err = schemaJSON.MarshalJSON()
-		require.NoError(t, err, "Marshaling JSON schema")
-
-		err = ioutil.WriteFile(schemaPath, schema, 0644)
-		require.NoError(t, err)
-	}
-
 	err := jsonschema.Validate(schemaPath, stdout)
 	require.NoError(t, err, "The output of MySQL integration doesn't have expected format")
 }
@@ -153,31 +126,7 @@ func TestMySQLIntegrationValidArguments_RemoteEntity(t *testing.T) {
 func TestMySQLIntegrationValidArguments_LocalEntity(t *testing.T) {
 	testName := helpers.GetTestName(t)
 	stdout := runIntegration(t, fmt.Sprintf("NRIA_CACHE_PATH=/tmp/%v.json", testName))
-
 	schemaPath := filepath.Join("json-schema-files", "mysql-schema-master-localentity.json")
-	if *update {
-		schema, err := jsonschema.Generate(stdout)
-		require.NoError(t, err)
-
-		schemaJSON, err := simplejson.NewJson(schema)
-		require.NoError(t, err, "Unmarshaling JSON schema")
-
-		err = helpers.ModifyJSONSchemaGlobal(schemaJSON, iName, 2, "1.2.0")
-		require.NoError(t, err)
-
-		err = helpers.ModifyJSONSchemaInventoryPresent(schemaJSON)
-		require.NoError(t, err)
-
-		err = helpers.ModifyJSONSchemaMetricsPresent(schemaJSON, "MysqlSample")
-		require.NoError(t, err)
-
-		schema, err = schemaJSON.MarshalJSON()
-		require.NoError(t, err, "Marshaling JSON schema")
-
-		err = ioutil.WriteFile(schemaPath, schema, 0644)
-		require.NoError(t, err)
-	}
-
 	err := jsonschema.Validate(schemaPath, stdout)
 	require.NoError(t, err, "The output of MySQL integration doesn't have expected format")
 }
@@ -186,31 +135,7 @@ func TestMySQLIntegrationOnlyMetrics(t *testing.T) {
 
 	testName := helpers.GetTestName(t)
 	stdout := runIntegration(t, "METRICS=true", fmt.Sprintf("NRIA_CACHE_PATH=/tmp/%v.json", testName))
-
 	schemaPath := filepath.Join("json-schema-files", "mysql-schema-metrics-master.json")
-	if *update {
-		schema, err := jsonschema.Generate(stdout)
-		require.NoError(t, err)
-
-		schemaJSON, err := simplejson.NewJson(schema)
-		require.NoError(t, err, "Cannot unmarshal JSON schema")
-
-		err = helpers.ModifyJSONSchemaGlobal(schemaJSON, iName, 2, "1.2.0")
-		require.NoError(t, err)
-
-		err = helpers.ModifyJSONSchemaNoInventory(schemaJSON)
-		require.NoError(t, err)
-
-		err = helpers.ModifyJSONSchemaMetricsPresent(schemaJSON, "MysqlSample")
-		require.NoError(t, err)
-
-		schema, err = schemaJSON.MarshalJSON()
-		require.NoError(t, err)
-
-		err = ioutil.WriteFile(schemaPath, schema, 0644)
-		require.NoError(t, err)
-	}
-
 	err := jsonschema.Validate(schemaPath, stdout)
 	require.NoError(t, err, "The output of MySQL integration doesn't have expected format.")
 }
@@ -218,33 +143,7 @@ func TestMySQLIntegrationOnlyMetrics(t *testing.T) {
 func TestMySQLIntegrationOnlyInventory(t *testing.T) {
 	testName := helpers.GetTestName(t)
 	stdout := runIntegration(t, "INTEGRATION=true", fmt.Sprintf("NRIA_CACHE_PATH=/tmp/%v.json", testName))
-
 	schemaPath := filepath.Join("json-schema-files", "mysql-schema-inventory-master.json")
-	if *update {
-		schema, err := jsonschema.Generate(stdout)
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		schemaJSON, err := simplejson.NewJson(schema)
-		require.NoError(t, err, "Cannot unmarshal JSON schema")
-
-		err = helpers.ModifyJSONSchemaGlobal(schemaJSON, iName, 2, "1.2.0")
-		require.NoError(t, err)
-
-		err = helpers.ModifyJSONSchemaInventoryPresent(schemaJSON)
-		require.NoError(t, err)
-
-		err = helpers.ModifyJSONSchemaNoMetrics(schemaJSON)
-		require.NoError(t, err)
-
-		schema, err = schemaJSON.MarshalJSON()
-		require.NoError(t, err, "Cannot marshal JSON schema")
-
-		err = ioutil.WriteFile(schemaPath, schema, 0644)
-		require.NoError(t, err)
-	}
-
 	err := jsonschema.Validate(schemaPath, stdout)
 	require.NoError(t, err, "The output of MySQL integration doesn't have expected format.")
 
