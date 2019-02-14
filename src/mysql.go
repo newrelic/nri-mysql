@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"strconv"
 
 	sdk_args "github.com/newrelic/infra-integrations-sdk/args"
 	"github.com/newrelic/infra-integrations-sdk/data/metric"
@@ -14,6 +15,7 @@ import (
 const (
 	integrationName    = "com.newrelic.mysql"
 	integrationVersion = "1.2.0"
+	nodeEntityType     = "node"
 )
 
 type argumentList struct {
@@ -23,6 +25,7 @@ type argumentList struct {
 	Username              string `help:"Username for accessing the database."`
 	Password              string `help:"Password for the given user."`
 	Database              string `help:"Database name"`
+	RemoteMonitoring      bool   `default:"false" help:"Identifies the monitored entity as 'remote'. In doubt: set to true"`
 	ExtendedMetrics       bool   `default:"false" help:"Enable extended metrics"`
 	ExtendedInnodbMetrics bool   `default:"false" help:"Enable InnoDB extended metrics"`
 	ExtendedMyIsamMetrics bool   `default:"false" help:"Enable MyISAM extended metrics"`
@@ -40,29 +43,50 @@ func generateDSN(args argumentList) string {
 
 var args argumentList
 
-func main() {
+func createNodeEntity(
+	i *integration.Integration,
+	remoteMonitoring bool,
+	hostname string,
+	port int,
+) (*integration.Entity, error) {
 
-	var i *integration.Integration
-	var err error
+	if remoteMonitoring {
+		return i.Entity(fmt.Sprint(hostname, ":", port), nodeEntityType)
+	}
+	return i.LocalEntity(), nil
+}
+
+func createIntegration() (*integration.Integration, error) {
 	cachePath := os.Getenv("NRIA_CACHE_PATH")
 	if cachePath == "" {
-		i, err = integration.New(integrationName, integrationVersion, integration.Args(&args))
-	} else {
-		var storer persist.Storer
-
-		logger := log.NewStdErr(args.Verbose)
-		storer, err = persist.NewFileStore(cachePath, logger, persist.DefaultTTL)
-		fatalIfErr(err)
-
-		i, err = integration.New(integrationName, integrationVersion, integration.Args(&args),
-			integration.Storer(storer), integration.Logger(logger))
+		return integration.New(integrationName, integrationVersion, integration.Args(&args))
 	}
 
+	l := log.NewStdErr(args.Verbose)
+	s, err := persist.NewFileStore(cachePath, l, persist.DefaultTTL)
+	if err != nil {
+		return nil, err
+	}
+
+	return integration.New(
+		integrationName,
+		integrationVersion,
+		integration.Args(&args),
+		integration.Storer(s),
+		integration.Logger(l),
+	)
+
+}
+
+func main() {
+
+	i, err := createIntegration()
 	fatalIfErr(err)
 
 	log.SetupLogging(args.Verbose)
 
-	e := i.LocalEntity()
+	e, err := createNodeEntity(i, args.RemoteMonitoring, args.Hostname, args.Port)
+	fatalIfErr(err)
 
 	db, err := openDB(generateDSN(args))
 	fatalIfErr(err)
@@ -76,7 +100,11 @@ func main() {
 	}
 
 	if args.HasMetrics() {
-		ms := e.NewMetricSet("MysqlSample", metric.Attr("hostname", args.Hostname))
+		ms := e.NewMetricSet(
+			"MysqlSample",
+			metric.Attr("hostname", args.Hostname),
+			metric.Attr("port", strconv.Itoa(args.Port)),
+		)
 		populateMetrics(ms, rawMetrics)
 	}
 

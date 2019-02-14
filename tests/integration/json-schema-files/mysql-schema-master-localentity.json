@@ -12,19 +12,12 @@
       "items": {
         "type": "object",
         "properties": {
-          "entity": {
-            "properties": {
-              "name" : {
-                "type": "string"
-              },
-              "type": {
-                "type": "string"
-              }
+          "events": {
+            "items": {
+              "properties": {},
+              "required": []
             },
-            "required": [
-              "name",
-              "type"
-            ]
+            "type": "array"
           },
           "inventory": {
             "minProperties": 1,
@@ -5867,21 +5860,17 @@
             "minItems": 1,
             "type": "array",
             "uniqueItems": true
-          }
-        },
-        "events": {
-          "items": {
-            "properties": {},
-            "required": []
           },
-          "type": "array"
+          "events" : {
+            "type": "array"
+          }
         },
         "required": [
           "metrics",
           "inventory",
-          "events",
-          "entity"
-        ]
+          "events"
+        ],
+        "additionalProperties": false
       }
     },
     "name": {
