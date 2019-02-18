@@ -41,7 +41,7 @@ Mysql,db.qCacheHitRatio,gauge,true,Qcache hit ratio
 Mysql,software.edition,attribute,true,version comment
 Mysql,software.version,attribute,true,version
 Mysql,cluster.nodeType,attribute,true,node type
-Mysql,cluster.slaveRunning, {slaveRunningAsNumber,true, metric.GAUGE},
+Mysql,cluster.slaveRunning,gauge,true,value 1 means it is a replication slave connected to a replication master and both I/O and SQL threads are running
 Mysql,db.createdTmpDiskTablesPerSecond,rate,true,Created tmp disk tables
 Mysql,db.createdTmpFilesPerSecond,rate,true,Created tmp files
 Mysql,db.createdTmpTablesPerSecond,rate,true,Created tmp tables
