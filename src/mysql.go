@@ -100,15 +100,32 @@ func main() {
 	}
 
 	if args.HasMetrics() {
-		ms := e.NewMetricSet(
+		ms := metricSet(
+			e,
 			"MysqlSample",
-			metric.Attr("hostname", args.Hostname),
-			metric.Attr("port", strconv.Itoa(args.Port)),
+			args.Hostname,
+			args.Port,
+			args.RemoteMonitoring,
 		)
 		populateMetrics(ms, rawMetrics)
 	}
 
 	fatalIfErr(i.Publish())
+}
+
+func metricSet(e *integration.Entity, eventType, hostname string, port int, remoteMonitoring bool) *metric.Set {
+	if remoteMonitoring {
+		return e.NewMetricSet(
+			eventType,
+			metric.Attr("hostname", hostname),
+			metric.Attr("port", strconv.Itoa(port)),
+		)
+	}
+
+	return e.NewMetricSet(
+		eventType,
+		metric.Attr("port", strconv.Itoa(port)),
+	)
 }
 
 func fatalIfErr(err error) {
