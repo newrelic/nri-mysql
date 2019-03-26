@@ -3,10 +3,8 @@
 	"ignore": "test",
 	"package": [
 		{
-			"checksumSHA1": "CSPbwbyzqA6sfORicn4HFtIhF/c=",
-			"path": "github.com/davecgh/go-spew/spew",
-			"revision": "d8f796af33cc11cb798c1aaeb27a4ebc5099927d",
-			"revisionTime": "2018-08-30T19:11:22Z"
+			"path": "appengine/cloudsql",
+			"revision": ""
 		},
 		{
 			"checksumSHA1": "4+wnUoVOdK9cHy7rqdQdweYKiOA=",
@@ -17,12 +15,18 @@
 			"versionExact": "v0.5.0"
 		},
 		{
-			"checksumSHA1": "xmTgJXWHguGKHPuZE50FIbs88L0=",
+			"checksumSHA1": "CSPbwbyzqA6sfORicn4HFtIhF/c=",
+			"path": "github.com/davecgh/go-spew/spew",
+			"revision": "d8f796af33cc11cb798c1aaeb27a4ebc5099927d",
+			"revisionTime": "2018-08-30T19:11:22Z"
+		},
+		{
+			"checksumSHA1": "yg01DVQJjQgMeXf9C7Fpl2Yo5+Y=",
 			"path": "github.com/go-sql-driver/mysql",
-			"revision": "a0583e0143b1624142adab07e0e97fe106d99561",
-			"revisionTime": "2016-12-01T11:50:36Z",
-			"version": "v1.3",
-			"versionExact": "v1.3.0"
+			"revision": "72cd26f257d44c1114970e19afddcd812016007e",
+			"revisionTime": "2018-11-14T12:08:49Z",
+			"version": "v1.4.1",
+			"versionExact": "v1.4.1"
 		},
 		{
 			"checksumSHA1": "r6ZMyP/HsdeToXIxvgP3ntL6Bds=",
@@ -161,6 +165,14 @@
 			"versionExact": "v1.3.0"
 		},
 		{
+			"checksumSHA1": "3DvkGtpbJW8oXepRr3wYSs72LmQ=",
+			"path": "github.com/stretchr/testify/require",
+			"revision": "ffdc059bfe9ce6a4e144ba849dbedead332c6053",
+			"revisionTime": "2018-12-05T02:12:43Z",
+			"version": "=v1.3.0",
+			"versionExact": "v1.3.0"
+		},
+		{
 			"checksumSHA1": "+SLRfCdnZzt59tTsNUp6ie39zjo=",
 			"path": "github.com/xeipuuv/gojsonpointer",
 			"revision": "4e3ac2762d5f479393488629ee9370b50873b3a6",
@@ -179,14 +191,6 @@
 			"revisionTime": "2018-12-19T16:01:44Z"
 		},
 		{
-			"checksumSHA1": "3DvkGtpbJW8oXepRr3wYSs72LmQ=",
-			"path": "github.com/stretchr/testify/require",
-			"revision": "ffdc059bfe9ce6a4e144ba849dbedead332c6053",
-			"revisionTime": "2018-12-05T02:12:43Z",
-			"version": "=v1.3.0",
-			"versionExact": "v1.3.0"
-		},
-		{
 			"checksumSHA1": "BGm8lKZmvJbf/YOJLeL1rw2WVjA=",
 			"path": "golang.org/x/crypto/ssh/terminal",
 			"revision": "0c41d7ab0a0ee717d4590a44bcb987dfd9e183eb",
@@ -203,6 +207,12 @@
 			"path": "golang.org/x/sys/windows",
 			"revision": "fa43e7bc11baaae89f3f902b2b4d832b68234844",
 			"revisionTime": "2018-10-11T14:35:51Z"
+		},
+		{
+			"checksumSHA1": "LiyXfqOzaeQ8vgYZH3t2hUEdVTw=",
+			"path": "google.golang.org/appengine/cloudsql",
+			"revision": "54a98f90d1c46b7731eb8fb305d2a321c30ef610",
+			"revisionTime": "2019-02-15T20:43:44Z"
 		}
 	],
 	"rootPath": "github.com/newrelic/nri-mysql"
