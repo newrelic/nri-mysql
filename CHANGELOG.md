@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 - Upgraded to SDKv3
 - Restored `NRIA_CACHE_PATH` legacy environment variable, for backwards-compatibility.
+- Upgrade sql driver to support caching_sha2_password (MySQL 8 default) and sha256_password authentication support
 
 ## 1.1.5 (2018-12-05)
 
