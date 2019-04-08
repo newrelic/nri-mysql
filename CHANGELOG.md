@@ -4,11 +4,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
-## Next Release (date TBD)
-
-## 1.2.0 (TBD)
-
+## 1.2.0 (2019-04-08)
+### Added
 - Upgraded to SDKv3
+- Remote monitoring option. It enables monitoring multiple instances, 
+  more information can be found at the [official documentation page](https://docs.newrelic.com/docs/remote-monitoring-host-integrations).
 - Restored `NRIA_CACHE_PATH` legacy environment variable, for backwards-compatibility.
 - Upgrade sql driver to support caching_sha2_password (MySQL 8 default) and sha256_password authentication support
 
