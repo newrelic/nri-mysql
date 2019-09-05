@@ -3,6 +3,8 @@ New Relic Infrastructure Integration for MySQL captures critical performance met
 
 Data is obtained by querying directly the database for its status and configuration variables to build the reported metrics and inventory.
 
+See our [documentation web site](https://docs.newrelic.com/docs/integrations/host-integrations/host-integrations-list/mysql-monitoring-integration) for more details.
+
 <!---
 See [metrics]() or [inventory]() for more details about collected data and review [dashboard]() in order to know how the data is presented.
 --->
