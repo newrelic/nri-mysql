@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"strings"
 
 	sdk_args "github.com/newrelic/infra-integrations-sdk/args"
 	"github.com/newrelic/infra-integrations-sdk/data/metric"
@@ -22,6 +23,8 @@ type argumentList struct {
 	sdk_args.DefaultArgumentList
 	Hostname              string `default:"localhost" help:"Hostname or IP where MySQL is running."`
 	Port                  int    `default:"3306" help:"Port on which MySQL server is listening."`
+	TLS                   string `default:"false" help:"TLS connection. Values: true, false or skip-verify"`
+	ServerPubKey	      string `help:"If TLS is enabled and the (and no skip-verify), the path to the server RSA public key"` // TODO
 	Username              string `help:"Username for accessing the database."`
 	Password              string `help:"Password for the given user."`
 	Database              string `help:"Database name"`
@@ -33,12 +36,19 @@ type argumentList struct {
 }
 
 func generateDSN(args argumentList) string {
-	params := ""
+	var params []string
 	if args.OldPasswords {
-		params = "?allowOldPasswords=true"
+		params = append(params, "allowOldPasswords=true")
+	}
+	if args.TLS != "" && args.TLS != "false" {
+		params = append(params, "tls="+args.TLS)
+	}
+	paramsQuery := ""
+	if len(params) > 0 {
+		paramsQuery = "?" + strings.Join(params, "&")
 	}
 
-	return fmt.Sprintf("%s:%s@tcp(%s:%d)/%s%s", args.Username, args.Password, args.Hostname, args.Port, args.Database, params)
+	return fmt.Sprintf("%s:%s@tcp(%s:%d)/%s%s", args.Username, args.Password, args.Hostname, args.Port, args.Database, paramsQuery)
 }
 
 var args argumentList

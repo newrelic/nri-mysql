@@ -25,12 +25,13 @@ var (
 
 	defaultContainer = "integration_nri-mysql_1"
 	// mysql config
-	defaultBinPath   = "/nr-mysql"
-	defaultMysqlUser = "root"
-	defaultMysqlPass = "DBpwd1234!"
-	defaultMysqlHost = "mysql"
-	defaultMysqlPort = 3306
-	defaultMysqlDB   = "database"
+	defaultBinPath      = "/nr-mysql"
+	defaultMysqlUser    = "root"
+	defaultMysqlPass    = "DBpwd1234!"
+	defaultMysqlHost    = "mysql"
+	defaultMysqlTLSHost = "mysql-tls"
+	defaultMysqlPort    = 3306
+	defaultMysqlDB      = "database"
 
 	// cli flags
 	container = flag.String("container", defaultContainer, "container where the integration is installed")
@@ -38,6 +39,7 @@ var (
 	user      = flag.String("user", defaultMysqlUser, "Mysql user name")
 	psw       = flag.String("psw", defaultMysqlPass, "Mysql user password")
 	host      = flag.String("host", defaultMysqlHost, "Mysql host ip address")
+	tlsHost   = flag.String("tlsHost", defaultMysqlTLSHost, "Mysql TLS host ip address")
 	port      = flag.Int("port", defaultMysqlPort, "Mysql port")
 	database  = flag.String("database", defaultMysqlDB, "Mysql database")
 )
@@ -70,6 +72,37 @@ func runIntegration(t *testing.T, envVars ...string) string {
 	require.NoError(t, err)
 
 	return stdout
+}
+
+// Returns the standard output, or error if the connection failed
+func runTLSIntegration(t *testing.T, tls string) (string, error) {
+	t.Helper()
+
+	command := make([]string, 0)
+	command = append(command, *binPath)
+	if user != nil {
+		command = append(command, "--username", *user)
+	}
+	if psw != nil {
+		command = append(command, "--password", *psw)
+	}
+	if tlsHost != nil {
+		command = append(command, "--hostname", *tlsHost)
+	}
+	if port != nil {
+		command = append(command, "--port", strconv.Itoa(*port))
+	}
+	if database != nil {
+		command = append(command, "--database", *database)
+	}
+	command = append(command, "--tls", tls)
+
+	stdout, stderr, err := helpers.ExecInContainer(*container, command)
+	if stderr != "" {
+		log.Debug("Integration command Standard Error: ", stderr)
+	}
+
+	return stdout, err
 }
 
 func setup() error {
@@ -112,6 +145,29 @@ func TestOutputIsValidJSON(t *testing.T) {
 
 	var j map[string]interface{}
 	err := json.Unmarshal([]byte(stdout), &j)
+	assert.NoError(t, err, "Integration output should be a JSON dict")
+}
+
+func TestTLSConnection_NoCertificates(t *testing.T) {
+	_, err := runTLSIntegration(t, "true")
+	assert.Error(t, err, "Running a TLS host without TLS configuration should fail")
+}
+
+func TestTLSConnection_ProvideCertificates(t *testing.T) {
+	stdout, err := runTLSIntegration(t, "true")
+	assert.NoError(t, err, "The TLS connection should have worked")
+
+	var j map[string]interface{}
+	err = json.Unmarshal([]byte(stdout), &j)
+	assert.NoError(t, err, "Integration output should be a JSON dict")
+}
+
+func TestTLSConnection_SkipVerify(t *testing.T) {
+	stdout, err := runTLSIntegration(t, "skip-verify")
+	assert.NoError(t, err, "The TLS connection should have worked")
+
+	var j map[string]interface{}
+	err = json.Unmarshal([]byte(stdout), &j)
 	assert.NoError(t, err, "Integration output should be a JSON dict")
 }
 
