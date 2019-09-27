@@ -15,7 +15,11 @@ services:
       - nri-mysql
 
   mysql-tls:
-    image: cyprien/mysql-tls:5.7
+    build:
+      context: .
+      dockerfile: Dockerfile_tls
+    volumes:
+      - mysqltls:/shared
     command: --default-authentication-plugin=mysql_native_password
     restart: always
     environment:
@@ -30,3 +34,9 @@ services:
     build:
       context: ../../
       dockerfile: tests/integration/Dockerfile
+    volumes:
+      - mysqltls:/shared
+
+volumes:
+  mysqltls:
+    driver: local

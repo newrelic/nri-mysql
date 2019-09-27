@@ -1,22 +1,29 @@
 package main
 
 import (
+	"crypto/rsa"
+	"crypto/x509"
+	"encoding/pem"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"strconv"
 	"strings"
 
+	"github.com/go-sql-driver/mysql"
 	sdk_args "github.com/newrelic/infra-integrations-sdk/args"
 	"github.com/newrelic/infra-integrations-sdk/data/metric"
 	"github.com/newrelic/infra-integrations-sdk/integration"
 	"github.com/newrelic/infra-integrations-sdk/log"
 	"github.com/newrelic/infra-integrations-sdk/persist"
+	"github.com/pkg/errors"
 )
 
 const (
 	integrationName    = "com.newrelic.mysql"
 	integrationVersion = "1.2.0"
 	nodeEntityType     = "node"
+	pubKeyName         = "serverPubKey"
 )
 
 type argumentList struct {
@@ -24,7 +31,7 @@ type argumentList struct {
 	Hostname              string `default:"localhost" help:"Hostname or IP where MySQL is running."`
 	Port                  int    `default:"3306" help:"Port on which MySQL server is listening."`
 	TLS                   string `default:"false" help:"TLS connection. Values: true, false or skip-verify"`
-	ServerPubKey	      string `help:"If TLS is enabled and the (and no skip-verify), the path to the server RSA public key"` // TODO
+	ServerPubKey          string `help:"If TLS is set to 'true', the path to the server RSA public key"`
 	Username              string `help:"Username for accessing the database."`
 	Password              string `help:"Password for the given user."`
 	Database              string `help:"Database name"`
@@ -35,6 +42,33 @@ type argumentList struct {
 	OldPasswords          bool   `default:"false" help:"Allow old passwords: https://dev.mysql.com/doc/refman/5.6/en/server-system-variables.html#sysvar_old_passwords"`
 }
 
+func loadServerPubkey(path string) error {
+	if path == "" {
+		return nil
+	}
+	data, err := ioutil.ReadFile(path)
+	if err != nil {
+		return err
+	}
+
+	block, _ := pem.Decode(data)
+	if block == nil || block.Type != "PUBLIC KEY" {
+		return errors.New("failed to decode PEM block containing public key: no key, or not a public key")
+	}
+
+	pub, err := x509.ParsePKIXPublicKey(block.Bytes)
+	if err != nil {
+		return err
+	}
+
+	rsaPubKey, ok := pub.(*rsa.PublicKey)
+	if !ok {
+		return errors.New("not a RSA public key")
+	}
+	mysql.RegisterServerPubKey(pubKeyName, rsaPubKey)
+	return nil
+}
+
 func generateDSN(args argumentList) string {
 	var params []string
 	if args.OldPasswords {
@@ -42,6 +76,9 @@ func generateDSN(args argumentList) string {
 	}
 	if args.TLS != "" && args.TLS != "false" {
 		params = append(params, "tls="+args.TLS)
+	}
+	if args.ServerPubKey != "" {
+		params = append(params, "serverPubKey="+pubKeyName)
 	}
 	paramsQuery := ""
 	if len(params) > 0 {
@@ -97,6 +134,8 @@ func main() {
 
 	e, err := createNodeEntity(i, args.RemoteMonitoring, args.Hostname, args.Port)
 	fatalIfErr(err)
+
+	fatalIfErr(loadServerPubkey(args.ServerPubKey))
 
 	db, err := openDB(generateDSN(args))
 	fatalIfErr(err)

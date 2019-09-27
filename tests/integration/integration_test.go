@@ -1,4 +1,3 @@
-// +build integration
 
 package integration
 
@@ -75,7 +74,7 @@ func runIntegration(t *testing.T, envVars ...string) string {
 }
 
 // Returns the standard output, or error if the connection failed
-func runTLSIntegration(t *testing.T, tls string) (string, error) {
+func runTLSIntegration(t *testing.T, tls, pubKey string) (string, error) {
 	t.Helper()
 
 	command := make([]string, 0)
@@ -94,6 +93,9 @@ func runTLSIntegration(t *testing.T, tls string) (string, error) {
 	}
 	if database != nil {
 		command = append(command, "--database", *database)
+	}
+	if pubKey != "" {
+		command = append(command, "--server_pub_key", pubKey)
 	}
 	command = append(command, "--tls", tls)
 
@@ -149,12 +151,12 @@ func TestOutputIsValidJSON(t *testing.T) {
 }
 
 func TestTLSConnection_NoCertificates(t *testing.T) {
-	_, err := runTLSIntegration(t, "true")
+	_, err := runTLSIntegration(t, "true", "")
 	assert.Error(t, err, "Running a TLS host without TLS configuration should fail")
 }
 
 func TestTLSConnection_ProvideCertificates(t *testing.T) {
-	stdout, err := runTLSIntegration(t, "true")
+	stdout, err := runTLSIntegration(t, "true", "/shared/public_key.pem")
 	assert.NoError(t, err, "The TLS connection should have worked")
 
 	var j map[string]interface{}
@@ -163,7 +165,7 @@ func TestTLSConnection_ProvideCertificates(t *testing.T) {
 }
 
 func TestTLSConnection_SkipVerify(t *testing.T) {
-	stdout, err := runTLSIntegration(t, "skip-verify")
+	stdout, err := runTLSIntegration(t, "skip-verify", "")
 	assert.NoError(t, err, "The TLS connection should have worked")
 
 	var j map[string]interface{}

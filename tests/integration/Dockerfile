@@ -5,5 +5,6 @@ COPY . .
 RUN make clean compile
 
 FROM alpine:latest
+RUN apk add ca-certificates
 COPY --from=builder /go/src/github.com/newrelic/nri-mysql/bin /
 CMD ["sleep", "1h"]
