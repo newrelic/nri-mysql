@@ -15,6 +15,7 @@ services:
       - nri-mysql
 
   nri-mysql:
+    container_name: integration_nri-mysql_1
     build:
       context: ../../
       dockerfile: tests/integration/Dockerfile
