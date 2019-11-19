@@ -19,7 +19,7 @@ $ sudo mysql -e "GRANT REPLICATION CLIENT ON *.* TO 'newrelic'@'localhost' WITH 
 ## Installation
 * download an archive file for the MySQL Integration
 * extract `mysql-definition.yml` and `/bin` directory into `/var/db/newrelic-infra/newrelic-integrations`
-* add execute permissions for the binary file `nr-mysql` (if required)
+* add execute permissions for the binary file `nri-mysql` (if required)
 * extract `mysql-config.yml.sample` into `/etc/newrelic-infra/integrations.d`
 
 ## Usage
@@ -35,13 +35,13 @@ Assuming that you have the source code and Go tool installed you can build and r
 ```bash
 $ make
 ```
-* The command above will execute the tests for the MySQL Integration and build an executable file called `nr-mysql` under `bin` directory. Run `nr-mysql` with parameters specifying username and password
+* The command above will execute the tests for the MySQL Integration and build an executable file called `nri-mysql` under `bin` directory. Run `nri-mysql` with parameters specifying username and password
 ```bash
-$ ./bin/nr-mysql -username <username> -password <password>
+$ ./bin/nri-mysql -username <username> -password <password>
 ```
-* If you want to know more about usage of `./bin/nr-mysql` check
+* If you want to know more about usage of `./bin/nri-mysql` check
 ```bash
-$ ./bin/nr-mysql -help
+$ ./bin/nri-mysql -help
 ```
 
 For managing external dependencies [govendor tool](https://github.com/kardianos/govendor) is used. It is required to lock all external dependencies to specific version (if possible) into vendor directory.

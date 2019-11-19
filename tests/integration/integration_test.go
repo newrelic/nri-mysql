@@ -25,7 +25,7 @@ var (
 
 	defaultContainer = "integration_nri-mysql_1"
 	// mysql config
-	defaultBinPath   = "/nr-mysql"
+	defaultBinPath   = "/nri-mysql"
 	defaultMysqlUser = "root"
 	defaultMysqlPass = "DBpwd1234!"
 	defaultMysqlHost = "mysql"
