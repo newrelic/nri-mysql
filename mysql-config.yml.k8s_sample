@@ -1,0 +1,29 @@
+  mysql-config.yml: |
+    ---
+    # Run auto discovery to find pods with label "app=mysql"
+    # https://docs.newrelic.com/docs/integrations/host-integrations/installation/container-auto-discovery
+    discovery:
+      command:
+        # Run NRI Discovery for Kubernetes
+        # https://github.com/newrelic/nri-discovery-kubernetes
+        exec: /var/db/newrelic-infra/nri-discovery-kubernetes
+        match:
+          label.app: mysql
+    integrations:
+      - name: nri-mysql
+        env:
+          # Using the discovered IP as the host address
+          HOSTNAME: ${discovery.ip}
+          PORT: 3306
+          USERNAME: <USERNAME>
+          PASSWORD: <PASSWORD>
+          # New users should leave this property as `true`, to identify the
+          # monitored entities as `remote`. Setting this property to `false` (the
+          # default value) is deprecated and will be removed soon, disallowing
+          # entities that are identified as `local`.
+          # Please check the documentation to get more information about local
+          # versus remote entities:
+          # https://github.com/newrelic/infra-integrations-sdk/blob/master/docs/entity-definition.md
+          REMOTE_MONITORING: true
+        labels:
+          env: production
