@@ -12,6 +12,7 @@
     integrations:
       - name: nri-mysql
         env:
+          # Using the discovered IP as the host address
           HOSTNAME: ${discovery.ip}
           PORT: 3306
           USERNAME: <USERNAME>
