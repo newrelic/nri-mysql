@@ -1,9 +1,12 @@
 language: go
 
 go:
-  - "1.10"
+  - "1.10.x"
 
 services:
   - docker
+
+install:
+  - go get -u golang.org/x/lint/golint
 
 script: make clean validate test integration-test
