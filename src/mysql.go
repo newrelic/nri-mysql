@@ -25,6 +25,7 @@ type argumentList struct {
 	Username              string `help:"Username for accessing the database."`
 	Password              string `help:"Password for the given user."`
 	Database              string `help:"Database name"`
+	Params                string `help:"Database resource string parameters, ex: '?tls=true&loc=UTC'"`
 	RemoteMonitoring      bool   `default:"false" help:"Identifies the monitored entity as 'remote'. In doubt: set to true"`
 	ExtendedMetrics       bool   `default:"false" help:"Enable extended metrics"`
 	ExtendedInnodbMetrics bool   `default:"false" help:"Enable InnoDB extended metrics"`
@@ -33,9 +34,13 @@ type argumentList struct {
 }
 
 func generateDSN(args argumentList) string {
-	params := ""
+	params := args.Params
 	if args.OldPasswords {
-		params = "?allowOldPasswords=true"
+		if len(params) > 0 {
+			params += "&allowOldPasswords=true"
+		} else {
+			params = "?allowOldPasswords=true"
+		}
 	}
 
 	return fmt.Sprintf("%s:%s@tcp(%s:%d)/%s%s", args.Username, args.Password, args.Hostname, args.Port, args.Database, params)
