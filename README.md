@@ -29,6 +29,39 @@ In order to use the MySQL Integration it is required to configure `mysql-config.
 
 You can view your data in Insights by creating your own custom NRQL queries. To do so use the **MysqlSample** event type.
 
+## Custom Queries
+
+To add custom queries, use the **-custom_metrics_query** option to provide a single query, or the **-custom_metrics_config** option to specify a YAML file with one or more queries, such as the sample `mysql-custom-query.yml.sample`
+
+### How attributes are named
+
+Each query that returns a table of values will be parsed row by row, adding the **MysqlCustomQuerySample** event as follows:
+
+- The column name is the attribute name
+- Each row value in that column is the attribute value
+- The metric type is auto-detected whether it is a number (type GAUGE), or a string (type ATTRIBUTE)
+
+One customizable attribute in each row can be configured by database values using the following names:
+
+- The column `metric_name` specifies its attribute name
+- The column `metric_value` specifies its attribute value
+- The column `metric_type` specifies its metric type, i.e. `gauge` or `attribute`
+
+For example, the following query makes attributes named `diagnostics.allow_i_s_tables`, `diagnostics.include_raw`, `ps_thread_trx_info.max_length` and so on.
+```sql
+SELECT variable AS metric_name, value AS metric_value FROM sys.sys_config
+```
+
+### Specifying queries in YAML
+
+When using a YAML file containing queries, you can specify the following parameters for each query:
+
+- `query` (required) contains the SQL query
+- `database` (optional) adds the database name as an attribute
+- `prefix` (optional) prefix to prepend to the attribute name
+- `metric_name` (optional) specify the name for the customizable attribute
+- `metric_type` (optional) specify the metric type for the customizable attribute
+
 ## Integration development usage
 Assuming that you have the source code and Go tool installed you can build and run the MySQL Integration locally.
 * Go to the directory of the MySQL Integration and build it

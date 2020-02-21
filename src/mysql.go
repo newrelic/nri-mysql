@@ -14,7 +14,7 @@ import (
 
 const (
 	integrationName    = "com.newrelic.mysql"
-	integrationVersion = "1.4.0"
+	integrationVersion = "1.4.1"
 	nodeEntityType     = "node"
 )
 
@@ -27,6 +27,8 @@ type argumentList struct {
 	Database              string `help:"Database name"`
 	Params                string `help:"Database resource string parameters, ex: '?tls=true&loc=UTC'"`
 	RemoteMonitoring      bool   `default:"false" help:"Identifies the monitored entity as 'remote'. In doubt: set to true"`
+	CustomMetricsQuery    string `default:"" help:"A SQL query to collect custom metrics. Query results 'metric_name', 'metric_value', and 'metric_type' have special meanings"`
+	CustomMetricsConfig   string `default:"" help:"YAML configuration with one or more SQL queries to collect custom metrics"`
 	ExtendedMetrics       bool   `default:"false" help:"Enable extended metrics"`
 	ExtendedInnodbMetrics bool   `default:"false" help:"Enable InnoDB extended metrics"`
 	ExtendedMyIsamMetrics bool   `default:"false" help:"Enable MyISAM extended metrics"`
@@ -89,6 +91,10 @@ func main() {
 	fatalIfErr(err)
 
 	log.SetupLogging(args.Verbose)
+	if len(args.CustomMetricsQuery) > 0 && len(args.CustomMetricsConfig) > 0 {
+		log.Error("cannot specify options custom_metrics_query and custom_metrics_config")
+		return
+	}
 
 	e, err := createNodeEntity(i, args.RemoteMonitoring, args.Hostname, args.Port)
 	fatalIfErr(err)
@@ -113,6 +119,10 @@ func main() {
 			args.RemoteMonitoring,
 		)
 		populateMetrics(ms, rawMetrics)
+
+		if len(args.CustomMetricsQuery) > 0 || len(args.CustomMetricsConfig) > 0 {
+			getPopulateCustomData(db, e)
+		}
 	}
 
 	fatalIfErr(i.Publish())

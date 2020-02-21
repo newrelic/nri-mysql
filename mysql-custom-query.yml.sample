@@ -1,0 +1,8 @@
+queries: 
+    # Example for metric_name / metric_type specified in this config
+  - query: SELECT count(*) AS 'metric_value' FROM sys.user_summary
+    metric_name: userCount
+    metric_type: gauge
+    # Example for metric_name from query, metric_type auto-detected, additional attribute 'set_time'
+  - query: SELECT variable AS metric_name, value AS metric_value, set_time FROM sys.sys_config
+    database: sys

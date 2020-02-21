@@ -1,11 +1,16 @@
 package main
 
 import (
+	"fmt"
+	"github.com/newrelic/infra-integrations-sdk/integration"
+	"io/ioutil"
 	"strconv"
+	"sync"
 
 	"github.com/newrelic/infra-integrations-sdk/data/inventory"
 	"github.com/newrelic/infra-integrations-sdk/data/metric"
 	"github.com/newrelic/infra-integrations-sdk/log"
+	"gopkg.in/yaml.v2"
 )
 
 const (
@@ -13,6 +18,14 @@ const (
 	metricsQuery   = "SHOW /*!50002 GLOBAL */ STATUS"
 	replicaQuery   = "SHOW SLAVE STATUS"
 )
+
+type customQuery struct {
+	Query    string
+	Prefix   string
+	Name     string `yaml:"metric_name"`
+	Type     string `yaml:"metric_type"`
+	Database string
+}
 
 // Try to convert a string to its type or return the string if not possible
 func asValue(value string) interface{} {
@@ -61,6 +74,156 @@ func getRawData(db dataSource) (map[string]interface{}, map[string]interface{}, 
 	return inventory, metrics, nil
 }
 
+func getPopulateCustomData(db dataSource, e *integration.Entity) {
+	var err error
+
+	if len(args.CustomMetricsQuery) > 0 {
+		if err = populateCustomMetrics(db, e, customQuery{Query: args.CustomMetricsQuery}); err != nil {
+			log.Error("CustomMetrics %s", err)
+		}
+	} else if len(args.CustomMetricsConfig) > 0 {
+		queries, err := parseCustomQueries()
+		if err != nil {
+			log.Error("Failed to parse custom queries: %s", err)
+		}
+		var wg sync.WaitGroup
+		for _, query := range queries {
+			wg.Add(1)
+			go func(query customQuery) {
+				defer wg.Done()
+				if err = populateCustomMetrics(db, e, query); err != nil {
+					log.Error("CustomMetrics %s", err)
+				}
+			}(query)
+		}
+		wg.Wait()
+	}
+}
+
+func parseCustomQueries() ([]customQuery, error) {
+	// load YAML config file
+	b, err := ioutil.ReadFile(args.CustomMetricsConfig)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read custom_metrics_config: %s", err)
+	}
+	// parse
+	var c struct{ Queries []customQuery }
+	err = yaml.Unmarshal(b, &c)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse custom_metrics_config: %s", err)
+	}
+
+	return c.Queries, nil
+}
+
+func populateCustomMetrics(db dataSource, e *integration.Entity, query customQuery) error {
+	// Multi-row query
+	rawRows, err := db.queryRows(query.Query)
+	if err != nil {
+		return fmt.Errorf("db.queryRows: %s", err)
+	}
+
+	for _, row := range rawRows {
+		nameInterface, ok := row["metric_name"]
+		var name string
+		if !ok {
+			if len(query.Name) > 0 {
+				name = query.Name
+			}
+		} else {
+			name, ok = nameInterface.(string)
+			if !ok {
+				return fmt.Errorf("Non-string type %T for custom query 'metric_name' column", nameInterface)
+			}
+		}
+
+		value, ok := row["metric_value"]
+		var valueString string
+		if !ok {
+			if len(name) > 0 {
+				return fmt.Errorf("Missing 'metric_value' for %s in custom query", name)
+			}
+		} else {
+			valueString = fmt.Sprintf("%v", value)
+			if len(name) == 0 {
+				return fmt.Errorf("Missing 'metric_name' for %s in custom query", valueString)
+			}
+		}
+
+		if len(query.Prefix) > 0 {
+			name = query.Prefix + name
+		}
+
+		var metricType metric.SourceType
+		metricTypeInterface, ok := row["metric_type"]
+		if !ok {
+			if len(query.Type) > 0 {
+				metricType, err = metric.SourceTypeForName(query.Type)
+				if err != nil {
+					return fmt.Errorf("Invalid metric type %s in YAML: %s", query.Type, err)
+				}
+			} else {
+				metricType = detectMetricType(valueString)
+			}
+		} else {
+			// metric type was specified
+			metricTypeString, ok := metricTypeInterface.(string)
+			if !ok {
+				return fmt.Errorf("Non-string type %T for custom query 'metric_type' column", metricTypeInterface)
+			}
+			metricType, err = metric.SourceTypeForName(metricTypeString)
+			if err != nil {
+				return fmt.Errorf("Invalid metric type %s in query 'metric_type' column: %s", metricTypeString, err)
+			}
+		}
+
+		ms := metricSet(
+			e,
+			"MysqlCustomQuerySample",
+			args.Hostname,
+			args.Port,
+			args.RemoteMonitoring,
+		)
+		attributes := []metric.Attribute{}
+		if len(query.Database) > 0 {
+			attributes = append(attributes, metric.Attribute{Key: "database", Value: query.Database})
+		}
+
+		for k, v := range row {
+			if k == "metric_name" || k == "metric_type" || k == "metric_value" {
+				continue
+			}
+			vString := fmt.Sprintf("%v", v)
+
+			if len(query.Prefix) > 0 {
+				k = query.Prefix + k
+			}
+
+			err = ms.SetMetric(k, vString, detectMetricType(vString))
+			if err != nil {
+				log.Error("Failed to set metric: %s", err)
+				continue
+			}
+		}
+
+		if len(valueString) > 0 {
+			err = ms.SetMetric(name, valueString, metricType)
+			if err != nil {
+				log.Error("Failed to set metric: %s", err)
+			}
+		}
+	}
+	return nil
+}
+
+func detectMetricType(value string) metric.SourceType {
+	if _, err := strconv.ParseFloat(value, 64); err != nil {
+		return metric.ATTRIBUTE
+	}
+
+	return metric.GAUGE
+}
+
 func populateInventory(inventory *inventory.Inventory, rawData map[string]interface{}) {
 	for name, value := range rawData {
 		inventory.SetItem(name, "value", value)
@@ -89,6 +252,7 @@ func populateMetrics(sample *metric.Set, rawMetrics map[string]interface{}) {
 	}
 
 }
+
 func populatePartialMetrics(ms *metric.Set, metrics map[string]interface{}, metricsDefinition map[string][]interface{}) {
 	for metricName, metricConf := range metricsDefinition {
 		rawSource := metricConf[0]

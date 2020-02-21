@@ -8,4 +8,5 @@ require (
 	github.com/sirupsen/logrus v1.3.0 // indirect
 	golang.org/x/tools v0.0.0-20190206041539-40960b6deb8e // indirect
 	google.golang.org/appengine v1.4.0 // indirect
+	gopkg.in/yaml.v2 v2.2.8 // indirect
 )

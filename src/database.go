@@ -2,7 +2,6 @@ package main
 
 import (
 	"database/sql"
-
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/newrelic/infra-integrations-sdk/log"
 )
@@ -10,6 +9,7 @@ import (
 type dataSource interface {
 	close()
 	query(string) (map[string]interface{}, error)
+	queryRows(string) ([]map[string]interface{}, error)
 }
 
 type database struct {
@@ -36,7 +36,7 @@ func (db *database) close() {
 // 1. output of the query consists of two columns. Names of the columns are ignored. Values from the first
 // column are used as keys, and from the second as corresponding values of the map. Number of rows can be greater than 1;
 // 2. output of the query consists of multiple columns, but only single row.
-// In this case, each column name is a key, and coressponding value is a map value.
+// In this case, each column name is a key, and corresponding value is a map value.
 func (db *database) query(query string) (map[string]interface{}, error) {
 	rows, err := db.source.Query(query)
 	if err != nil {
@@ -79,5 +79,40 @@ func (db *database) query(query string) (map[string]interface{}, error) {
 	}
 
 	return rawData, nil
+}
 
+func (db *database) queryRows(query string) ([]map[string]interface{}, error) {
+	var rawRows []map[string]interface{}
+
+	rows, err := db.source.Query(query)
+	if err != nil {
+		return nil, err
+	}
+
+	columns, err := rows.Columns()
+	if err != nil {
+		return nil, err
+	}
+
+	for rows.Next() {
+		rawData := make(map[string]interface{})
+
+		values := make([]sql.RawBytes, len(columns))
+		scanArgs := make([]interface{}, len(values))
+		for i := range values {
+			scanArgs[i] = &values[i]
+		}
+
+		err = rows.Scan(scanArgs...)
+		if err != nil {
+			return nil, err
+		}
+
+		for i := range values {
+			rawData[columns[i]] = asValue(string(values[i]))
+		}
+		rawRows = append(rawRows, rawData)
+	}
+
+	return rawRows, nil
 }
