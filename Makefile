@@ -1,6 +1,6 @@
 INTEGRATION     := mysql
 BINARY_NAME      = nri-$(INTEGRATION)
-SRC_DIR					 = ./src/
+SRC_DIR          = ./src/
 VALIDATE_DEPS    = golang.org/x/lint/golint
 TEST_DEPS        = github.com/axw/gocov/gocov github.com/AlekSi/gocov-xml
 INTEGRATIONS_DIR = /var/db/newrelic-infra/newrelic-integrations/
