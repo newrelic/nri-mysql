@@ -34,3 +34,7 @@ target/
 
 # Vim session
 Session.vim
+
+# Goreleaser
+dist/
+bin/
