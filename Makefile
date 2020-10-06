@@ -1,14 +1,11 @@
 INTEGRATION     := mysql
 BINARY_NAME      = nri-$(INTEGRATION)
-SRC_DIR					 = ./src/
+SRC_DIR          = ./src/
 VALIDATE_DEPS    = golang.org/x/lint/golint
 TEST_DEPS        = github.com/axw/gocov/gocov github.com/AlekSi/gocov-xml
 INTEGRATIONS_DIR = /var/db/newrelic-infra/newrelic-integrations/
 CONFIG_DIR       = /etc/newrelic-infra/integrations.d
 GO_FILES        := ./src/
-WORKDIR         := $(shell pwd)
-TARGET          := target
-TARGET_DIR       = $(WORKDIR)/$(TARGET)
 
 all: build
 
@@ -16,7 +13,7 @@ build: clean validate-deps validate compile test
 
 clean:
 	@echo "=== $(INTEGRATION) === [ clean ]: removing binaries and coverage file..."
-	@rm -rfv bin coverage.xml $(TARGET)
+	@rm -rfv bin coverage.xml
 
 validate-deps:
 	@echo "=== $(INTEGRATION) === [ validate-deps ]: installing validation dependencies..."
@@ -90,6 +87,7 @@ install: bin/$(BINARY_NAME)
 	@sudo install -D --mode=644 --owner=root $(ROOT)$(INTEGRATION)-config.yml.sample $(CONFIG_DIR)/$(INTEGRATION)-config.yml.sample
 
 # Include thematic Makefiles
-include Makefile-*.mk
+include $(CURDIR)/build/ci.mk
+include $(CURDIR)/build/release.mk
 
 .PHONY: all build clean validate-deps validate-only validate compile-deps compile test-deps test-only test integration-test install
