@@ -14,8 +14,8 @@ env:
   GPG_MAIL: 'info@newrelic.com' # infrastructure-eng@newrelic.com
   GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
   GPG_PRIVATE_KEY_BASE64: ${{ secrets.GPG_PRIVATE_KEY_BASE64 }} # base64 encoded
-  INTEGRATION: "redis"
-  ORIGINAL_REPO_NAME: 'newrelic/nri-redis'
+  INTEGRATION: "mysql"
+  ORIGINAL_REPO_NAME: 'newrelic/nri-mysql'
   PFX_CERTIFICATE_BASE64: ${{ secrets.PFX_CERTIFICATE_BASE64 }} # base64 encoded
   PFX_CERTIFICATE_DESCRIPTION: 'Contoso' # 'New Relic Infrastructure Agent'
   PFX_PASSPHRASE:  ${{ secrets.PFX_PASSPHRASE }}
