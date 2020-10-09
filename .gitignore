@@ -43,9 +43,6 @@ Session.vim
 
 # build files
 src/versioninfo.json
-<<<<<<< HEAD
-src/resource.syso
-=======
 src/resource.syso
 dist/
->>>>>>> 9377f919adb1fa756045716a0f8b9749379671cf
+
