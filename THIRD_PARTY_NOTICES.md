@@ -118,7 +118,7 @@ can be found at github.com/newrelic/nri-mysql.
       granted to You under this License for that Work shall terminate
       as of the date such litigation is filed.
 
-   4. mysqltribution. You may reproduce and distribute copies of the
+   4. Redistribution. You may reproduce and distribute copies of the
       Work or Derivative Works thereof in any medium, with or without
       modifications, and in Source or Object form, provided that You
       meet the following conditions:
@@ -330,7 +330,7 @@ can be found at github.com/newrelic/nri-mysql.
       granted to You under this License for that Work shall terminate
       as of the date such litigation is filed.
 
-   4. mysqltribution. You may reproduce and distribute copies of the
+   4. Redistribution. You may reproduce and distribute copies of the
       Work or Derivative Works thereof in any medium, with or without
       modifications, and in Source or Object form, provided that You
       meet the following conditions:
@@ -870,13 +870,13 @@ Exhibit B - "Incompatible With Secondary Licenses" Notice
 Copyright (c) 2015, Dave Cheney <dave@cheney.net>
 All rights reserved.
 
-mysqltribution and use in source and binary forms, with or without
+Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
 
-* mysqltributions of source code must retain the above copyright notice, this
+* Redistributions of source code must retain the above copyright notice, this
   list of conditions and the following disclaimer.
 
-* mysqltributions in binary form must reproduce the above copyright notice,
+* Redistributions in binary form must reproduce the above copyright notice,
   this list of conditions and the following disclaimer in the documentation
   and/or other materials provided with the distribution.
 
@@ -1016,7 +1016,7 @@ THE SOFTWARE.
       granted to You under this License for that Work shall terminate
       as of the date such litigation is filed.
 
-   4. mysqltribution. You may reproduce and distribute copies of the
+   4. Redistribution. You may reproduce and distribute copies of the
       Work or Derivative Works thereof in any medium, with or without
       modifications, and in Source or Object form, provided that You
       meet the following conditions:
@@ -1197,13 +1197,13 @@ punitive damages or for lost profits or data.
 ```
 Copyright (c) 2009 The Go Authors. All rights reserved.
 
-mysqltribution and use in source and binary forms, with or without
+Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
 met:
 
-   * mysqltributions of source code must retain the above copyright
+   * Redistributions of source code must retain the above copyright
 notice, this list of conditions and the following disclaimer.
-   * mysqltributions in binary form must reproduce the above
+   * Redistributions in binary form must reproduce the above
 copyright notice, this list of conditions and the following disclaimer
 in the documentation and/or other materials provided with the
 distribution.
@@ -1234,13 +1234,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ```
 Copyright (c) 2009 The Go Authors. All rights reserved.
 
-mysqltribution and use in source and binary forms, with or without
+Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
 met:
 
-   * mysqltributions of source code must retain the above copyright
+   * Redistributions of source code must retain the above copyright
 notice, this list of conditions and the following disclaimer.
-   * mysqltributions in binary form must reproduce the above
+   * Redistributions in binary form must reproduce the above
 copyright notice, this list of conditions and the following disclaimer
 in the documentation and/or other materials provided with the
 distribution.

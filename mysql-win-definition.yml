@@ -1,18 +1,11 @@
 name: com.newrelic.mysql
-description: Reports status and metrics for mysql service
+description: Reports status and metrics for mysql server
 protocol_version: 3
-os: windows
+os: linux
 
 commands:
-  metrics:
+  status:
     command:
       - ./bin/nri-mysql
-      - --metrics
-    interval: 15
-
-  inventory:
-    command:
-      - ./bin/nri-mysql
-      - --inventory
     prefix: config/mysql
-    interval: 60
+    interval: 30
