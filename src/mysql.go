@@ -15,8 +15,8 @@ import (
 )
 
 const (
-	integrationName    = "com.newrelic.mysql"
-	nodeEntityType     = "node"
+	integrationName = "com.newrelic.mysql"
+	nodeEntityType  = "node"
 )
 
 type argumentList struct {
@@ -31,7 +31,7 @@ type argumentList struct {
 	ExtendedInnodbMetrics bool   `default:"false" help:"Enable InnoDB extended metrics"`
 	ExtendedMyIsamMetrics bool   `default:"false" help:"Enable MyISAM extended metrics"`
 	OldPasswords          bool   `default:"false" help:"Allow old passwords: https://dev.mysql.com/doc/refman/5.6/en/server-system-variables.html#sysvar_old_passwords"`
-	ShowVersion      bool         `default:"false" help:"Print build information and exit"`
+	ShowVersion           bool   `default:"false" help:"Print build information and exit"`
 }
 
 func generateDSN(args argumentList) string {
