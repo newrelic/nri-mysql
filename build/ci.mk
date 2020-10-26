@@ -7,10 +7,12 @@ ci/deps:
 .PHONY : ci/debug-container
 ci/debug-container: ci/deps
 	@docker run --rm -it \
+			--name "nri-$(INTEGRATION)-debug" \
 			-v $(CURDIR):/go/src/github.com/newrelic/nri-$(INTEGRATION) \
 			-w /go/src/github.com/newrelic/nri-$(INTEGRATION) \
 			-e PRERELEASE=true \
-			-e GITHUB_TOKEN=$(GH_TOKEN) \
+			-e GITHUB_TOKEN \
+			-e REPO_FULL_NAME \
 			-e TAG \
 			-e GPG_MAIL \
 			-e GPG_PASSPHRASE \
@@ -20,6 +22,7 @@ ci/debug-container: ci/deps
 .PHONY : ci/validate
 ci/validate: ci/deps
 	@docker run --rm -t \
+			--name "nri-$(INTEGRATION)-validate" \
 			-v $(CURDIR):/go/src/github.com/newrelic/nri-$(INTEGRATION) \
 			-w /go/src/github.com/newrelic/nri-$(INTEGRATION) \
 			$(BUILDER_TAG) make validate
@@ -27,17 +30,28 @@ ci/validate: ci/deps
 .PHONY : ci/test
 ci/test: ci/deps
 	@docker run --rm -t \
+			--name "nri-$(INTEGRATION)-test" \
 			-v $(CURDIR):/go/src/github.com/newrelic/nri-$(INTEGRATION) \
 			-w /go/src/github.com/newrelic/nri-$(INTEGRATION) \
 			$(BUILDER_TAG) make test
+
+.PHONY : ci/snyk-test
+ci/snyk-test:
+	@docker run --rm -t \
+			--name "nri-$(INTEGRATION)-snyk-test" \
+			-v $(CURDIR):/go/src/github.com/newrelic/nri-$(INTEGRATION) \
+			-w /go/src/github.com/newrelic/nri-$(INTEGRATION) \
+			-e SNYK_TOKEN \
+			snyk/snyk:golang snyk test --severity-threshold=high
 
 .PHONY : ci/build
 ci/build: ci/deps
 ifdef TAG
 	@docker run --rm -t \
+			--name "nri-$(INTEGRATION)-build" \
 			-v $(CURDIR):/go/src/github.com/newrelic/nri-$(INTEGRATION) \
 			-w /go/src/github.com/newrelic/nri-$(INTEGRATION) \
-			-e INTEGRATION=$(INTEGRATION) \
+			-e INTEGRATION \
 			-e TAG \
 			$(BUILDER_TAG) make release/build
 else
@@ -49,11 +63,13 @@ endif
 ci/prerelease: ci/deps
 ifdef TAG
 	@docker run --rm -t \
+			--name "nri-$(INTEGRATION)-prerelease" \
 			-v $(CURDIR):/go/src/github.com/newrelic/nri-$(INTEGRATION) \
 			-w /go/src/github.com/newrelic/nri-$(INTEGRATION) \
 			-e INTEGRATION \
 			-e PRERELEASE=true \
-			-e GITHUB_TOKEN=$(GH_TOKEN) \
+			-e GITHUB_TOKEN \
+			-e REPO_FULL_NAME \
 			-e TAG \
 			-e GPG_MAIL \
 			-e GPG_PASSPHRASE \
