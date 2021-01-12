@@ -24,13 +24,13 @@ jobs:
       - name: Validate code
         run: make ci/validate
 
-  # snyk:
-  #   name: Run security checks via snyk
-  #   runs-on: ubuntu-20.04
-  #   steps:
-  #     - uses: actions/checkout@v2
-  #     - name: Scan code for vulnerabilities
-  #       run: make ci/snyk-test
+  snyk:
+    name: Run security checks via snyk
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v2
+      - name: Scan code for vulnerabilities
+        run: make ci/snyk-test
 
   test-nix:
     name: Run unit tests on *Nix
