@@ -130,7 +130,7 @@ jobs:
         with:
           slack-bot-user-oauth-access-token: ${{ secrets.OHAI_SLACK_TOKEN }}
           slack-channel: ${{ secrets.OHAI_SLACK_CHANNEL }}
-          slack-text: "Repo: ${{ env.REPO_FULL_NAME }}, prerelease for nix FAILURE!"
+          slack-text: "❌ `${{ env.REPO_FULL_NAME }}`: prerelease pipeline failed."
 
   package-win:
     name: Create MSI & Upload into GH Release assets
@@ -173,4 +173,4 @@ jobs:
         with:
           slack-bot-user-oauth-access-token: ${{ secrets.OHAI_SLACK_TOKEN }}
           slack-channel: ${{ secrets.OHAI_SLACK_CHANNEL }}
-          slack-text: "Repo: ${{ env.REPO_FULL_NAME }}, prerelease for Windows FAILURE!"
+          slack-text: "❌ `${{ env.REPO_FULL_NAME }}`: prerelease pipeline failed."
