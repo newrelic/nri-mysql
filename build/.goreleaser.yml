@@ -82,7 +82,7 @@ archives:
       - nri-mysql-win
     name_template: "{{ .ProjectName }}-{{ .Arch }}.{{ .Version }}_dirty"
     files:
-      - mysql-win-config.yml.sample
+      - mysql-config.yml.sample
       - mysql-win-definition.yml
     format: zip
 
