@@ -1,7 +1,7 @@
 name: com.newrelic.mysql
 description: Reports status and metrics for mysql server
 protocol_version: 3
-os: linux
+os: windows
 
 commands:
   status:
