@@ -5772,6 +5772,9 @@
                   "net.threadsRunning": {
                     "type": "number"
                   },
+                  "query.comCommitPerSecond": {
+                    "type": "number"
+                  },
                   "query.comDeleteMultiPerSecond": {
                     "type": "number"
                   },
@@ -5785,6 +5788,9 @@
                     "type": "number"
                   },
                   "query.comReplaceSelectPerSecond": {
+                    "type": "number"
+                  },
+                  "query.comRollbackPerSecond": {
                     "type": "number"
                   },
                   "query.comSelectPerSecond": {
@@ -5847,11 +5853,13 @@
                   "net.maxUsedConnections",
                   "net.threadsConnected",
                   "net.threadsRunning",
+                  "query.comCommitPerSecond",
                   "query.comDeleteMultiPerSecond",
                   "query.comDeletePerSecond",
                   "query.comInsertPerSecond",
                   "query.comInsertSelectPerSecond",
                   "query.comReplaceSelectPerSecond",
+                  "query.comRollbackPerSecond",
                   "query.comSelectPerSecond",
                   "query.comUpdateMultiPerSecond",
                   "query.comUpdatePerSecond",
