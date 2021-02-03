@@ -3,7 +3,9 @@ package main
 import (
 	"fmt"
 	"os"
+	"runtime"
 	"strconv"
+	"strings"
 
 	sdk_args "github.com/newrelic/infra-integrations-sdk/args"
 	"github.com/newrelic/infra-integrations-sdk/data/metric"
@@ -13,9 +15,8 @@ import (
 )
 
 const (
-	integrationName    = "com.newrelic.mysql"
-	integrationVersion = "1.5.0"
-	nodeEntityType     = "node"
+	integrationName = "com.newrelic.mysql"
+	nodeEntityType  = "node"
 )
 
 type argumentList struct {
@@ -30,6 +31,7 @@ type argumentList struct {
 	ExtendedInnodbMetrics bool   `default:"false" help:"Enable InnoDB extended metrics"`
 	ExtendedMyIsamMetrics bool   `default:"false" help:"Enable MyISAM extended metrics"`
 	OldPasswords          bool   `default:"false" help:"Allow old passwords: https://dev.mysql.com/doc/refman/5.6/en/server-system-variables.html#sysvar_old_passwords"`
+	ShowVersion           bool   `default:"false" help:"Print build information and exit"`
 }
 
 func generateDSN(args argumentList) string {
@@ -41,7 +43,12 @@ func generateDSN(args argumentList) string {
 	return fmt.Sprintf("%s:%s@tcp(%s:%d)/%s%s", args.Username, args.Password, args.Hostname, args.Port, args.Database, params)
 }
 
-var args argumentList
+var (
+	args               argumentList
+	integrationVersion = "0.0.0"
+	gitCommit          = ""
+	buildDate          = ""
+)
 
 func createNodeEntity(
 	i *integration.Integration,
@@ -82,6 +89,18 @@ func main() {
 
 	i, err := createIntegration()
 	fatalIfErr(err)
+
+	if args.ShowVersion {
+		fmt.Printf(
+			"New Relic %s integration Version: %s, Platform: %s, GoVersion: %s, GitCommit: %s, BuildDate: %s\n",
+			strings.Title(strings.Replace(integrationName, "com.newrelic.", "", 1)),
+			integrationVersion,
+			fmt.Sprintf("%s/%s", runtime.GOOS, runtime.GOARCH),
+			runtime.Version(),
+			gitCommit,
+			buildDate)
+		os.Exit(0)
+	}
 
 	log.SetupLogging(args.Verbose)
 
