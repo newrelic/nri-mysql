@@ -60,6 +60,7 @@ nfpms:
   
     overrides:
       rpm:
+        file_name_template: "{{ .ProjectName }}-{{ .Version }}-{{ .Arch }}"
         replacements:
           amd64: 1.x86_64
 
