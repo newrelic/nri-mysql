@@ -10,7 +10,7 @@ on:
 env:
   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   INTEGRATION: "mysql"
-  ORIGINAL_REPO_NAME: 'newrelic/nri-mysql'
+  ORIGINAL_REPO_NAME: ${{ github.event.repository.full_name }}
   TAG: ${{ github.event.release.tag_name }}
 
 jobs:
