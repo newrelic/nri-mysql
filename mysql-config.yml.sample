@@ -6,6 +6,8 @@ instances:
     arguments:
         hostname: localhost
         port: 3306
+        # If not empty `socket` parameter will discard `port` parameter
+        socket: <PATH_TO_LOCAL_SOCKET_FILE_NAME>
         username: newrelic
         password: <YOUR_SELECTED_PASSWORD>
         # New users should leave this property as `true`, to identify the

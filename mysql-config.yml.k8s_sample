@@ -17,6 +17,8 @@
           # Using the discovered IP as the host address
           HOSTNAME: ${discovery.ip}
           PORT: 3306
+          # If not empty `socket` parameter will discard `port` parameter
+          SOCKET: <PATH_TO_LOCAL_SOCKET_FILE_NAME>
           USERNAME: <USERNAME>
           PASSWORD: <PASSWORD>
           # New users should leave this property as `true`, to identify the
