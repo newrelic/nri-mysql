@@ -11,8 +11,7 @@ env:
   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   GO_VERSION: '1.9.7'
   INTEGRATION: "mysql"
-  ORIGINAL_REPO_NAME: 'newrelic/nri-mysql'
-  REPO_FULL_NAME: ${{ github.event.repository.full_name }}
+  ORIGINAL_REPO_NAME: ${{ github.event.repository.full_name }}
   TAG: ${{ github.event.release.tag_name }}
 
 jobs:
@@ -130,7 +129,7 @@ jobs:
         with:
           slack-bot-user-oauth-access-token: ${{ secrets.COREINT_SLACK_TOKEN }}
           slack-channel: ${{ secrets.COREINT_SLACK_CHANNEL }}
-          slack-text: "❌ `${{ env.REPO_FULL_NAME }}`: prerelease pipeline failed."
+          slack-text: "❌ `${{ env.ORIGINAL_REPO_NAME }}`: prerelease pipeline failed."
 
   package-win:
     name: Create MSI & Upload into GH Release assets
@@ -173,7 +172,7 @@ jobs:
         with:
           slack-bot-user-oauth-access-token: ${{ secrets.COREINT_SLACK_TOKEN }}
           slack-channel: ${{ secrets.COREINT_SLACK_CHANNEL }}
-          slack-text: "❌ `${{ env.REPO_FULL_NAME }}`: prerelease pipeline failed."
+          slack-text: "❌ `${{ env.ORIGINAL_REPO_NAME }}`: prerelease pipeline failed."
 
   publish-to-s3:
     name: Send release assets to S3
