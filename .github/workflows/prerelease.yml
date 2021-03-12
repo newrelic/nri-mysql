@@ -132,6 +132,11 @@ jobs:
           GPG_MAIL: 'infrastructure-eng@newrelic.com'
           GPG_PASSPHRASE: ${{ secrets.OHAI_GPG_PASSPHRASE }}
           GPG_PRIVATE_KEY_BASE64: ${{ secrets.OHAI_GPG_PRIVATE_KEY_BASE64 }} # base64 encoded
+      - name: Test package installability
+        uses: newrelic/integrations-pkg-test-action/linux@v1
+        with:
+          tag: ${{ env.TAG }}
+          integration: nri-${{ env.INTEGRATION }}
       - name: Notify failure via Slack
         if: ${{ failure() }}
         uses: archive/github-actions-slack@master
@@ -153,8 +158,15 @@ jobs:
       run:
         working-directory: src/github.com/${{env.ORIGINAL_REPO_NAME}}
     strategy:
+      fail-fast: false
       matrix:
         goarch: [amd64,386]
+        # We need a clean runner to execute each test installation.
+        test-upgrade: [true,false]
+        exclude:
+          # 386 packages are not available for integrations. This should be removed after the first package is uploaded.
+          - goarch: 386
+            test-upgrade: true
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -171,7 +183,16 @@ jobs:
         shell: pwsh
         run: |
           build\windows\package_msi.ps1 -integration "$env:INTEGRATION" -arch ${{ matrix.goarch }} -tag "$env:TAG" -pfx_passphrase "$env:PFX_PASSPHRASE" -pfx_certificate_description "$env:PFX_CERTIFICATE_DESCRIPTION"
+      - name: Test win packages installation
+        uses: newrelic/integrations-pkg-test-action/windows@v1
+        with:
+          tag: ${{ env.TAG }}
+          integration: nri-${{ env.INTEGRATION }}
+          arch: ${{ matrix.goarch }}
+          upgrade: ${{ matrix.test-upgrade }}
       - name: Upload MSI to GH
+        # To avoid upload packages twice
+        if: startsWith(matrix.test-upgrade, 'false')
         shell: bash
         run: |
           build/windows/upload_msi.sh ${INTEGRATION} ${{ matrix.goarch }} ${TAG}
