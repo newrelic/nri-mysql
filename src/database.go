@@ -36,12 +36,13 @@ func (db *database) close() {
 // 1. output of the query consists of two columns. Names of the columns are ignored. Values from the first
 // column are used as keys, and from the second as corresponding values of the map. Number of rows can be greater than 1;
 // 2. output of the query consists of multiple columns, but only single row.
-// In this case, each column name is a key, and coressponding value is a map value.
+// In this case, each column name is a key, and corresponding value is a map value.
 func (db *database) query(query string) (map[string]interface{}, error) {
 	rows, err := db.source.Query(query)
 	if err != nil {
 		return nil, err
 	}
+	defer rows.Close()
 
 	rawData := make(map[string]interface{})
 
@@ -79,5 +80,4 @@ func (db *database) query(query string) (map[string]interface{}, error) {
 	}
 
 	return rawData, nil
-
 }
