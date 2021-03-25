@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## 1.5.1 (2021-03-25)
+### Fixed
+
+- Fixed a bug that caused rows to not be fully consumed (and therefore a panic) in some rare circumstances (https://github.com/newrelic/nri-mysql/pull/77).
+
 ## 1.5.0 (2020-01-14)
 ### Added
 - Metrics for commits and rollbacks.
