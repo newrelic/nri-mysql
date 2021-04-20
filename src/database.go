@@ -2,7 +2,7 @@ package main
 
 import (
 	"database/sql"
-
+	"fmt"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/newrelic/infra-integrations-sdk/log"
 )
@@ -42,7 +42,11 @@ func (db *database) query(query string) (map[string]interface{}, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() {
+		if err := rows.Close(); err != nil {
+			log.Warn(fmt.Sprintf("error closing rows: %v", err))
+		}
+	}()
 
 	rawData := make(map[string]interface{})
 
@@ -61,7 +65,7 @@ func (db *database) query(query string) (map[string]interface{}, error) {
 	for rows.Next() {
 		err = rows.Scan(scanArgs...)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("error scanning rows[%d]: %v", rowIndex, err)
 		}
 
 		if len(values) == 2 {

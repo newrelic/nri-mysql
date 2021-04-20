@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"strconv"
 
 	"github.com/newrelic/infra-integrations-sdk/data/inventory"
@@ -33,11 +34,11 @@ func asValue(value string) interface{} {
 func getRawData(db dataSource) (map[string]interface{}, map[string]interface{}, error) {
 	inventory, err := db.query(inventoryQuery)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("error querying inventory: %v", err)
 	}
 	metrics, err := db.query(metricsQuery)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("error querying metrics: %v", err)
 	}
 
 	replication, err := db.query(replicaQuery)

@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/newrelic/infra-integrations-sdk/data/attribute"
 	"os"
 	"runtime"
 	"strconv"
@@ -136,14 +137,14 @@ func metricSet(e *integration.Entity, eventType, hostname string, port int, remo
 	if remoteMonitoring {
 		return e.NewMetricSet(
 			eventType,
-			metric.Attr("hostname", hostname),
-			metric.Attr("port", strconv.Itoa(port)),
+			attribute.Attr("hostname", hostname),
+			attribute.Attr("port", strconv.Itoa(port)),
 		)
 	}
 
 	return e.NewMetricSet(
 		eventType,
-		metric.Attr("port", strconv.Itoa(port)),
+		attribute.Attr("port", strconv.Itoa(port)),
 	)
 }
 
