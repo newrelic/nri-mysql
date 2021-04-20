@@ -2,11 +2,10 @@ package main
 
 import (
 	"fmt"
-	"strconv"
-
 	"github.com/newrelic/infra-integrations-sdk/data/inventory"
 	"github.com/newrelic/infra-integrations-sdk/data/metric"
 	"github.com/newrelic/infra-integrations-sdk/log"
+	"strconv"
 )
 
 const (
@@ -64,7 +63,10 @@ func getRawData(db dataSource) (map[string]interface{}, map[string]interface{}, 
 
 func populateInventory(inventory *inventory.Inventory, rawData map[string]interface{}) {
 	for name, value := range rawData {
-		inventory.SetItem(name, "value", value)
+		err := inventory.SetItem(name, "value", value)
+		if err != nil {
+			log.Warn(fmt.Sprintf("cannot add item %s to inventory: %v", name, err))
+		}
 	}
 }
 

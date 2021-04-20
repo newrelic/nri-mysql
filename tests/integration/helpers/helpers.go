@@ -53,7 +53,7 @@ func ValidateJSONSchema(schemaJsonFileName string, input string) error {
 
 // GetTestName returns the name of the running test.
 func GetTestName(t *testing.T) interface{} {
-	v := reflect.ValueOf(*t)
+	v := reflect.ValueOf(*t) //nolint,govet
 	return v.FieldByName("name")
 }
 
