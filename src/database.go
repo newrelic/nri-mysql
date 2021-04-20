@@ -19,7 +19,7 @@ type database struct {
 func openDB(dsn string) (dataSource, error) {
 	source, err := sql.Open("mysql", dsn)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error opening %s: %v", dsn, err)
 	}
 	db := database{
 		source: source,
@@ -52,7 +52,7 @@ func (db *database) query(query string) (map[string]interface{}, error) {
 
 	columns, err := rows.Columns()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error getting columns from query: %v", err)
 	}
 
 	values := make([]sql.RawBytes, len(columns))
