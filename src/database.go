@@ -38,9 +38,10 @@ func (db *database) close() {
 // 2. output of the query consists of multiple columns, but only single row.
 // In this case, each column name is a key, and corresponding value is a map value.
 func (db *database) query(query string) (map[string]interface{}, error) {
+	log.Debug("executing query: " + query)
 	rows, err := db.source.Query(query)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error executing `%s`: %v", query, err)
 	}
 	defer func() {
 		if err := rows.Close(); err != nil {
