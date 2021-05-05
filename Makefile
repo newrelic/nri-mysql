@@ -31,7 +31,7 @@ test:
 	@echo "=== $(INTEGRATION) === [ test ]: running unit tests..."
 	@go run $(GOFLAGS) $(GOCOV) test ./... | go run $(GOFLAGS) $(GOCOV_XML) > coverage.xml
 
-integration-test: test-deps
+integration-test:
 	@echo "=== $(INTEGRATION) === [ test ]: running integration tests..."
 	@docker-compose -f tests/integration/docker-compose.yml up -d --build
 	@go test -tags=integration ./tests/integration/. || (ret=$$?; docker-compose -f tests/integration/docker-compose.yml down && exit $$ret)
