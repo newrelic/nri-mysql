@@ -2,10 +2,11 @@ package main
 
 import (
 	"fmt"
+	"strconv"
+
 	"github.com/newrelic/infra-integrations-sdk/data/inventory"
 	"github.com/newrelic/infra-integrations-sdk/data/metric"
 	"github.com/newrelic/infra-integrations-sdk/log"
-	"strconv"
 )
 
 const (
@@ -65,7 +66,7 @@ func populateInventory(inventory *inventory.Inventory, rawData map[string]interf
 	for name, value := range rawData {
 		err := inventory.SetItem(name, "value", value)
 		if err != nil {
-			log.Warn(fmt.Sprintf("cannot add item %s to inventory: %v", name, err))
+			log.Warn("cannot add item %s to inventory: %v", name, err)
 		}
 	}
 }
