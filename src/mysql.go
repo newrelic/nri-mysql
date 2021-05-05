@@ -1,12 +1,14 @@
+//go:generate goversioninfo
 package main
 
 import (
 	"fmt"
-	"github.com/newrelic/infra-integrations-sdk/data/attribute"
 	"os"
 	"runtime"
 	"strconv"
 	"strings"
+
+	"github.com/newrelic/infra-integrations-sdk/data/attribute"
 
 	sdk_args "github.com/newrelic/infra-integrations-sdk/args"
 	"github.com/newrelic/infra-integrations-sdk/data/metric"
