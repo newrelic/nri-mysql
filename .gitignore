@@ -46,3 +46,5 @@ src/versioninfo.json
 src/resource.syso
 dist/
 
+vendor/
+
