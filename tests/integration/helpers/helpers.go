@@ -6,7 +6,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -53,8 +52,7 @@ func ValidateJSONSchema(schemaJsonFileName string, input string) error {
 
 // GetTestName returns the name of the running test.
 func GetTestName(t *testing.T) interface{} {
-	v := reflect.ValueOf(*t)
-	return v.FieldByName("name")
+	return t.Name()
 }
 
 // Deprecated: Instead, use jsonschema.ValidationField

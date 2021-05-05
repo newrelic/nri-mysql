@@ -2,7 +2,6 @@ builds:
   - id: nri-mysql-nix
     main: ./src
     binary: nri-mysql
-    gobinary: "go1.9.7"
     ldflags:
       - -s -w -X main.integrationVersion={{.Version}} -X main.gitCommit={{.Commit}} -X main.buildDate={{.Date}}
     goos:
@@ -20,7 +19,6 @@ builds:
   - id: nri-mysql-win
     main: ./src
     binary: nri-mysql
-    gobinary: "go1.9.7"
     ldflags:
       - -s -w -X main.integrationVersion={{.Version}} -X main.gitCommit={{.Commit}} -X main.buildDate={{.Date}}
     goos:

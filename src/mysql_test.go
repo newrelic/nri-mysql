@@ -157,7 +157,7 @@ func TestPopulateMetricsWithZeroValuesInData(t *testing.T) {
 
 	expected := float64(0)
 	for _, metricName := range testMetrics {
-		actual, _ := ms.Metrics[metricName]
+		actual := ms.Metrics[metricName]
 		if actual != expected {
 			t.Errorf("For metric '%s', expected value: %f. Actual value: %f", metricName, expected, actual)
 		}

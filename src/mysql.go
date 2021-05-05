@@ -1,3 +1,4 @@
+//go:generate goversioninfo
 package main
 
 import (
@@ -6,6 +7,8 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+
+	"github.com/newrelic/infra-integrations-sdk/data/attribute"
 
 	sdk_args "github.com/newrelic/infra-integrations-sdk/args"
 	"github.com/newrelic/infra-integrations-sdk/data/metric"
@@ -136,14 +139,14 @@ func metricSet(e *integration.Entity, eventType, hostname string, port int, remo
 	if remoteMonitoring {
 		return e.NewMetricSet(
 			eventType,
-			metric.Attr("hostname", hostname),
-			metric.Attr("port", strconv.Itoa(port)),
+			attribute.Attr("hostname", hostname),
+			attribute.Attr("port", strconv.Itoa(port)),
 		)
 	}
 
 	return e.NewMetricSet(
 		eventType,
-		metric.Attr("port", strconv.Itoa(port)),
+		attribute.Attr("port", strconv.Itoa(port)),
 	)
 }
 

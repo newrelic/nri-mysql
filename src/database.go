@@ -2,7 +2,7 @@ package main
 
 import (
 	"database/sql"
-
+	"fmt"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/newrelic/infra-integrations-sdk/log"
 )
@@ -19,7 +19,7 @@ type database struct {
 func openDB(dsn string) (dataSource, error) {
 	source, err := sql.Open("mysql", dsn)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error opening %s: %v", dsn, err)
 	}
 	db := database{
 		source: source,
@@ -38,17 +38,22 @@ func (db *database) close() {
 // 2. output of the query consists of multiple columns, but only single row.
 // In this case, each column name is a key, and corresponding value is a map value.
 func (db *database) query(query string) (map[string]interface{}, error) {
+	log.Debug("executing query: " + query)
 	rows, err := db.source.Query(query)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error executing `%s`: %v", query, err)
 	}
-	defer rows.Close()
+	defer func() {
+		if err := rows.Close(); err != nil {
+			log.Warn(fmt.Sprintf("error closing rows: %v", err))
+		}
+	}()
 
 	rawData := make(map[string]interface{})
 
 	columns, err := rows.Columns()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error getting columns from query: %v", err)
 	}
 
 	values := make([]sql.RawBytes, len(columns))
@@ -61,7 +66,7 @@ func (db *database) query(query string) (map[string]interface{}, error) {
 	for rows.Next() {
 		err = rows.Scan(scanArgs...)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("error scanning rows[%d]: %v", rowIndex, err)
 		}
 
 		if len(values) == 2 {
