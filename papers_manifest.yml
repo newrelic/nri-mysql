@@ -1,37 +1,37 @@
 golang:
-  github.com/newrelic/nri-mysql/vendor/github.com/go-sql-driver/mysql:
+  github.com/bitly/go-simplejson:
+    license: MIT
+    license_url: vendor/github.com/bitly/go-simplejson/LICENSE
+    project_url: github.com/bitly/go-simplejson
+  github.com/go-sql-driver/mysql:
     license: MPL-2.0
-    license_url: github.com/newrelic/nri-mysql/vendor/github.com/go-sql-driver/mysql/LICENSE
-    project_url: github.com/newrelic/nri-mysql/vendor/github.com/go-sql-driver/mysql
-  github.com/newrelic/nri-mysql/vendor/github.com/newrelic/infra-integrations-sdk/args:
-    license: Unknown
-    license_url: github.com/newrelic/nri-mysql/vendor/github.com/newrelic/infra-integrations-sdk/LICENSE
-    project_url: github.com/newrelic/nri-mysql/vendor/github.com/newrelic/infra-integrations-sdk/args
-  github.com/newrelic/nri-mysql/vendor/github.com/newrelic/infra-integrations-sdk/data/event:
-    license: Unknown
-    license_url: github.com/newrelic/nri-mysql/vendor/github.com/newrelic/infra-integrations-sdk/LICENSE
-    project_url: github.com/newrelic/nri-mysql/vendor/github.com/newrelic/infra-integrations-sdk/data/event
-  github.com/newrelic/nri-mysql/vendor/github.com/newrelic/infra-integrations-sdk/data/inventory:
-    license: Unknown
-    license_url: github.com/newrelic/nri-mysql/vendor/github.com/newrelic/infra-integrations-sdk/LICENSE
-    project_url: github.com/newrelic/nri-mysql/vendor/github.com/newrelic/infra-integrations-sdk/data/inventory
-  github.com/newrelic/nri-mysql/vendor/github.com/newrelic/infra-integrations-sdk/data/metric:
-    license: Unknown
-    license_url: github.com/newrelic/nri-mysql/vendor/github.com/newrelic/infra-integrations-sdk/LICENSE
-    project_url: github.com/newrelic/nri-mysql/vendor/github.com/newrelic/infra-integrations-sdk/data/metric
-  github.com/newrelic/nri-mysql/vendor/github.com/newrelic/infra-integrations-sdk/integration:
-    license: Unknown
-    license_url: github.com/newrelic/nri-mysql/vendor/github.com/newrelic/infra-integrations-sdk/LICENSE
-    project_url: github.com/newrelic/nri-mysql/vendor/github.com/newrelic/infra-integrations-sdk/integration
-  github.com/newrelic/nri-mysql/vendor/github.com/newrelic/infra-integrations-sdk/log:
-    license: Unknown
-    license_url: github.com/newrelic/nri-mysql/vendor/github.com/newrelic/infra-integrations-sdk/LICENSE
-    project_url: github.com/newrelic/nri-mysql/vendor/github.com/newrelic/infra-integrations-sdk/log
-  github.com/newrelic/nri-mysql/vendor/github.com/newrelic/infra-integrations-sdk/persist:
-    license: Unknown
-    license_url: github.com/newrelic/nri-mysql/vendor/github.com/newrelic/infra-integrations-sdk/LICENSE
-    project_url: github.com/newrelic/nri-mysql/vendor/github.com/newrelic/infra-integrations-sdk/persist
-  github.com/newrelic/nri-mysql/vendor/github.com/pkg/errors:
+    license_url: vendor/github.com/go-sql-driver/mysql/LICENSE
+    project_url: github.com/go-sql-driver/mysql
+  github.com/newrelic/infra-integrations-sdk:
+    license: Apache-2.0
+    license_url: vendor/github.com/newrelic/infra-integrations-sdk/LICENSE
+    project_url: github.com/newrelic/infra-integrations-sdk
+  github.com/pkg/errors:
     license: BSD-2-Clause
-    license_url: github.com/newrelic/nri-mysql/vendor/github.com/pkg/errors/LICENSE
-    project_url: github.com/newrelic/nri-mysql/vendor/github.com/pkg/errors
+    license_url: vendor/github.com/pkg/errors/LICENSE
+    project_url: github.com/pkg/errors
+  github.com/sirupsen/logrus:
+    license: MIT
+    license_url: vendor/github.com/sirupsen/logrus/LICENSE
+    project_url: github.com/sirupsen/logrus
+  github.com/xeipuuv/gojsonpointer:
+    license: Apache-2.0
+    license_url: vendor/github.com/xeipuuv/gojsonpointer/LICENSE-APACHE-2.0.txt
+    project_url: github.com/xeipuuv/gojsonpointer
+  github.com/xeipuuv/gojsonreference:
+    license: Apache-2.0
+    license_url: vendor/github.com/xeipuuv/gojsonreference/LICENSE-APACHE-2.0.txt
+    project_url: github.com/xeipuuv/gojsonreference
+  github.com/xeipuuv/gojsonschema:
+    license: Apache-2.0
+    license_url: vendor/github.com/xeipuuv/gojsonschema/LICENSE-APACHE-2.0.txt
+    project_url: github.com/xeipuuv/gojsonschema
+  golang.org/x/sys:
+    license: BSD-3-Clause
+    license_url: vendor/golang.org/x/sys/LICENSE
+    project_url: golang.org/x/sys

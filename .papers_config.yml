@@ -45,11 +45,11 @@ reject:
   - EPL-1.0
 
 exceptions:
-  - "github.com/newrelic/nri-mysql/vendor/github.com/go-sql-driver/mysql"
-  - "github.com/newrelic/nri-mysql/vendor/github.com/newrelic/infra-integrations-sdk/args"
-  - "github.com/newrelic/nri-mysql/vendor/github.com/newrelic/infra-integrations-sdk/data/event"
-  - "github.com/newrelic/nri-mysql/vendor/github.com/newrelic/infra-integrations-sdk/data/inventory"
-  - "github.com/newrelic/nri-mysql/vendor/github.com/newrelic/infra-integrations-sdk/data/metric"
-  - "github.com/newrelic/nri-mysql/vendor/github.com/newrelic/infra-integrations-sdk/integration"
-  - "github.com/newrelic/nri-mysql/vendor/github.com/newrelic/infra-integrations-sdk/log"
-  - "github.com/newrelic/nri-mysql/vendor/github.com/newrelic/infra-integrations-sdk/persist"
+  - "github.com/go-sql-driver/mysql"
+  - "github.com/newrelic/infra-integrations-sdk/args"
+  - "github.com/newrelic/infra-integrations-sdk/data/event"
+  - "github.com/newrelic/infra-integrations-sdk/data/inventory"
+  - "github.com/newrelic/infra-integrations-sdk/data/metric"
+  - "github.com/newrelic/infra-integrations-sdk/integration"
+  - "github.com/newrelic/infra-integrations-sdk/log"
+  - "github.com/newrelic/infra-integrations-sdk/persist"
