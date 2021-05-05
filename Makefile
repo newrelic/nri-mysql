@@ -1,78 +1,35 @@
 INTEGRATION     := mysql
 BINARY_NAME      = nri-$(INTEGRATION)
 SRC_DIR          = ./src/
-VALIDATE_DEPS    = golang.org/x/lint/golint
-TEST_DEPS        = github.com/axw/gocov/gocov github.com/AlekSi/gocov-xml
 INTEGRATIONS_DIR = /var/db/newrelic-infra/newrelic-integrations/
 CONFIG_DIR       = /etc/newrelic-infra/integrations.d
 GO_FILES        := ./src/
+GOFLAGS          = -mod=readonly
+GOLANGCI_LINT    = github.com/golangci/golangci-lint/cmd/golangci-lint
+GOCOV            = github.com/axw/gocov/gocov
+GOCOV_XML        = github.com/AlekSi/gocov-xml
 
 all: build
 
-build: clean validate-deps validate compile test
+build: clean validate compile test
 
 clean:
 	@echo "=== $(INTEGRATION) === [ clean ]: removing binaries and coverage file..."
 	@rm -rfv bin coverage.xml
 
-validate-deps:
-	@echo "=== $(INTEGRATION) === [ validate-deps ]: installing validation dependencies..."
-	@go get -v $(VALIDATE_DEPS)
-
-validate-only:
-ifeq ($(strip $(GO_FILES)),)
-	@echo "=== $(INTEGRATION) === [ validate ]: no Go files found. Skipping validation."
-else
-	@printf "=== $(INTEGRATION) === [ validate ]: running gofmt... "
-	@OUTPUT="$(shell gofmt -l $(GO_FILES))" ;\
-	if [ -z "$$OUTPUT" ]; then \
-		echo "passed." ;\
-	else \
-		echo "failed. Incorrect syntax in the following files:" ;\
-		echo "$$OUTPUT" ;\
-		exit 1 ;\
-	fi
-	@printf "=== $(INTEGRATION) === [ validate ]: running golint... "
-	@OUTPUT="$(shell golint $(SRC_DIR)...)" ;\
-	if [ -z "$$OUTPUT" ]; then \
-		echo "passed." ;\
-	else \
-		echo "failed. Issues found:" ;\
-		echo "$$OUTPUT" ;\
-		exit 1 ;\
-	fi
-	@printf "=== $(INTEGRATION) === [ validate ]: running go vet... "
-	@OUTPUT="$(shell go vet $(SRC_DIR)...)" ;\
-	if [ -z "$$OUTPUT" ]; then \
-		echo "passed." ;\
-	else \
-		echo "failed. Issues found:" ;\
-		echo "$$OUTPUT" ;\
-		exit 1;\
-	fi
-endif
-
-validate: validate-deps validate-only
-
-compile-deps:
-	@echo "=== $(INTEGRATION) === [ compile-deps ]: installing build dependencies..."
-	@go get -v -d -t ./...
+validate: 
+	@echo "=== $(INTEGRATION) === [ validate ]: Validating source code running golangci-lint..."
+	@go run $(GOFLAGS) $(GOLANGCI_LINT) run --verbose
 
 bin/$(BINARY_NAME):
 	@echo "=== $(INTEGRATION) === [ compile ]: building $(BINARY_NAME)..."
 	@go build -v -o bin/$(BINARY_NAME) $(GO_FILES)
 
-compile: compile-deps bin/$(BINARY_NAME)
+compile: bin/$(BINARY_NAME)
 
-test-deps: compile-deps
-	@echo "=== $(INTEGRATION) === [ test-deps ]: installing testing dependencies..."
-	@go get -v $(TEST_DEPS)
-
-test-only:
+test:
 	@echo "=== $(INTEGRATION) === [ test ]: running unit tests..."
-	@gocov test ./... | gocov-xml > coverage.xml
-
-test: test-deps test-only
+	@go run $(GOFLAGS) $(GOCOV) test ./... | go run $(GOFLAGS) $(GOCOV_XML) > coverage.xml
 
 integration-test: test-deps
 	@echo "=== $(INTEGRATION) === [ test ]: running integration tests..."
@@ -90,4 +47,4 @@ install: bin/$(BINARY_NAME)
 include $(CURDIR)/build/ci.mk
 include $(CURDIR)/build/release.mk
 
-.PHONY: all build clean validate-deps validate-only validate compile-deps compile test-deps test-only test integration-test install
+.PHONY: all build clean validate compile test integration-test install
