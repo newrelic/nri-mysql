@@ -38,11 +38,14 @@ nfpms:
     description: "New Relic Infrastructure mysql Integration extend the core New Relic\nInfrastructure agent's capabilities to allow you to collect metric and\nlive state data from mysql components."
     license: "https://newrelic.com/terms (also see LICENSE installed with this package)"
 
+    builds:
+      - nri-mysql-nix
+
     dependencies:
       - "newrelic-infra"
 
     bindir: "/var/db/newrelic-infra/newrelic-integrations/bin"
-    
+
     contents:
       - src: "mysql-config.yml.sample"
         dst: "/etc/newrelic-infra/integrations.d/mysql-config.yml.sample"
@@ -55,12 +58,12 @@ nfpms:
       - src: "mysql-definition.yml"
         dst: "/var/db/newrelic-infra/newrelic-integrations/mysql-definition.yml"
         type: config
-  
+
     overrides:
       rpm:
-        file_name_template: "{{ .ProjectName }}-{{ .Version }}-{{ .Arch }}"
+        file_name_template: "{{ .ProjectName }}-{{ .Version }}-1.{{ .Arch }}"
         replacements:
-          amd64: 1.x86_64
+          amd64: x86_64
 
     formats:
       - deb

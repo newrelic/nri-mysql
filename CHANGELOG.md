@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## 1.6.1 (2021-06-08)
+### Changed
+- Support for ARM
+
 ## 1.6.0 (2021-05-05)
 ## Changed
 - Update Go to v1.16.
