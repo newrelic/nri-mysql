@@ -198,3 +198,20 @@ func TestGenerateDSNSupportsOldPasswords(t *testing.T) {
 
 	flag.CommandLine = flag.NewFlagSet("cmd", flag.ContinueOnError)
 }
+
+func TestGenerateDSNSupportsParameters(t *testing.T) {
+	os.Args = []string{
+		"cmd",
+		"-hostname=dbhost",
+		"-username=dbuser",
+		"-password=dbpwd",
+		"-port=1234",
+		"-connection_parameters=tls=skip-verify&timeout=5s",
+	}
+	_, err := integration.New(integrationName, integrationVersion, integration.Args(&args))
+	fatalIfErr(err)
+
+	assert.Equal(t, "dbuser:dbpwd@tcp(dbhost:1234)/?tls=skip-verify&timeout=5s", generateDSN(args))
+
+	flag.CommandLine = flag.NewFlagSet("cmd", flag.ContinueOnError)
+}
