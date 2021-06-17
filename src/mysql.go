@@ -24,24 +24,24 @@ const (
 
 type argumentList struct {
 	sdk_args.DefaultArgumentList
-	Hostname              string `default:"localhost" help:"Hostname or IP where MySQL is running."`
-	Port                  int    `default:"3306" help:"Port on which MySQL server is listening."`
-	Username              string `help:"Username for accessing the database."`
-	Password              string `help:"Password for the given user."`
-	Database              string `help:"Database name"`
-	ConnectionParameters  string `help:"Specify connection parameters as attribute=value."` // https://github.com/go-sql-driver/mysql#parameters
-	RemoteMonitoring      bool   `default:"false" help:"Identifies the monitored entity as 'remote'. In doubt: set to true"`
-	ExtendedMetrics       bool   `default:"false" help:"Enable extended metrics"`
-	ExtendedInnodbMetrics bool   `default:"false" help:"Enable InnoDB extended metrics"`
-	ExtendedMyIsamMetrics bool   `default:"false" help:"Enable MyISAM extended metrics"`
-	OldPasswords          bool   `default:"false" help:"Allow old passwords: https://dev.mysql.com/doc/refman/5.6/en/server-system-variables.html#sysvar_old_passwords"`
-	ShowVersion           bool   `default:"false" help:"Print build information and exit"`
+	Hostname               string `default:"localhost" help:"Hostname or IP where MySQL is running."`
+	Port                   int    `default:"3306" help:"Port on which MySQL server is listening."`
+	Username               string `help:"Username for accessing the database."`
+	Password               string `help:"Password for the given user."`
+	Database               string `help:"Database name"`
+	ExtraConnectionURLArgs string `help:"Specify extra connection parameters as attribute=value."` // https://github.com/go-sql-driver/mysql#parameters
+	RemoteMonitoring       bool   `default:"false" help:"Identifies the monitored entity as 'remote'. In doubt: set to true"`
+	ExtendedMetrics        bool   `default:"false" help:"Enable extended metrics"`
+	ExtendedInnodbMetrics  bool   `default:"false" help:"Enable InnoDB extended metrics"`
+	ExtendedMyIsamMetrics  bool   `default:"false" help:"Enable MyISAM extended metrics"`
+	OldPasswords           bool   `default:"false" help:"Allow old passwords: https://dev.mysql.com/doc/refman/5.6/en/server-system-variables.html#sysvar_old_passwords"`
+	ShowVersion            bool   `default:"false" help:"Print build information and exit"`
 }
 
 func generateDSN(args argumentList) string {
-	params := args.ConnectionParameters
+	params := args.ExtraConnectionURLArgs
 	if args.OldPasswords {
-		params = strings.Join([]string{"allowOldPasswords=true", args.ConnectionParameters}, "&")
+		params = strings.Join([]string{"allowOldPasswords=true", args.ExtraConnectionURLArgs}, "&")
 	}
 	if params != "" {
 		params = "?" + strings.TrimSuffix(params, "&")

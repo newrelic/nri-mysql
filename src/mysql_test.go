@@ -206,7 +206,7 @@ func TestGenerateDSNSupportsParameters(t *testing.T) {
 		"-username=dbuser",
 		"-password=dbpwd",
 		"-port=1234",
-		"-connection_parameters=tls=skip-verify&timeout=5s",
+		"-extra_connection_url_args=tls=skip-verify&timeout=5s",
 	}
 	_, err := integration.New(integrationName, integrationVersion, integration.Args(&args))
 	fatalIfErr(err)
