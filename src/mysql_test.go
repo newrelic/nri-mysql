@@ -177,7 +177,7 @@ func TestGenerateDSNPriorizesCliOverEnvArgs(t *testing.T) {
 	_, err := integration.New(integrationName, integrationVersion, integration.Args(&args))
 	fatalIfErr(err)
 
-	assert.Equal(t, "dbuser:dbpwd@tcp(bar:1234)/", generateDSN(args))
+	assert.Equal(t, "dbuser:dbpwd@tcp(bar:1234)/?", generateDSN(args))
 
 	flag.CommandLine = flag.NewFlagSet("cmd", flag.ContinueOnError)
 }
@@ -199,19 +199,53 @@ func TestGenerateDSNSupportsOldPasswords(t *testing.T) {
 	flag.CommandLine = flag.NewFlagSet("cmd", flag.ContinueOnError)
 }
 
-func TestGenerateDSNSupportsParameters(t *testing.T) {
+func TestGenerateDSNSupportsEnableTLS(t *testing.T) {
 	os.Args = []string{
 		"cmd",
 		"-hostname=dbhost",
 		"-username=dbuser",
 		"-password=dbpwd",
 		"-port=1234",
-		"-extra_connection_url_args=tls=skip-verify&timeout=5s",
+		"-enable_tls",
 	}
 	_, err := integration.New(integrationName, integrationVersion, integration.Args(&args))
 	fatalIfErr(err)
 
-	assert.Equal(t, "dbuser:dbpwd@tcp(dbhost:1234)/?tls=skip-verify&timeout=5s", generateDSN(args))
+	assert.Equal(t, "dbuser:dbpwd@tcp(dbhost:1234)/?tls=true", generateDSN(args))
+
+	flag.CommandLine = flag.NewFlagSet("cmd", flag.ContinueOnError)
+}
+
+func TestGenerateDSNSupportsInsecureSkipVerify(t *testing.T) {
+	os.Args = []string{
+		"cmd",
+		"-hostname=dbhost",
+		"-username=dbuser",
+		"-password=dbpwd",
+		"-port=1234",
+		"-insecure_skip_verify",
+	}
+	_, err := integration.New(integrationName, integrationVersion, integration.Args(&args))
+	fatalIfErr(err)
+
+	assert.Equal(t, "dbuser:dbpwd@tcp(dbhost:1234)/?tls=skip-verify", generateDSN(args))
+
+	flag.CommandLine = flag.NewFlagSet("cmd", flag.ContinueOnError)
+}
+
+func TestGenerateDSNSupportsExtraConnectionURLArgs(t *testing.T) {
+	os.Args = []string{
+		"cmd",
+		"-hostname=dbhost",
+		"-username=dbuser",
+		"-password=dbpwd",
+		"-port=1234",
+		"-extra_connection_url_args=readTimeout=1s&timeout=5s&tls=skip-verify",
+	}
+	_, err := integration.New(integrationName, integrationVersion, integration.Args(&args))
+	fatalIfErr(err)
+
+	assert.Equal(t, "dbuser:dbpwd@tcp(dbhost:1234)/?readTimeout=1s&timeout=5s&tls=skip-verify", generateDSN(args))
 
 	flag.CommandLine = flag.NewFlagSet("cmd", flag.ContinueOnError)
 }

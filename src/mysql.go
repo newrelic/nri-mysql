@@ -3,6 +3,7 @@ package main
 
 import (
 	"fmt"
+	"net/url"
 	"os"
 	"runtime"
 	"strconv"
@@ -29,7 +30,9 @@ type argumentList struct {
 	Username               string `help:"Username for accessing the database."`
 	Password               string `help:"Password for the given user."`
 	Database               string `help:"Database name"`
-	ExtraConnectionURLArgs string `help:"Specify extra connection parameters as attribute=value."` // https://github.com/go-sql-driver/mysql#parameters
+	ExtraConnectionURLArgs string `help:"Specify extra connection parameters as attr1=val1&attr2=val2."` // https://github.com/go-sql-driver/mysql#parameters
+	InsecureSkipVerify     bool   `default:"false" help:"Skip verification of the server's certificate when using TLS with the connection."`
+	EnableTLS              bool   `default:"false" help:"Use a secure (TLS) connection."`
 	RemoteMonitoring       bool   `default:"false" help:"Identifies the monitored entity as 'remote'. In doubt: set to true"`
 	ExtendedMetrics        bool   `default:"false" help:"Enable extended metrics"`
 	ExtendedInnodbMetrics  bool   `default:"false" help:"Enable InnoDB extended metrics"`
@@ -39,15 +42,27 @@ type argumentList struct {
 }
 
 func generateDSN(args argumentList) string {
-	params := args.ExtraConnectionURLArgs
+	// Format query parameters
+	query := url.Values{}
 	if args.OldPasswords {
-		params = strings.Join([]string{"allowOldPasswords=true", args.ExtraConnectionURLArgs}, "&")
+		query.Add("allowOldPasswords", "true")
 	}
-	if params != "" {
-		params = "?" + strings.TrimSuffix(params, "&")
+	if args.EnableTLS {
+		query.Add("tls", "true")
+	}
+	if args.InsecureSkipVerify {
+		query.Add("tls", "skip-verify")
+	}
+	extraArgsMap, err := url.ParseQuery(args.ExtraConnectionURLArgs)
+	if err == nil {
+		for k, v := range extraArgsMap {
+			query.Add(k, v[0])
+		}
+	} else {
+		log.Warn("Could not successfully parse ExtraConnectionURLArgs.", err.Error())
 	}
 
-	return fmt.Sprintf("%s:%s@tcp(%s:%d)/%s%s", args.Username, args.Password, args.Hostname, args.Port, args.Database, params)
+	return fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?%s", args.Username, args.Password, args.Hostname, args.Port, args.Database, query.Encode())
 }
 
 var (
