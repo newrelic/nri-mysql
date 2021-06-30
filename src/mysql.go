@@ -63,6 +63,7 @@ func generateDSN(args argumentList) string {
 		log.Warn("Could not successfully parse ExtraConnectionURLArgs.", err.Error())
 	}
 	if args.Socket != "" {
+		log.Info("Socket parameter is defined, ignoring host parameter")
 		return fmt.Sprintf("%s:%s@unix(%s)/%s?%s", args.Username, args.Password, args.Socket, args.Database, query.Encode())
 	}
 
