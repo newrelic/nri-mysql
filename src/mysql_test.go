@@ -262,7 +262,7 @@ func TestGenerateDSNSocketDiscardPort(t *testing.T) {
 	_, err := integration.New(integrationName, integrationVersion, integration.Args(&args))
 	fatalIfErr(err)
 
-	assert.Equal(t, "dbuser:dbpwd@unix(/path/to/socket/file)/", generateDSN(args))
+	assert.Equal(t, "dbuser:dbpwd@unix(/path/to/socket/file)/?", generateDSN(args))
 
 	flag.CommandLine = flag.NewFlagSet("cmd", flag.ContinueOnError)
 }
