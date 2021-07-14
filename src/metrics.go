@@ -80,9 +80,9 @@ func qCacheHitRatio(metrics map[string]interface{}) (float64, bool) {
 
 func slaveRunningAsNumber(metrics map[string]interface{}) (int, bool) {
 	slaveIORunning, okIO := metrics["Slave_IO_Running"].(string)
-	slaveSQLRunning, okSQL := metrics["Slave_IO_Running"].(string)
-	if okIO || okSQL {
-		if slaveIORunning == "Yes" || slaveSQLRunning == "Yes" {
+	slaveSQLRunning, okSQL := metrics["Slave_SQL_Running"].(string)
+	if okIO && okSQL {
+		if slaveIORunning == "Yes" && slaveSQLRunning == "Yes" {
 			return 1, true
 		}
 		return 0, true
