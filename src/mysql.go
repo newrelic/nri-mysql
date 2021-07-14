@@ -27,6 +27,7 @@ type argumentList struct {
 	sdk_args.DefaultArgumentList
 	Hostname               string `default:"localhost" help:"Hostname or IP where MySQL is running."`
 	Port                   int    `default:"3306" help:"Port on which MySQL server is listening."`
+	Socket                 string `default:"" help:"MySQL Socket file."`
 	Username               string `help:"Username for accessing the database."`
 	Password               string `help:"Password for the given user."`
 	Database               string `help:"Database name"`
@@ -60,6 +61,10 @@ func generateDSN(args argumentList) string {
 		}
 	} else {
 		log.Warn("Could not successfully parse ExtraConnectionURLArgs.", err.Error())
+	}
+	if args.Socket != "" {
+		log.Info("Socket parameter is defined, ignoring host and port parameters")
+		return fmt.Sprintf("%s:%s@unix(%s)/%s?%s", args.Username, args.Password, args.Socket, args.Database, query.Encode())
 	}
 
 	return fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?%s", args.Username, args.Password, args.Hostname, args.Port, args.Database, query.Encode())

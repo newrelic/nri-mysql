@@ -249,3 +249,20 @@ func TestGenerateDSNSupportsExtraConnectionURLArgs(t *testing.T) {
 
 	flag.CommandLine = flag.NewFlagSet("cmd", flag.ContinueOnError)
 }
+
+func TestGenerateDSNSocketDiscardPort(t *testing.T) {
+	os.Args = []string{
+		"cmd",
+		"-hostname=dbhost",
+		"-username=dbuser",
+		"-password=dbpwd",
+		"-port=1234",
+		"-socket=/path/to/socket/file",
+	}
+	_, err := integration.New(integrationName, integrationVersion, integration.Args(&args))
+	fatalIfErr(err)
+
+	assert.Equal(t, "dbuser:dbpwd@unix(/path/to/socket/file)/?", generateDSN(args))
+
+	flag.CommandLine = flag.NewFlagSet("cmd", flag.ContinueOnError)
+}
