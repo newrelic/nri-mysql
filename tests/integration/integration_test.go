@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -25,25 +26,27 @@ var (
 
 	defaultContainer = "integration_nri-mysql_1"
 	// mysql config
-	defaultBinPath   = "/nri-mysql"
-	defaultMysqlUser = "root"
-	defaultMysqlPass = "DBpwd1234!"
-	defaultMysqlHost = "mysql"
-	defaultMysqlPort = 3306
-	defaultMysqlDB   = "database"
+	defaultBinPath         = "/nri-mysql"
+	defaultMysqlUser       = "root"
+	defaultMysqlPass       = "DBpwd1234"
+	defaultMysqlMasterHost = "mysql_master"
+	defaultMysqlSlaveHost  = "mysql_slave"
+	defaultMysqlPort       = 3306
+	defaultMysqlDB         = "database"
 
 	// cli flags
-	container = flag.String("container", defaultContainer, "container where the integration is installed")
-	binPath   = flag.String("bin", defaultBinPath, "Integration binary path")
-	user      = flag.String("user", defaultMysqlUser, "Mysql user name")
-	psw       = flag.String("psw", defaultMysqlPass, "Mysql user password")
-	host      = flag.String("host", defaultMysqlHost, "Mysql host ip address")
-	port      = flag.Int("port", defaultMysqlPort, "Mysql port")
-	database  = flag.String("database", defaultMysqlDB, "Mysql database")
+	container  = flag.String("container", defaultContainer, "container where the integration is installed")
+	binPath    = flag.String("bin", defaultBinPath, "Integration binary path")
+	user       = flag.String("user", defaultMysqlUser, "Mysql user name")
+	psw        = flag.String("psw", defaultMysqlPass, "Mysql user password")
+	masterHost = flag.String("masterhost", defaultMysqlMasterHost, "Mysql master host ip address")
+	slaveHost  = flag.String("slavehost", defaultMysqlSlaveHost, "Mysql master host ip address")
+	port       = flag.Int("port", defaultMysqlPort, "Mysql port")
+	database   = flag.String("database", defaultMysqlDB, "Mysql database")
 )
 
 // Returns the standard output, or fails testing if the command returned an error
-func runIntegration(t *testing.T, envVars ...string) string {
+func runIntegration(t *testing.T, targetContainer string, envVars ...string) string {
 	t.Helper()
 
 	command := make([]string, 0)
@@ -54,8 +57,8 @@ func runIntegration(t *testing.T, envVars ...string) string {
 	if psw != nil {
 		command = append(command, "--password", *psw)
 	}
-	if host != nil {
-		command = append(command, "--hostname", *host)
+	if targetContainer != "" {
+		command = append(command, "--hostname", targetContainer)
 	}
 	if port != nil {
 		command = append(command, "--port", strconv.Itoa(*port))
@@ -79,7 +82,39 @@ func setup() error {
 		log.SetLevel(log.DebugLevel)
 	}
 
-	return helpers.WaitForPort(*container, *host, *port, 30*time.Second)
+	masterErr := helpers.WaitForPort(*container, *masterHost, *port, 60*time.Second)
+	if masterErr != nil {
+		return masterErr
+	}
+
+	slaveErr := helpers.WaitForPort(*container, *slaveHost, *port, 30*time.Second)
+	if slaveErr != nil {
+		return slaveErr
+	}
+
+	// Retrieve log filename and position from master
+	masterStatusCmd := []string{`mysql`, `-u`, `root`, `-e`, `SHOW MASTER STATUS;`}
+	masterStatusOut, masterStatusErr, err := helpers.ExecInContainer(*masterHost, masterStatusCmd, fmt.Sprintf("MYSQL_PWD=%s", *psw))
+	if masterStatusErr != "" {
+		log.Debug("Error fetching Master Log filename and Position: ", masterStatusErr)
+		return err
+	}
+
+	masterStatus := strings.Fields(masterStatusOut)
+	masterLogFile := masterStatus[5]
+	masterLogPos := masterStatus[6]
+
+	// Activate MASTER/SLAVE replication
+	replication_stmt := fmt.Sprintf(`CHANGE MASTER TO MASTER_HOST='%s', MASTER_USER='%s', MASTER_PASSWORD='%s', MASTER_LOG_FILE='%s', MASTER_LOG_POS=%v; START SLAVE;`, *masterHost, *user, *psw, masterLogFile, masterLogPos)
+	replicationCmd := []string{`mysql`, `-u`, `root`, `-e`, replication_stmt}
+	_, replicationStatusErr, err := helpers.ExecInContainer(*slaveHost, replicationCmd, fmt.Sprintf("MYSQL_PWD=%s", *psw))
+	if replicationStatusErr != "" {
+		log.Debug("Error creating Master/Slave replication: ", replicationStatusErr)
+		return err
+	}
+	log.Info("Setup Complete!")
+
+	return nil
 }
 
 func teardown() error {
@@ -108,7 +143,7 @@ func TestMain(m *testing.M) {
 }
 
 func TestOutputIsValidJSON(t *testing.T) {
-	stdout := runIntegration(t)
+	stdout := runIntegration(t, *masterHost)
 
 	var j map[string]interface{}
 	err := json.Unmarshal([]byte(stdout), &j)
@@ -117,7 +152,7 @@ func TestOutputIsValidJSON(t *testing.T) {
 
 func TestMySQLIntegrationValidArguments_RemoteEntity(t *testing.T) {
 	testName := helpers.GetTestName(t)
-	stdout := runIntegration(t, fmt.Sprintf("NRIA_CACHE_PATH=/tmp/%v.json", testName), "REMOTE_MONITORING=true")
+	stdout := runIntegration(t, *masterHost, fmt.Sprintf("NRIA_CACHE_PATH=/tmp/%v.json", testName), "REMOTE_MONITORING=true")
 	schemaPath := filepath.Join("json-schema-files", "mysql-schema-master.json")
 	err := jsonschema.Validate(schemaPath, stdout)
 	require.NoError(t, err, "The output of MySQL integration doesn't have expected format")
@@ -125,16 +160,15 @@ func TestMySQLIntegrationValidArguments_RemoteEntity(t *testing.T) {
 
 func TestMySQLIntegrationValidArguments_LocalEntity(t *testing.T) {
 	testName := helpers.GetTestName(t)
-	stdout := runIntegration(t, fmt.Sprintf("NRIA_CACHE_PATH=/tmp/%v.json", testName))
+	stdout := runIntegration(t, *masterHost, fmt.Sprintf("NRIA_CACHE_PATH=/tmp/%v.json", testName))
 	schemaPath := filepath.Join("json-schema-files", "mysql-schema-master-localentity.json")
 	err := jsonschema.Validate(schemaPath, stdout)
 	require.NoError(t, err, "The output of MySQL integration doesn't have expected format")
 }
 
 func TestMySQLIntegrationOnlyMetrics(t *testing.T) {
-
 	testName := helpers.GetTestName(t)
-	stdout := runIntegration(t, "METRICS=true", fmt.Sprintf("NRIA_CACHE_PATH=/tmp/%v.json", testName))
+	stdout := runIntegration(t, *masterHost, "METRICS=true", fmt.Sprintf("NRIA_CACHE_PATH=/tmp/%v.json", testName))
 	schemaPath := filepath.Join("json-schema-files", "mysql-schema-metrics-master.json")
 	err := jsonschema.Validate(schemaPath, stdout)
 	require.NoError(t, err, "The output of MySQL integration doesn't have expected format.")
@@ -142,9 +176,16 @@ func TestMySQLIntegrationOnlyMetrics(t *testing.T) {
 
 func TestMySQLIntegrationOnlyInventory(t *testing.T) {
 	testName := helpers.GetTestName(t)
-	stdout := runIntegration(t, "INTEGRATION=true", fmt.Sprintf("NRIA_CACHE_PATH=/tmp/%v.json", testName))
+	stdout := runIntegration(t, *masterHost, "INTEGRATION=true", fmt.Sprintf("NRIA_CACHE_PATH=/tmp/%v.json", testName))
 	schemaPath := filepath.Join("json-schema-files", "mysql-schema-inventory-master.json")
 	err := jsonschema.Validate(schemaPath, stdout)
 	require.NoError(t, err, "The output of MySQL integration doesn't have expected format.")
+}
 
+func TestMySQLIntegrationOnlySlaveMetrics(t *testing.T) {
+	testName := helpers.GetTestName(t)
+	stdout := runIntegration(t, *slaveHost, "METRICS=true", "EXTENDED_METRICS=true", fmt.Sprintf("NRIA_CACHE_PATH=/tmp/%v.json", testName))
+	schemaPath := filepath.Join("json-schema-files", "mysql-schema-metrics-slave.json")
+	err := jsonschema.Validate(schemaPath, stdout)
+	require.NoError(t, err, "The output of MySQL integration doesn't have expected format.")
 }
