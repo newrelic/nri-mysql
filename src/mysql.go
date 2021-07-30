@@ -43,17 +43,6 @@ type argumentList struct {
 	ShowVersion            bool   `default:"false" help:"Print build information and exit"`
 }
 
-func hostnameIpv6Formater(hostname string) (string) {
-	// Format backend parameters
-	ip := net.ParseIP(hostname)
-
-	if ip.To16() != nil {
-		return fmt.Sprintf("[%v]", ip)
-	}
-
-	return hostname
-}
-
 func generateDSN(args argumentList) string {
 	// Format query parameters
 	query := url.Values{}
@@ -79,9 +68,10 @@ func generateDSN(args argumentList) string {
 		return fmt.Sprintf("%s:%s@unix(%s)/%s?%s", args.Username, args.Password, args.Socket, args.Database, query.Encode())
 	}
 
-	args.Hostname = hostnameIpv6Formater(args.Hostname)
+	// Convert hostname and port to DSN address format
+	mysqlURL := net.JoinHostPort(args.Hostname, strconv.Itoa(args.Port))
 
-	return fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?%s", args.Username, args.Password, args.Hostname, args.Port, args.Database, query.Encode())
+	return fmt.Sprintf("%s:%s@tcp(%s)/%s?%s", args.Username, args.Password, mysqlURL, args.Database, query.Encode())
 }
 
 var (
