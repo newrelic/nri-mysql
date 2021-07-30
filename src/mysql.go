@@ -8,6 +8,7 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+	"net"
 
 	"github.com/newrelic/infra-integrations-sdk/data/attribute"
 
@@ -42,6 +43,17 @@ type argumentList struct {
 	ShowVersion            bool   `default:"false" help:"Print build information and exit"`
 }
 
+func hostnameIpv6Formater(hostname string) (string) {
+	// Format backend parameters
+	ip := net.ParseIP(hostname)
+
+	if ip.To16() != nil {
+		return fmt.Sprintf("[%v]", ip)
+	}
+
+	return hostname
+}
+
 func generateDSN(args argumentList) string {
 	// Format query parameters
 	query := url.Values{}
@@ -66,6 +78,8 @@ func generateDSN(args argumentList) string {
 		log.Info("Socket parameter is defined, ignoring host and port parameters")
 		return fmt.Sprintf("%s:%s@unix(%s)/%s?%s", args.Username, args.Password, args.Socket, args.Database, query.Encode())
 	}
+
+	args.Hostname = hostnameIpv6Formater(args.Hostname)
 
 	return fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?%s", args.Username, args.Password, args.Hostname, args.Port, args.Database, query.Encode())
 }
