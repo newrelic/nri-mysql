@@ -3,12 +3,12 @@ package main
 
 import (
 	"fmt"
+	"net"
 	"net/url"
 	"os"
 	"runtime"
 	"strconv"
 	"strings"
-	"net"
 
 	"github.com/newrelic/infra-integrations-sdk/data/attribute"
 
