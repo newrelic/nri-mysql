@@ -1,23 +1,24 @@
-integration_name: com.newrelic.mysql
+integrations:
+- name: nri-mysql
+  env:
+    hostname: localhost
+    port: 3306
+    # If not empty `socket` parameter will discard `port` parameter
+    socket: <PATH_TO_LOCAL_SOCKET_FILE_NAME>
+    
+    username: newrelic
+    password: <YOUR_SELECTED_PASSWORD>
 
-instances:
-  - name: mysql-server
-    command: status
-    arguments:
-        hostname: localhost
-        port: 3306
-        # If not empty `socket` parameter will discard `port` parameter
-        socket: <PATH_TO_LOCAL_SOCKET_FILE_NAME>
-        username: newrelic
-        password: <YOUR_SELECTED_PASSWORD>
-        # New users should leave this property as `true`, to identify the
-        # monitored entities as `remote`. Setting this property to `false` (the
-        # default value) is deprecated and will be removed soon, disallowing
-        # entities that are identified as `local`.
-        # Please check the documentation to get more information about local
-        # versus remote entities:
-        # https://github.com/newrelic/infra-integrations-sdk/blob/master/docs/entity-definition.md
-        remote_monitoring: true
-    labels:
-        env: production
-        role: write-replica
+    # New users should leave this property as `true`, to identify the
+    # monitored entities as `remote`. Setting this property to `false` (the
+    # default value) is deprecated and will be removed soon, disallowing
+    # entities that are identified as `local`.
+    # Please check the documentation to get more information about local
+    # versus remote entities:
+    # https://github.com/newrelic/infra-integrations-sdk/blob/master/docs/entity-definition.md
+    remote_monitoring: true
+  interval: 30s
+  labels:
+    env: production
+    role: write-replica
+  inventory_source: config/mysql
