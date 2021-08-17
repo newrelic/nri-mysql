@@ -3,6 +3,7 @@ package main
 
 import (
 	"fmt"
+	"net"
 	"net/url"
 	"os"
 	"runtime"
@@ -67,7 +68,10 @@ func generateDSN(args argumentList) string {
 		return fmt.Sprintf("%s:%s@unix(%s)/%s?%s", args.Username, args.Password, args.Socket, args.Database, query.Encode())
 	}
 
-	return fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?%s", args.Username, args.Password, args.Hostname, args.Port, args.Database, query.Encode())
+	// Convert hostname and port to DSN address format
+	mysqlURL := net.JoinHostPort(args.Hostname, strconv.Itoa(args.Port))
+
+	return fmt.Sprintf("%s:%s@tcp(%s)/%s?%s", args.Username, args.Password, mysqlURL, args.Database, query.Encode())
 }
 
 var (
