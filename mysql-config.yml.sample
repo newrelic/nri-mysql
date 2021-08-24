@@ -1,13 +1,13 @@
 integrations:
 - name: nri-mysql
   env:
-    hostname: localhost
-    port: 3306
+    HOSTNAME: localhost
+    PORT: 3306
     # If not empty `socket` parameter will discard `port` parameter
-    socket: <PATH_TO_LOCAL_SOCKET_FILE_NAME>
+    SOCKET: <PATH_TO_LOCAL_SOCKET_FILE_NAME>
     
-    username: newrelic
-    password: <YOUR_SELECTED_PASSWORD>
+    USERNAME: newrelic
+    PASSWORD: <YOUR_SELECTED_PASSWORD>
 
     # New users should leave this property as `true`, to identify the
     # monitored entities as `remote`. Setting this property to `false` (the
@@ -16,7 +16,7 @@ integrations:
     # Please check the documentation to get more information about local
     # versus remote entities:
     # https://github.com/newrelic/infra-integrations-sdk/blob/master/docs/entity-definition.md
-    remote_monitoring: true
+    REMOTE_MONITORING: true
   interval: 30s
   labels:
     env: production
