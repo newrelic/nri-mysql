@@ -4,9 +4,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
-## [Unreleased]
+## 1.7.0  (2021-06-27)
 ### Added
 - New parameter for MySQL local socket connection. Local socket connection is secure so MySQL will not complain about non-secure connection when `require_secure_transport = ON`.
+
+- Moved default config.sample to [V4](https://docs.newrelic.com/docs/create-integrations/infrastructure-integrations-sdk/specifications/host-integrations-newer-configuration-format/), added a dependency for infra-agent version 1.20.0
+
+Please notice that old [V3](https://docs.newrelic.com/docs/create-integrations/infrastructure-integrations-sdk/specifications/host-integrations-standard-configuration-format/) configuration format is deprecated, but still supported.
+
+
+### Fix
+- Detection of slave running for all mysql versions
+- IPv6 address URI formation
 
 ## 1.6.1 (2021-06-08)
 ### Changed

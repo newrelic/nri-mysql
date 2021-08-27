@@ -1,23 +1,41 @@
-integration_name: com.newrelic.mysql
+integrations:
+- name: nri-mysql
+  env:
+    HOSTNAME: localhost
+    PORT: 3306
+    # ENABLE_TLS: false
+    # INSECURE_SKIP_VERIFY: false
+    # Specify extra connection parameters as attr1=val1&attr2=val2.
+    # EXTRA_CONNECTION_URL_ARGS: ""
 
-instances:
-  - name: mysql-server
-    command: status
-    arguments:
-        hostname: localhost
-        port: 3306
-        # If not empty `socket` parameter will discard `port` parameter
-        socket: <PATH_TO_LOCAL_SOCKET_FILE_NAME>
-        username: newrelic
-        password: <YOUR_SELECTED_PASSWORD>
-        # New users should leave this property as `true`, to identify the
-        # monitored entities as `remote`. Setting this property to `false` (the
-        # default value) is deprecated and will be removed soon, disallowing
-        # entities that are identified as `local`.
-        # Please check the documentation to get more information about local
-        # versus remote entities:
-        # https://github.com/newrelic/infra-integrations-sdk/blob/master/docs/entity-definition.md
-        remote_monitoring: true
-    labels:
-        env: production
-        role: write-replica
+    # If not empty `socket` parameter will discard `port` parameter
+    SOCKET: <PATH_TO_LOCAL_SOCKET_FILE_NAME>
+
+    USERNAME: newrelic
+    PASSWORD: <YOUR_SELECTED_PASSWORD>
+    # Allow old password https://dev.mysql.com/doc/refman/5.6/en/server-system-variables.html#sysvar_old_passwords
+    # OLD_PASSWORDS: false
+
+    # Name of the database to be monitored
+    # DATABASE: ""
+
+    # Enable extended metrics
+    # EXTENDED_METRICS: false
+
+    # Enable additional metrics
+    # EXTENDED_INNODB_METRICS: false
+    # EXTENDED_MY_ISAM_METRICS: false
+
+    # New users should leave this property as `true`, to identify the
+    # monitored entities as `remote`. Setting this property to `false` (the
+    # default value) is deprecated and will be removed soon, disallowing
+    # entities that are identified as `local`.
+    # Please check the documentation to get more information about local
+    # versus remote entities:
+    # https://github.com/newrelic/infra-integrations-sdk/blob/master/docs/entity-definition.md
+    REMOTE_MONITORING: true
+  interval: 30s
+  labels:
+    env: production
+    role: write-replica
+  inventory_source: config/mysql
