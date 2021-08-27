@@ -1,5 +1,5 @@
 name: com.newrelic.mysql
-description: Reports status and metrics for mysql server. Legacy file kept for compatibility.
+description: Reports status and metrics for mysql server
 protocol_version: 3
 os: linux
 
