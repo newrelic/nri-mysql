@@ -4,6 +4,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## 1.7.1  (2021-10-20)
+### Added
+Added support for more distributions:
+- Debian 11
+- Ubuntu 20.10
+- Ubuntu 21.04
+- SUSE 12.15
+- SUSE 15.1
+- SUSE 15.2
+- SUSE 15.3
+- Oracle Linux 7
+- Oracle Linux 8
+
 ## 1.7.0  (2021-06-27)
 ### Added
 - New parameter for MySQL local socket connection. Local socket connection is secure so MySQL will not complain about non-secure connection when `require_secure_transport = ON`.
