@@ -1,0 +1,7 @@
+logs:
+# This sample file will forward mysql error logs to NR once it's renamed to mysql-log.yml
+# On Linux systems no restart is needed
+  - name: "mysqllog"
+    file: /var/log/mysql/error.log
+    attributes:
+      logtype: mysql-error
