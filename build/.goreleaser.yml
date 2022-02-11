@@ -94,6 +94,6 @@ archives:
         strip_parent: true
     format: zip
 
-# we use a custom publisher for fixing archives and signing them
+# we use custom publisher for fixing archives and signing them
 release:
   disable: true
