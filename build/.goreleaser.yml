@@ -49,8 +49,8 @@ nfpms:
     contents:
       - src: "mysql-config.yml.sample"
         dst: "/etc/newrelic-infra/integrations.d/mysql-config.yml.sample"
-      - src: "mysql-log.yml.sample"
-        dst: "/etc/newrelic-infra/logging.d/mysql-log.yml.sample"
+      - src: "mysql-log.yml.example"
+        dst: "/etc/newrelic-infra/logging.d/mysql-log.yml.example"
       - src: "CHANGELOG.md"
         dst: "/usr/share/doc/nri-mysql/CHANGELOG.md"
       - src: "README.md"
