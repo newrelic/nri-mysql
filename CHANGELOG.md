@@ -6,7 +6,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## 1.8.0  (2022-03-08)
 ### Added
-- Added `mysql-log.yml.example` to linux installer to help setting up log parsing.
+- `mysql-log.yml.example` is now in Linux packages to help setting up log parsing.
 
 ## 1.7.1  (2021-10-20)
 ### Added
