@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/newrelic/infra-integrations-sdk/data/metric"
+	"github.com/newrelic/infra-integrations-sdk/log"
 )
 
 var defaultMetrics = map[string][]interface{}{
@@ -81,6 +82,8 @@ func qCacheHitRatio(metrics map[string]interface{}) (float64, bool) {
 func slaveRunningAsNumber(metrics map[string]interface{}) (int, bool) {
 	slaveIORunning, okIO := metrics["Slave_IO_Running"].(string)
 	slaveSQLRunning, okSQL := metrics["Slave_SQL_Running"].(string)
+	log.Debug("slaveIORunning: %s", slaveIORunning)
+	log.Debug("slaveSQLRunning: %s", slaveSQLRunning)
 	if !okIO || !okSQL {
 		return 0, false
 	}

@@ -42,12 +42,16 @@ func getRawData(db dataSource) (map[string]interface{}, map[string]interface{}, 
 	}
 
 	replication, err := db.query(replicaQuery)
+	log.Debug("replication query results: %v", replication)
+	log.Debug("replication error results: %v", err)
 	if err != nil {
 		log.Warn("Can't get node type, not enough privileges (must grant REPLICATION CLIENT)")
 	} else if len(replication) == 0 {
 		metrics["node_type"] = "master"
+		log.Debug("metrics[\"node_type\"] = \"master\"")
 	} else {
 		metrics["node_type"] = "slave"
+		log.Debug("metrics[\"node_type\"] = \"slave\"")
 
 		for key := range replication {
 			metrics[key] = replication[key]
@@ -74,6 +78,7 @@ func populateInventory(inventory *inventory.Inventory, rawData map[string]interf
 func populateMetrics(sample *metric.Set, rawMetrics map[string]interface{}) {
 	if rawMetrics["node_type"] != "slave" {
 		delete(defaultMetrics, "cluster.slaveRunning")
+		log.Debug("metric 'cluster.slaveRunning' deleted. Node is not a slave.")
 	}
 	populatePartialMetrics(sample, rawMetrics, defaultMetrics)
 
