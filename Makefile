@@ -9,17 +9,11 @@ GOLANGCI_LINT    = github.com/golangci/golangci-lint/cmd/golangci-lint
 
 all: build
 
-build: clean validate compile test
+build: clean compile test
 
 clean:
 	@echo "=== $(INTEGRATION) === [ clean ]: removing binaries and coverage file..."
 	@rm -rfv bin coverage.xml
-
-validate:
-	@printf "=== $(INTEGRATION) === [ validate ]: running golangci-lint & semgrep... "
-	@go run  $(GOFLAGS) $(GOLANGCI_LINT) run --verbose
-	@[ -f .semgrep.yml ] && semgrep_config=".semgrep.yml" || semgrep_config="p/golang" ; \
-	docker run --rm -v "${PWD}:/src:ro" --workdir /src returntocorp/semgrep -c "$$semgrep_config"
 
 bin/$(BINARY_NAME):
 	@echo "=== $(INTEGRATION) === [ compile ]: building $(BINARY_NAME)..."
@@ -46,4 +40,4 @@ install: bin/$(BINARY_NAME)
 include $(CURDIR)/build/ci.mk
 include $(CURDIR)/build/release.mk
 
-.PHONY: all build clean validate compile test integration-test install
+.PHONY: all build clean compile test integration-test install

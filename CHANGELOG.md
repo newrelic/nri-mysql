@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## 1.8.1  (2022-06-27)
+### Changed
+- Bump dependencies
+### Added
+Added support for more distributions:
+- RHEL(EL) 9
+- Ubuntu 22.04
+
 ## 1.8.0  (2022-03-08)
 ### Added
 - `mysql-log.yml.example` is now in Linux packages to help setting up log parsing.
