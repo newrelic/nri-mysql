@@ -1,16 +1,20 @@
 ###############################################################################
 # This sample file will forward mysql error logs to NR once                   #
-#   it is renamed to mysql-log.yml                                            #
+#   it is renamed to mysql-log-win.yml                                        #
 #  On Windows systems a restart is needed after it is renamed                 #
 # Source: mysql error log file                                                #
 # Available customization parameters: attributes, max_line_kb, pattern        #
 ###############################################################################
 logs:
-  - name: "mysqllog"
-    file: C:\ProgramData\MySQL\*\Data\*.log
-    attributes:
-      logtype: mysql-error
   - name: "mysqlerrorlog"
-    file: C:\ProgramData\MySQL\*\Data\*.err
+    file: C:\ProgramData\MySQL\*\Data\mysql\*.err
     attributes:
       logtype: mysql-error
+  - name: "mysqlslowlog"
+    file: C:\ProgramData\MySQL\*\Data\mysql\mysql_slow.log
+    attributes:
+      logtype: mysql-slow
+  - name: "mysqlslowlog"
+    file: C:\ProgramData\MySQL\*\Data\mysql\mysql_general.log
+    attributes:
+      logtype: mysql-general
