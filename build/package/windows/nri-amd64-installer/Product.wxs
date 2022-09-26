@@ -94,5 +94,13 @@
                       KeyPath="yes"/>
             </Component>
         </ComponentGroup>
+        <ComponentGroup Id="PluginConfigsComponent" Directory="PluginConfigsFolder">
+            <Component Id="CMP_NRI_$(var.IntegrationName)_CONFIG_YML" Guid="229d0e4e-e272-4c0e-9670-b7c07ef51027" Win64="yes">
+                <File Id="FILE_NRI_$(var.IntegrationName)_CONFIG_YML"
+                      Name="$(var.IntegrationName)-log-win.yml.example"
+                      Source="$(var.BinariesPath)New Relic\newrelic-infra\logging.d\$(var.IntegrationName)-log-win.yml.example"
+                      KeyPath="yes"/>
+            </Component>
+        </ComponentGroup>
     </Fragment>
 </Wix>
