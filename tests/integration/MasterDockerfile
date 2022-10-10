@@ -1,2 +1,2 @@
-FROM mysql:5.7
+FROM mysql:5.7.35
 COPY tests/integration/mysql-config-files/master.conf.cnf /etc/mysql/conf.d/mysql.conf.cnf
