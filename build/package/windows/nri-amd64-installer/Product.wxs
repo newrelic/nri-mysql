@@ -103,7 +103,7 @@
             </Component>
         </ComponentGroup>
         <ComponentGroup Id="PluginLogConfigsComponent" Directory="PluginLogConfigsFolder">
-            <Component Id="CMP_NRI_$(var.IntegrationName)_LOG_CONFIG_YML" Guid="f7a785c6-4b75-4a22-8a01-8f1676e0968c" Win64="no">
+            <Component Id="CMP_NRI_$(var.IntegrationName)_LOG_CONFIG_YML" Guid="f7a785c6-4b75-4a22-8a01-8f1676e0968c" Win64="yes">
                 <File Id="FILE_NRI_$(var.IntegrationName)_LOG_CONFIG_YML"
                       Name="$(var.IntegrationName)-log-win.yml.example"
                       Source="$(var.BinariesPath)New Relic\newrelic-infra\logging.d\$(var.IntegrationName)-log-win.yml.example"
