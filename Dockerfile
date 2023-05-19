@@ -1,4 +1,4 @@
-FROM golang:1.9 as builder
+FROM golang:1.20 as builder
 COPY . /go/src/github.com/newrelic/nri-mysql/
 RUN cd /go/src/github.com/newrelic/nri-mysql && \
     make && \
