@@ -6,7 +6,7 @@ require (
 	github.com/bitly/go-simplejson v0.5.0
 	github.com/go-sql-driver/mysql v1.7.1
 	github.com/newrelic/infra-integrations-sdk v3.7.3+incompatible
-	github.com/sirupsen/logrus v1.9.2
+	github.com/sirupsen/logrus v1.9.3
 	github.com/stretchr/testify v1.8.4
 	github.com/xeipuuv/gojsonschema v1.2.0
 )
