@@ -8,8 +8,14 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 Unreleased section should follow [Release Toolkit](https://github.com/newrelic/release-toolkit#render-markdown-and-update-markdown)
 
 ## Unreleased
-### enhancement
- - bumped golang version pinning 1.20.6
+
+## v1.10.0 - 2023-07-24
+
+### 🚀 Enhancements
+- bumped golang version pinning 1.20.6
+
+### ⛓️ Dependencies
+- Updated github.com/sirupsen/logrus to v1.9.3 - [Changelog 🔗](https://github.com/sirupsen/logrus/releases/tag/v1.9.3)
 
 ## 1.9.0 (2023-06-06)
 ### Changed
