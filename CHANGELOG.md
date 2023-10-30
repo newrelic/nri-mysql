@@ -9,6 +9,12 @@ Unreleased section should follow [Release Toolkit](https://github.com/newrelic/r
 
 ## Unreleased
 
+## v1.10.2 - 2023-10-30
+
+### ⛓️ Dependencies
+- Updated github.com/bitly/go-simplejson to v0.5.1 - [Changelog 🔗](https://github.com/bitly/go-simplejson/releases/tag/v0.5.1)
+- Updated golang version to 1.21
+
 ## v1.10.1 - 2023-08-07
 
 ### ⛓️ Dependencies
