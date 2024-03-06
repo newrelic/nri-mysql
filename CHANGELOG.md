@@ -9,8 +9,8 @@ Unreleased section should follow [Release Toolkit](https://github.com/newrelic/r
 
 ## Unreleased
 
-### Fix
- - Updated Logrus dependency to remediate vulnerability 
+### bugfix
+ - Updated logrus dependency to remediate vulnerability 
 
 ## v1.10.4 - 2024-02-26
 
