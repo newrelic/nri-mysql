@@ -1,6 +1,6 @@
 module github.com/newrelic/nri-mysql
 
-go 1.21
+go 1.21.7
 
 require (
 	github.com/bitly/go-simplejson v0.5.1
@@ -12,9 +12,7 @@ require (
 )
 
 require (
-	github.com/bmizerany/assert v0.0.0-20160611221934-b7ed37b82869 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
-	github.com/kr/pretty v0.2.1 // indirect
 	github.com/kr/text v0.2.0 // indirect
 	github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e // indirect
 	github.com/pkg/errors v0.9.1 // indirect
