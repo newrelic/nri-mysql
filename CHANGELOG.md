@@ -9,8 +9,13 @@ Unreleased section should follow [Release Toolkit](https://github.com/newrelic/r
 
 ## Unreleased
 
-### bugfix
+## v1.10.5 - 2024-03-11
+
+### 🐞 Bug fixes
 - Updated golang to version v1.21.7 to fix a vulnerability
+
+### ⛓️ Dependencies
+- Updated github.com/go-sql-driver/mysql to v1.8.0 - [Changelog 🔗](https://github.com/go-sql-driver/mysql/releases/tag/v1.8.0)
 
 ## v1.10.4 - 2024-02-26
 
