@@ -4,7 +4,7 @@ go 1.21.7
 
 require (
 	github.com/bitly/go-simplejson v0.5.1
-	github.com/go-sql-driver/mysql v1.8.0
+	github.com/go-sql-driver/mysql v1.8.1
 	github.com/newrelic/infra-integrations-sdk v3.8.2+incompatible
 	github.com/sirupsen/logrus v1.9.3
 	github.com/stretchr/testify v1.9.0
