@@ -5,6 +5,8 @@
   ],
   "prConcurrentLimit": 0,
   "prHourlyLimit": 0,
+  "prCreation": "immediate",
+  "internalChecksFilter": "strict",
   "ignorePaths": [
     "**/node_modules/**",
     "**/bower_components/**",
