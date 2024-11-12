@@ -1,6 +1,6 @@
 module github.com/newrelic/nri-mysql
 
-go 1.23.3
+go 1.22.0
 
 require (
 	github.com/bitly/go-simplejson v0.5.1
