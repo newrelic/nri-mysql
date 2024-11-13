@@ -45,21 +45,32 @@ func PopulateQueryPerformanceMetrics(args arguments.ArgumentList) {
 	db, err := openDB(dsn)
 	fatalIfErr(err)
 	defer db.close()
-	employees, errorPerf := db.queryX(`select * from employees limit 5`)
+
+	inventory, errorPerf := db.queryX("select * from employees")
 	fatalIfErr(errorPerf)
-	fmt.Print(employees)
-	for employees.Next() {
-		var emp_no int
-		var first_name string
-		var birth_date string
-		var gender string
-		var hire_date string
-		var last_name string
-		if err := employees.Scan(&emp_no, &first_name, &last_name, &birth_date, &gender, &hire_date); err != nil {
-			log.Fatal(err)
-		}
-		fmt.Printf("ID: %d, Name: %s", emp_no, first_name)
+	fmt.Printf("Populaing query %v\n", inventory)
+
+	performanceSchemaEnabled, err := isPerformanceSchemaEnabled(db)
+
+	if !performanceSchemaEnabled {
+		fmt.Errorf("Performance Schema is not enabled. Skipping validation.")
 	}
+
+}
+
+func isPerformanceSchemaEnabled(db dataSource) (bool, error) {
+	var variableName, performanceSchemaEnabled string
+	rows, err := db.queryX("SHOW GLOBAL VARIABLES LIKE 'performance_schema';")
+	err1 := rows.Scan(&variableName, &performanceSchemaEnabled)
+	if err1 != nil {
+		return false, err1
+	}
+	fmt.Printf("rowss :%v rrrrr :%v perf :%v\n", rows, variableName, performanceSchemaEnabled)
+
+	if err != nil {
+		return false, fmt.Errorf("failed to check Performance Schema status: %w", err)
+	}
+	return performanceSchemaEnabled == "ON", nil
 }
 
 func fatalIfErr(err error) {
