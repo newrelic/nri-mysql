@@ -1,19 +1,22 @@
 package query_performance_details
 
 import (
+	"context"
 	"fmt"
+	"net"
+	"net/url"
+	"strconv"
+
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/jmoiron/sqlx"
 	"github.com/newrelic/infra-integrations-sdk/v3/log"
 	arguments "github.com/newrelic/nri-mysql/src/args"
-	"net"
-	"net/url"
-	"strconv"
 )
 
 type dataSource interface {
 	close()
 	queryX(string) (*sqlx.Rows, error)
+	QueryxContext(ctx context.Context, query string, args ...interface{}) (*sqlx.Rows, error)
 }
 
 type database struct {
@@ -39,6 +42,11 @@ func (db *database) queryX(query string) (*sqlx.Rows, error) {
 	rows, err := db.source.Queryx(query)
 	fatalIfErr(err)
 	return rows, err
+}
+
+// QueryxContext method implementation
+func (db *database) QueryxContext(ctx context.Context, query string, args ...interface{}) (*sqlx.Rows, error) {
+	return db.source.QueryxContext(ctx, query, args...)
 }
 
 func generateDSN(args arguments.ArgumentList) string {

@@ -2,6 +2,7 @@ package query_performance_details
 
 import (
 	"fmt"
+
 	"github.com/newrelic/infra-integrations-sdk/v3/log"
 	arguments "github.com/newrelic/nri-mysql/src/args"
 )
@@ -17,6 +18,19 @@ func PopulateQueryPerformanceMetrics(args arguments.ArgumentList) {
 	if !isPreConditionsPassed {
 		fmt.Println("Preconditions failed. Exiting.")
 		return
+	} else {
+		metrics, err := collectQueryMetrics(db)
+		if err != nil {
+			log.Error("Failed to collect query metrics: %v", err)
+			return
+		}
+		fmt.Println("Metrics collected successfully.", metrics)
+		// Data ingestion logic
+		// for _, metric := range metrics {
+		// 	metric.CollectedAt = time.Now()
+		// 	// Add custom event name and other ingestion logic if needed
+		// 	log.Info("Collected Query Metric: %+v", metric)
+		// }
 	}
 
 }
