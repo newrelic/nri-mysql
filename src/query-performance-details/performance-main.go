@@ -46,18 +46,17 @@ func PopulateQueryPerformanceMetrics(args arguments.ArgumentList) {
 	fatalIfErr(err)
 	defer db.close()
 
-	inventory, errorPerf := db.queryX("select * from employees")
-	fatalIfErr(errorPerf)
-	fmt.Printf("Populaing query %v\n", inventory)
-
 	performanceSchemaEnabled, err := isPerformanceSchemaEnabled(db)
-	fmt.Printf("Performance Schema enabled: %v\n", performanceSchemaEnabled)
 	if !performanceSchemaEnabled {
 		fmt.Println("Performance Schema is not enabled. Skipping validation.")
 		return
 	}
 
-	fmt.Printf("Performance Schema is enabled\n")
+	errEssentialConsumer := checkEssentialConsumers(db)
+	if errEssentialConsumer != nil {
+		fmt.Printf("Essential consumer check failed\n")
+		return
+	}
 
 }
 
@@ -78,6 +77,56 @@ func isPerformanceSchemaEnabled(db dataSource) (bool, error) {
 		return false, fmt.Errorf("failed to check Performance Schema status: %w", err)
 	}
 	return performanceSchemaEnabled == "ON", nil
+}
+
+func checkEssentialConsumers(db dataSource) error {
+	consumers := []string{
+		"events_waits_current",
+		"events_waits_history_long",
+		"events_waits_history",
+		"events_statements_history_long",
+		"events_statements_history",
+		"events_statements_current",
+		"events_statements_cpu",
+		"events_transactions_current",
+		"events_stages_current",
+	}
+
+	query := "SELECT NAME, ENABLED FROM performance_schema.setup_consumers WHERE NAME IN ("
+	for i, consumer := range consumers {
+		if i > 0 {
+			query += ", "
+		}
+		query += fmt.Sprintf("'%s'", consumer)
+	}
+	query += ");"
+
+	rows, err := db.queryX(query)
+	if err != nil {
+		return fmt.Errorf("failed to check essential consumers: %w", err)
+	}
+	defer func() {
+		if err := rows.Close(); err != nil {
+			log.Error("Failed to close rows: %v", err)
+		}
+	}()
+
+	for rows.Next() {
+		var name, enabled string
+		if err := rows.Scan(&name, &enabled); err != nil {
+			return fmt.Errorf("failed to scan consumer row: %w", err)
+		}
+		if enabled != "YES" {
+			log.Error("Essential consumer %s is not enabled. To enable it, run: UPDATE performance_schema.setup_consumers SET ENABLED = 'YES' WHERE NAME = '%s';", name, name)
+			return fmt.Errorf("essential consumer %s is not enabled", name)
+		}
+	}
+
+	if err := rows.Err(); err != nil {
+		return fmt.Errorf("rows iteration error: %w", err)
+	}
+
+	return nil
 }
 
 func fatalIfErr(err error) {
