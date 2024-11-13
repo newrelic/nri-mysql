@@ -45,8 +45,9 @@ func PopulateQueryPerformanceMetrics(args arguments.ArgumentList) {
 	db, err := openDB(dsn)
 	fatalIfErr(err)
 	defer db.close()
-	employees, errorPerf := db.queryX("select * from employees")
+	employees, errorPerf := db.queryX(`select * from employees limit 5`)
 	fatalIfErr(errorPerf)
+	fmt.Print(employees)
 	for employees.Next() {
 		var emp_no int
 		var first_name string
@@ -66,3 +67,12 @@ func fatalIfErr(err error) {
 		log.Fatal(err)
 	}
 }
+
+// func (mc *MySQLCollector) isPerformanceSchemaEnabled() (bool, error) {
+// 	var variableName, performanceSchemaEnabled string
+// 	err := mc.db.QueryRow("SHOW GLOBAL VARIABLES LIKE 'performance_schema';").Scan(&variableName, &performanceSchemaEnabled)
+// 	if err != nil {
+// 		return false, fmt.Errorf("failed to check Performance Schema status: %w", err)
+// 	}
+// 	return performanceSchemaEnabled == "ON", nil
+// }
