@@ -54,29 +54,25 @@ func PopulateQueryPerformanceMetrics(args arguments.ArgumentList) {
 
 	if !performanceSchemaEnabled {
 		fmt.Errorf("Performance Schema is not enabled. Skipping validation.")
+		return
 	}
+
+	fmt.Printf("Performance Schema is enabled\n")
 
 }
 
 func isPerformanceSchemaEnabled(db dataSource) (bool, error) {
 	var variableName, performanceSchemaEnabled string
 	rows, err := db.queryX("SHOW GLOBAL VARIABLES LIKE 'performance_schema';")
-	if rows.Next() {
-		if err := rows.Scan(&variableName, &performanceSchemaEnabled); err != nil {
-			log.Fatal(err)
-		}
-		fmt.Println("Variable Name:", variableName)
-		fmt.Println("Value:", performanceSchemaEnabled)
-	} else {
+
+	if !rows.Next() {
 		fmt.Println("No rows found")
+		return false, nil
 	}
 
-	//err1 := rows.Scan(&variableName, &performanceSchemaEnabled)
-	//if err1 != nil {
-	//	fmt.Printf("error :%v\n", err1)
-	//	return false, err1
-	//}
-	//fmt.Printf("rowss :%v rrrrr :%v perf :%v\n", rows, variableName, performanceSchemaEnabled)
+	if errScanning := rows.Scan(&variableName, &performanceSchemaEnabled); err != nil {
+		fatalIfErr(errScanning)
+	}
 
 	if err != nil {
 		return false, fmt.Errorf("failed to check Performance Schema status: %w", err)
@@ -89,12 +85,3 @@ func fatalIfErr(err error) {
 		log.Fatal(err)
 	}
 }
-
-// func (mc *MySQLCollector) isPerformanceSchemaEnabled() (bool, error) {
-// 	var variableName, performanceSchemaEnabled string
-// 	err := mc.db.QueryRow("SHOW GLOBAL VARIABLES LIKE 'performance_schema';").Scan(&variableName, &performanceSchemaEnabled)
-// 	if err != nil {
-// 		return false, fmt.Errorf("failed to check Performance Schema status: %w", err)
-// 	}
-// 	return performanceSchemaEnabled == "ON", nil
-// }
