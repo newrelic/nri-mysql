@@ -3,6 +3,7 @@ package query_performance_details
 import (
 	"database/sql"
 	"fmt"
+	"github.com/jmoiron/sqlx"
 	"strconv"
 
 	_ "github.com/go-sql-driver/mysql"
@@ -15,11 +16,11 @@ type dataSource interface {
 }
 
 type database struct {
-	source *sql.DB
+	source *sqlx.DB
 }
 
 func openDB(dsn string) (dataSource, error) {
-	source, err := sql.Open("mysql", dsn)
+	source, err := sqlx.Open("mysql", dsn)
 	if err != nil {
 		return nil, fmt.Errorf("error opening %s: %v", dsn, err)
 	}
@@ -41,7 +42,7 @@ func (db *database) close() {
 // In this case, each column name is a key, and corresponding value is a map value.
 func (db *database) query(query string) (map[string]interface{}, error) {
 	log.Debug("executing query: " + query)
-	rows, err := db.source.Query(query)
+	rows, err := db.source.Queryx(query)
 	if err != nil {
 		return nil, fmt.Errorf("error executing `%s`: %v", query, err)
 	}
