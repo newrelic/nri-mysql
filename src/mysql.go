@@ -91,31 +91,31 @@ func main() {
 	}
 
 	log.SetupLogging(args.Verbose)
-	//
-	//e, err := createNodeEntity(i, args.RemoteMonitoring, args.Hostname, args.Port)
-	//fatalIfErr(err)
-	//
-	//db, err := openDB(generateDSN(args))
-	//fatalIfErr(err)
-	//defer db.close()
-	//
-	//rawInventory, rawMetrics, err := getRawData(db)
-	//fatalIfErr(err)
-	//
-	//if args.HasInventory() {
-	//	populateInventory(e.Inventory, rawInventory)
-	//}
-	//
-	//if args.HasMetrics() {
-	//	ms := metricSet(
-	//		e,
-	//		"MysqlSample",
-	//		args.Hostname,
-	//		args.Port,
-	//		args.RemoteMonitoring,
-	//	)
-	//	populateMetrics(ms, rawMetrics)
-	//}
+
+	e, err := createNodeEntity(i, args.RemoteMonitoring, args.Hostname, args.Port)
+	fatalIfErr(err)
+
+	db, err := openDB(generateDSN(args))
+	fatalIfErr(err)
+	defer db.close()
+
+	rawInventory, rawMetrics, err := getRawData(db)
+	fatalIfErr(err)
+
+	if args.HasInventory() {
+		populateInventory(e.Inventory, rawInventory)
+	}
+
+	if args.HasMetrics() {
+		ms := metricSet(
+			e,
+			"MysqlSample",
+			args.Hostname,
+			args.Port,
+			args.RemoteMonitoring,
+		)
+		populateMetrics(ms, rawMetrics)
+	}
 	fmt.Println("heyyyyasasasas")
 	// New functionality
 	if args.EnableQueryPerformanceMonitoring {

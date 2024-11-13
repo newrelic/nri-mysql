@@ -1,10 +1,12 @@
 package query_performance_details
 
 import (
+	"database/sql"
 	"fmt"
 	"net"
 	"net/url"
 	"strconv"
+	"strings"
 
 	"github.com/newrelic/infra-integrations-sdk/v3/log"
 	arguments "github.com/newrelic/nri-mysql/src/args"
@@ -52,9 +54,15 @@ func PopulateQueryPerformanceMetrics(args arguments.ArgumentList) {
 		return
 	}
 
-	errEssentialConsumer := checkEssentialConsumers(db)
-	if errEssentialConsumer != nil {
+	errEssentialConsumers := checkEssentialConsumers(db)
+	if errEssentialConsumers != nil {
 		fmt.Printf("Essential consumer check failed\n")
+		return
+	}
+
+	errEssentialInstruments := checkEssentialInstruments(db)
+	if errEssentialInstruments != nil {
+		fmt.Printf("Essential instruments check failed\n")
 		return
 	}
 
@@ -119,6 +127,52 @@ func checkEssentialConsumers(db dataSource) error {
 		if enabled != "YES" {
 			log.Error("Essential consumer %s is not enabled. To enable it, run: UPDATE performance_schema.setup_consumers SET ENABLED = 'YES' WHERE NAME = '%s';", name, name)
 			return fmt.Errorf("essential consumer %s is not enabled", name)
+		}
+	}
+
+	if err := rows.Err(); err != nil {
+		return fmt.Errorf("rows iteration error: %w", err)
+	}
+
+	return nil
+}
+
+func checkEssentialInstruments(db dataSource) error {
+	instruments := []string{
+		// Add other essential instruments here
+		"wait/%",
+		"statement/%",
+		"%lock%",
+	}
+
+	var instrumentConditions []string
+	for _, instrument := range instruments {
+		instrumentConditions = append(instrumentConditions, fmt.Sprintf("NAME LIKE '%s'", instrument))
+	}
+
+	query := "SELECT NAME, ENABLED, TIMED FROM performance_schema.setup_instruments WHERE "
+	query += strings.Join(instrumentConditions, " OR ")
+	query += ";"
+
+	rows, err := db.queryX(query)
+	if err != nil {
+		return fmt.Errorf("failed to check essential instruments: %w", err)
+	}
+	defer func() {
+		if err := rows.Close(); err != nil {
+			log.Error("Failed to close rows: %v", err)
+		}
+	}()
+
+	for rows.Next() {
+		var name, enabled string
+		var timed sql.NullString
+		if err := rows.Scan(&name, &enabled, &timed); err != nil {
+			return fmt.Errorf("failed to scan instrument row: %w", err)
+		}
+		if enabled != "YES" || (timed.Valid && timed.String != "YES") {
+			log.Error("Essential instrument %s is not fully enabled. To enable it, run: UPDATE performance_schema.setup_instruments SET ENABLED = 'YES', TIMED = 'YES' WHERE NAME = '%s';", name, name)
+			return fmt.Errorf("essential instrument %s is not fully enabled", name)
 		}
 	}
 
