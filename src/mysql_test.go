@@ -2,7 +2,6 @@ package main
 
 import (
 	"flag"
-	arguments "github.com/newrelic/nri-mysql/src/args"
 	"os"
 	"testing"
 
@@ -201,16 +200,15 @@ func TestGenerateDSNSupportsOldPasswords(t *testing.T) {
 }
 
 func TestGenerateDSNSupportsEnableTLS(t *testing.T) {
-	//os.Args = []string{
-	//	"cmd",
-	//	"-hostname=dbhost",
-	//	"-username=dbuser",
-	//	"-password=dbpwd",
-	//	"-port=1234",
-	//	"-enable_tls",
-	//}
+	os.Args = []string{
+		"cmd",
+		"-hostname=dbhost",
+		"-username=dbuser",
+		"-password=dbpwd",
+		"-port=1234",
+		"-enable_tls",
+	}
 
-	args = arguments.ArgumentList{Hostname: "dbhost", Username: "dbuser", Password: "dbpwd", Port: 1234, EnableTLS: true}
 	_, err := integration.New(integrationName, integrationVersion, integration.Args(&args))
 	fatalIfErr(err)
 

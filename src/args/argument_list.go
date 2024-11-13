@@ -9,7 +9,7 @@ type ArgumentList struct {
 	Socket                           string `default:"" help:"MySQL Socket file."`
 	Username                         string `default:"root" help:"Username for accessing the database."`
 	Password                         string `default:"password" help:"Password for the given user."`
-	Database                         string `default:"employees" help:"Database name"`
+	Database                         string `help:"Database name"`
 	ExtraConnectionURLArgs           string `help:"Specify extra connection parameters as attr1=val1&attr2=val2."` // https://github.com/go-sql-driver/mysql#parameters
 	InsecureSkipVerify               bool   `default:"false" help:"Skip verification of the server's certificate when using TLS with the connection."`
 	EnableTLS                        bool   `default:"false" help:"Use a secure (TLS) connection."`

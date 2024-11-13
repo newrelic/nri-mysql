@@ -10,8 +10,6 @@ import (
 )
 
 func generateDSN(args arguments.ArgumentList) string {
-	fmt.Println("arg12wqswds: %v", args)
-	// Format query parameters
 	query := url.Values{}
 	if args.OldPasswords {
 		query.Add("allowOldPasswords", "true")
@@ -42,17 +40,13 @@ func generateDSN(args arguments.ArgumentList) string {
 }
 
 func PopulateQueryPerformanceMetrics(args arguments.ArgumentList) {
-	fmt.Println("args: %v", args)
-	fmt.Println("argList: %v %v", args)
 	dsn := generateDSN(args)
-	fmt.Println("dsn: %v", dsn)
-	fmt.Println()
 	db, err := openDB(dsn)
 	fatalIfErr(err)
 	defer db.close()
 	inventory, errorPerf := db.query("SHOW GLOBAL VARIABLES")
 	fatalIfErr(errorPerf)
-	fmt.Println("Populaing query %v", inventory)
+	fmt.Printf("Populaing query %v\n", inventory)
 }
 
 func fatalIfErr(err error) {
