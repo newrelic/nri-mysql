@@ -61,13 +61,22 @@ func PopulateQueryPerformanceMetrics(args arguments.ArgumentList) {
 func isPerformanceSchemaEnabled(db dataSource) (bool, error) {
 	var variableName, performanceSchemaEnabled string
 	rows, err := db.queryX("SHOW GLOBAL VARIABLES LIKE 'performance_schema';")
-	fmt.Printf("rows :%v\n", rows)
-	err1 := rows.Scan(&variableName, &performanceSchemaEnabled)
-	if err1 != nil {
-		fmt.Printf("error :%v\n", err1)
-		return false, err1
+	if rows.Next() {
+		if err := rows.Scan(&variableName, &performanceSchemaEnabled); err != nil {
+			log.Fatal(err)
+		}
+		fmt.Println("Variable Name:", variableName)
+		fmt.Println("Value:", performanceSchemaEnabled)
+	} else {
+		fmt.Println("No rows found")
 	}
-	fmt.Printf("rowss :%v rrrrr :%v perf :%v\n", rows, variableName, performanceSchemaEnabled)
+
+	//err1 := rows.Scan(&variableName, &performanceSchemaEnabled)
+	//if err1 != nil {
+	//	fmt.Printf("error :%v\n", err1)
+	//	return false, err1
+	//}
+	//fmt.Printf("rowss :%v rrrrr :%v perf :%v\n", rows, variableName, performanceSchemaEnabled)
 
 	if err != nil {
 		return false, fmt.Errorf("failed to check Performance Schema status: %w", err)
