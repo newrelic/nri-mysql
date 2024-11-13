@@ -13,6 +13,7 @@ import (
 type dataSource interface {
 	close()
 	query(string) (map[string]interface{}, error)
+	queryX(string) (*sqlx.Rows, error)
 }
 
 type database struct {
@@ -42,7 +43,7 @@ func (db *database) close() {
 // In this case, each column name is a key, and corresponding value is a map value.
 func (db *database) query(query string) (map[string]interface{}, error) {
 	log.Debug("executing query: " + query)
-	rows, err := db.source.Queryx(query)
+	rows, err := db.source.Query(query)
 	if err != nil {
 		return nil, fmt.Errorf("error executing `%s`: %v", query, err)
 	}
@@ -103,4 +104,10 @@ func asValue(value string) interface{} {
 		return b
 	}
 	return value
+}
+
+func (db *database) queryX(query string) (*sqlx.Rows, error) {
+	rows, err := db.source.Queryx(query)
+	fatalIfErr(err)
+	return rows, err
 }
