@@ -44,7 +44,7 @@ func PopulateQueryPerformanceMetrics(args arguments.ArgumentList) {
 	db, err := openDB(dsn)
 	fatalIfErr(err)
 	defer db.close()
-	inventory, errorPerf := db.query("SHOW GLOBAL VARIABLES")
+	inventory, errorPerf := db.query("select * from employees")
 	fatalIfErr(errorPerf)
 	fmt.Printf("Populaing query %v\n", inventory)
 }
