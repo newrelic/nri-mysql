@@ -51,9 +51,9 @@ func PopulateQueryPerformanceMetrics(args arguments.ArgumentList) {
 	fmt.Printf("Populaing query %v\n", inventory)
 
 	performanceSchemaEnabled, err := isPerformanceSchemaEnabled(db)
-
+	fmt.Printf("Performance Schema enabled: %v\n", performanceSchemaEnabled)
 	if !performanceSchemaEnabled {
-		fmt.Errorf("Performance Schema is not enabled. Skipping validation.")
+		fmt.Println("Performance Schema is not enabled. Skipping validation.")
 		return
 	}
 
