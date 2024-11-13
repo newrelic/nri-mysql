@@ -2,11 +2,12 @@ package query_performance_details
 
 import (
 	"fmt"
-	"github.com/newrelic/infra-integrations-sdk/v3/log"
-	arguments "github.com/newrelic/nri-mysql/src/args"
 	"net"
 	"net/url"
 	"strconv"
+
+	"github.com/newrelic/infra-integrations-sdk/v3/log"
+	arguments "github.com/newrelic/nri-mysql/src/args"
 )
 
 func generateDSN(args arguments.ArgumentList) string {
@@ -44,9 +45,16 @@ func PopulateQueryPerformanceMetrics(args arguments.ArgumentList) {
 	db, err := openDB(dsn)
 	fatalIfErr(err)
 	defer db.close()
-	inventory, errorPerf := db.queryX("select * from employees")
+	employees, errorPerf := db.queryX("select * from employees")
 	fatalIfErr(errorPerf)
-	fmt.Printf("Populaing query %v\n", inventory)
+	for employees.Next() {
+		var emp_no int
+		var first_name string
+		if err := employees.Scan(&emp_no, &first_name); err != nil {
+			log.Fatal(err)
+		}
+		fmt.Printf("ID: %d, Name: %s", emp_no, first_name)
+	}
 }
 
 func fatalIfErr(err error) {
