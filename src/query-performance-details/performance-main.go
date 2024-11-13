@@ -50,7 +50,11 @@ func PopulateQueryPerformanceMetrics(args arguments.ArgumentList) {
 	for employees.Next() {
 		var emp_no int
 		var first_name string
-		if err := employees.Scan(&emp_no, &first_name); err != nil {
+		var birth_date string
+		var gender string
+		var hire_date string
+		var last_name string
+		if err := employees.Scan(&emp_no, &first_name, &last_name, &birth_date, &gender, &hire_date); err != nil {
 			log.Fatal(err)
 		}
 		fmt.Printf("ID: %d, Name: %s", emp_no, first_name)
