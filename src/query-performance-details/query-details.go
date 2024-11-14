@@ -11,19 +11,19 @@ import (
 )
 
 type QueryMetrics struct {
-	DBQueryID           string         `json:"db_query_id"`
-	QueryID             string         `json:"query_id"`
-	QueryText           sql.NullString `json:"query_text"`
-	DatabaseName        sql.NullString `json:"database_name"`
-	SchemaName          string         `json:"schema_name"`
-	ExecutionCount      uint64         `json:"execution_count"`
-	AvgCPUTimeMs        float64        `json:"avg_cpu_time_ms"`
-	AvgElapsedTimeMs    float64        `json:"avg_elapsed_time_ms"`
-	AvgDiskReads        float64        `json:"avg_disk_reads"`
-	AvgDiskWrites       float64        `json:"avg_disk_writes"`
-	HasFullTableScan    string         `json:"has_full_table_scan"`
-	StatementType       string         `json:"statement_type"`
-	CollectionTimestamp string         `json:"collection_timestamp"`
+	DBQueryID           string         `json:"db_query_id" db:"db_query_id"`
+	QueryID             string         `json:"query_id" db:"query_id"`
+	QueryText           sql.NullString `json:"query_text" db:"query_text"`
+	DatabaseName        sql.NullString `json:"database_name" db:"database_name"`
+	SchemaName          string         `json:"schema_name" db:"schema_name"`
+	ExecutionCount      uint64         `json:"execution_count" db:"execution_count"`
+	AvgCPUTimeMs        float64        `json:"avg_cpu_time_ms" db:"avg_cpu_time_ms"`
+	AvgElapsedTimeMs    float64        `json:"avg_elapsed_time_ms" db:"avg_elapsed_time_ms"`
+	AvgDiskReads        float64        `json:"avg_disk_reads" db:"avg_disk_reads"`
+	AvgDiskWrites       float64        `json:"avg_disk_writes" db:"avg_disk_writes"`
+	HasFullTableScan    string         `json:"has_full_table_scan" db:"has_full_table_scan"`
+	StatementType       string         `json:"statement_type" db:"statement_type"`
+	CollectionTimestamp string         `json:"collection_timestamp" db:"collection_timestamp"`
 }
 
 func collectQueryMetrics(db dataSource) ([]QueryMetrics, error) {
@@ -40,7 +40,7 @@ func collectQueryMetrics(db dataSource) ([]QueryMetrics, error) {
 func collectPerformanceSchemaMetrics(db dataSource) ([]QueryMetrics, error) {
 	query := `
         SELECT
-			DIGEST AS db_query_id,
+            DIGEST AS db_query_id,
             LEFT(UPPER(SHA2(DIGEST_TEXT, 256)), 16) AS query_id,
             DIGEST_TEXT AS query_text,
             SCHEMA_NAME AS database_name,
