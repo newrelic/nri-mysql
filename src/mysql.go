@@ -3,19 +3,21 @@ package main
 
 import (
 	"fmt"
+
 	"github.com/newrelic/infra-integrations-sdk/v3/data/attribute"
 	"github.com/newrelic/infra-integrations-sdk/v3/data/metric"
 	"github.com/newrelic/infra-integrations-sdk/v3/integration"
 	"github.com/newrelic/infra-integrations-sdk/v3/log"
 
-	arguments "github.com/newrelic/nri-mysql/src/args"
-	"github.com/newrelic/nri-mysql/src/query-performance-details"
 	"net"
 	"net/url"
 	"os"
 	"runtime"
 	"strconv"
 	"strings"
+
+	arguments "github.com/newrelic/nri-mysql/src/args"
+	query_performance_details "github.com/newrelic/nri-mysql/src/query-performance-details"
 )
 
 const (
@@ -120,7 +122,7 @@ func main() {
 	// New functionality
 	if args.EnableQueryPerformanceMonitoring {
 		fmt.Println("heyyyy")
-		query_performance_details.PopulateQueryPerformanceMetrics(args)
+		query_performance_details.PopulateQueryPerformanceMetrics(args, e)
 
 	}
 
