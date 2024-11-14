@@ -107,8 +107,8 @@ func populateMetrics(ms *metric.Set, metrics []QueryMetrics) error {
 		}{
 			"db_query_id":          {metricObject.DBQueryID, metric.ATTRIBUTE},
 			"query_id":             {metricObject.QueryID, metric.ATTRIBUTE},
-			"query_text":           {metricObject.QueryText.String, metric.ATTRIBUTE},
-			"database_name":        {metricObject.DatabaseName.String, metric.ATTRIBUTE},
+			"query_text":           {getStringValue(metricObject.QueryText), metric.ATTRIBUTE},
+			"database_name":        {getStringValue(metricObject.DatabaseName), metric.ATTRIBUTE},
 			"schema_name":          {metricObject.SchemaName, metric.ATTRIBUTE},
 			"execution_count":      {metricObject.ExecutionCount, metric.GAUGE},
 			"avg_cpu_time_ms":      {metricObject.AvgCPUTimeMs, metric.GAUGE},
@@ -129,4 +129,11 @@ func populateMetrics(ms *metric.Set, metrics []QueryMetrics) error {
 		}
 	}
 	return nil
+}
+
+func getStringValue(ns sql.NullString) string {
+	if ns.Valid {
+		return ns.String
+	}
+	return ""
 }
