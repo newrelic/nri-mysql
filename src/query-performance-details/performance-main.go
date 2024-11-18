@@ -38,8 +38,25 @@ func PopulateQueryPerformanceMetrics(args arguments.ArgumentList, e *integration
 			args.RemoteMonitoring,
 		)
 		populateMetrics(ms, rawMetrics)
-	}
 
+		// Second set of metrics
+		rawMetrics2, err := collectWaitEventQueryMetrics(db)
+		if err != nil {
+			log.Error("Failed to collect wait event query metrics: %v", err)
+			return
+		}
+		fmt.Println("Metrics collected successfully for wait event query metrics.", rawMetrics2)
+
+		// Data ingestion logic for rawMetrics2
+		ms2 := metricSet(
+			e,
+			"MysqlWaitEventSample",
+			args.Hostname,
+			args.Port,
+			args.RemoteMonitoring,
+		)
+		populateWaitEventMetrics(ms2, rawMetrics2)
+	}
 }
 
 func metricSet(e *integration.Entity, eventType, hostname string, port int, remoteMonitoring bool) *metric.Set {
