@@ -12,7 +12,7 @@ import (
 type WaitEventQueryMetrics struct {
 	TotalWaitTimeMs     float64        `json:"total_wait_time_ms" db:"total_wait_time_ms"`
 	QueryID             sql.NullString `json:"query_id" db:"query_id"`
-	QueryText           string         `json:"query_text" db:"query_text"`
+	QueryText           sql.NullString `json:"query_text" db:"query_text"`
 	DatabaseName        sql.NullString `json:"database_name" db:"database_name"`
 	WaitCategory        string         `json:"wait_category" db:"wait_category"`
 	CollectionTimestamp string         `json:"collection_timestamp" db:"collection_timestamp"`
@@ -109,7 +109,7 @@ func populateWaitEventMetrics(ms *metric.Set, metrics []WaitEventQueryMetrics) e
 
 			"total_wait_time_ms":   {metricData.TotalWaitTimeMs, metric.GAUGE},
 			"query_id":             {getStringValue(metricData.QueryID), metric.ATTRIBUTE},
-			"query_text":           {metricData.QueryText, metric.ATTRIBUTE},
+			"query_text":           {getStringValue(metricData.QueryText), metric.ATTRIBUTE},
 			"database_name":        {getStringValue(metricData.DatabaseName), metric.ATTRIBUTE},
 			"wait_category":        {metricData.WaitCategory, metric.ATTRIBUTE},
 			"collection_timestamp": {metricData.CollectionTimestamp, metric.ATTRIBUTE},
