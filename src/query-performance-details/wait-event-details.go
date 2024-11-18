@@ -9,16 +9,15 @@ import (
 )
 
 type WaitEventQueryMetrics struct {
-	EventName           string  `json:"event_name" db:"event_name"`
-	EventCount          uint64  `json:"event_count" db:"event_count"`
-	TotalWaitTime       float64 `json:"total_wait_time" db:"total_wait_time"`
-	AvgWaitTime         float64 `json:"avg_wait_time" db:"avg_wait_time"`
-	MaxWaitTime         float64 `json:"max_wait_time" db:"max_wait_time"`
-	query_id            string  `json:"query_id" db:"query_id"`
-	query_text          string  `json:"query_text" db:"query_text"`
+	TotalWaitTimeMs     float64 `json:"total_wait_time_ms" db:"total_wait_time_ms"`
+	QueryID             string  `json:"query_id" db:"query_id"`
+	QueryText           string  `json:"query_text" db:"query_text"`
 	DatabaseName        string  `json:"database_name" db:"database_name"`
 	WaitCategory        string  `json:"wait_category" db:"wait_category"`
 	CollectionTimestamp string  `json:"collection_timestamp" db:"collection_timestamp"`
+	InstanceID          string  `json:"instance_id" db:"instance_id"`
+	WaitEventName       string  `json:"wait_event_name" db:"wait_event_name"`
+	WaitingTasksCount   uint64  `json:"waiting_tasks_count" db:"waiting_tasks_count"`
 }
 
 // Commenting out the unused function
@@ -50,7 +49,7 @@ func collectWaitEventMetrics(db dataSource) ([]WaitEventQueryMetrics, error) {
                 ELSE 'Other'
             END AS wait_category,
                 ROUND(SUM(ewhl.TIMER_WAIT) / 1000000000000, 3) AS total_wait_time_ms,
-                UM(ewsg.COUNT_STAR) AS waiting_tasks_count,
+                SUM(ewsg.COUNT_STAR) AS waiting_tasks_count,
                 eshl.SQL_TEXT AS query_text,
                 DATE_FORMAT(UTC_TIMESTAMP(), '%Y-%m-%dT%H:%i:%sZ') AS collection_timestamp
             FROM performance_schema.events_waits_history_long ewhl
@@ -100,23 +99,22 @@ func collectWaitEventMetrics(db dataSource) ([]WaitEventQueryMetrics, error) {
 func populateWaitEventMetrics(ms *metric.Set, metrics []WaitEventQueryMetrics) error {
 	for _, metricData := range metrics {
 		if ms == nil {
-			return fmt.Errorf("Metric set is nil")
+			return fmt.Errorf("metric set is nil")
 		}
 		metricsMap := map[string]struct {
 			Value      interface{}
 			MetricType metric.SourceType
 		}{
 
-			"event_name":           {metricData.EventName, metric.ATTRIBUTE},
-			"event_count":          {int(metricData.EventCount), metric.GAUGE},
-			"total_wait_time":      {metricData.TotalWaitTime, metric.GAUGE},
-			"avg_wait_time":        {metricData.AvgWaitTime, metric.GAUGE},
-			"max_wait_time":        {metricData.MaxWaitTime, metric.GAUGE},
-			"query_id":             {metricData.query_id, metric.ATTRIBUTE},
-			"query_text":           {metricData.query_text, metric.ATTRIBUTE},
+			"total_wait_time_ms":   {metricData.TotalWaitTimeMs, metric.GAUGE},
+			"query_id":             {metricData.QueryID, metric.ATTRIBUTE},
+			"query_text":           {metricData.QueryText, metric.ATTRIBUTE},
 			"database_name":        {metricData.DatabaseName, metric.ATTRIBUTE},
 			"wait_category":        {metricData.WaitCategory, metric.ATTRIBUTE},
 			"collection_timestamp": {metricData.CollectionTimestamp, metric.ATTRIBUTE},
+			"instance_id":          {metricData.InstanceID, metric.ATTRIBUTE},
+			"wait_event_name":      {metricData.WaitEventName, metric.ATTRIBUTE},
+			"waiting_tasks_count":  {int(metricData.WaitingTasksCount), metric.GAUGE},
 		}
 		for name, metric := range metricsMap {
 			err := ms.SetMetric(name, metric.Value, metric.MetricType)
