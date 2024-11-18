@@ -2,6 +2,7 @@ package query_performance_details
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 
 	"github.com/newrelic/infra-integrations-sdk/v3/data/metric"
@@ -9,15 +10,15 @@ import (
 )
 
 type WaitEventQueryMetrics struct {
-	TotalWaitTimeMs     float64 `json:"total_wait_time_ms" db:"total_wait_time_ms"`
-	QueryID             string  `json:"query_id" db:"query_id"`
-	QueryText           string  `json:"query_text" db:"query_text"`
-	DatabaseName        string  `json:"database_name" db:"database_name"`
-	WaitCategory        string  `json:"wait_category" db:"wait_category"`
-	CollectionTimestamp string  `json:"collection_timestamp" db:"collection_timestamp"`
-	InstanceID          string  `json:"instance_id" db:"instance_id"`
-	WaitEventName       string  `json:"wait_event_name" db:"wait_event_name"`
-	WaitingTasksCount   uint64  `json:"waiting_tasks_count" db:"waiting_tasks_count"`
+	TotalWaitTimeMs     float64        `json:"total_wait_time_ms" db:"total_wait_time_ms"`
+	QueryID             sql.NullString `json:"query_id" db:"query_id"`
+	QueryText           string         `json:"query_text" db:"query_text"`
+	DatabaseName        sql.NullString `json:"database_name" db:"database_name"`
+	WaitCategory        string         `json:"wait_category" db:"wait_category"`
+	CollectionTimestamp string         `json:"collection_timestamp" db:"collection_timestamp"`
+	InstanceID          string         `json:"instance_id" db:"instance_id"`
+	WaitEventName       string         `json:"wait_event_name" db:"wait_event_name"`
+	WaitingTasksCount   uint64         `json:"waiting_tasks_count" db:"waiting_tasks_count"`
 }
 
 // Commenting out the unused function
@@ -107,9 +108,9 @@ func populateWaitEventMetrics(ms *metric.Set, metrics []WaitEventQueryMetrics) e
 		}{
 
 			"total_wait_time_ms":   {metricData.TotalWaitTimeMs, metric.GAUGE},
-			"query_id":             {metricData.QueryID, metric.ATTRIBUTE},
+			"query_id":             {getStringValue(metricData.QueryID), metric.ATTRIBUTE},
 			"query_text":           {metricData.QueryText, metric.ATTRIBUTE},
-			"database_name":        {metricData.DatabaseName, metric.ATTRIBUTE},
+			"database_name":        {getStringValue(metricData.DatabaseName), metric.ATTRIBUTE},
 			"wait_category":        {metricData.WaitCategory, metric.ATTRIBUTE},
 			"collection_timestamp": {metricData.CollectionTimestamp, metric.ATTRIBUTE},
 			"instance_id":          {metricData.InstanceID, metric.ATTRIBUTE},
