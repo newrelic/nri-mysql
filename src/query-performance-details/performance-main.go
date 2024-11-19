@@ -56,6 +56,24 @@ func PopulateQueryPerformanceMetrics(args arguments.ArgumentList, e *integration
 			args.RemoteMonitoring,
 		)
 		populateWaitEventMetrics(ms2, rawMetrics2)
+
+		// Third set of metrics
+		rawMetrics3, err := collectBlockingSessionMetrics(db)
+		if err != nil {
+			log.Error("Failed to collect blocking session metrics: %v", err)
+			return
+		}
+		fmt.Println("Metrics collected successfully for blocking session metrics.", rawMetrics3)
+
+		// Data ingestion logic for rawMetrics3
+		ms3 := metricSet(
+			e,
+			"MysqlBlockingSessionSample",
+			args.Hostname,
+			args.Port,
+			args.RemoteMonitoring,
+		)
+		CreateBlockingSessionMetrics(ms3, rawMetrics3)
 	}
 }
 
