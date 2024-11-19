@@ -34,12 +34,13 @@ func PopulateQueryPerformanceMetrics(args arguments.ArgumentList, e *integration
 			log.Error("Failed to collect query metrics: %v", err1)
 			return
 		}
-		fmt.Println("Query plan details collected successfully.", rawMetrics1)
+		fmt.Println("Query details collected successfully.", rawMetrics1)
 		rawMetrics2, err2 := captureExecutionPlans(db, rawMetrics1)
 		if err2 != nil {
 			log.Error("Error populating metrics: %v", err)
 			return
 		}
+		fmt.Println("Query plan details collected successfully.", rawMetrics2)
 		// Data ingestion logic for Slow Queries
 		// Grouped Slow Queries
 		ms := createMetricSet(e, "MysqlSlowQueriesSample", args)
