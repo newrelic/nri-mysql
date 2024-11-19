@@ -390,42 +390,51 @@ func extractMetricsFromPlan(plan map[string]interface{}) ExecutionPlan {
 	return metrics
 }
 
-// Helper functions for type-safe extraction and conversion
 func getString(m map[string]interface{}, key string) string {
-	if val, ok := m[key].(string); ok {
-		return val
+	if val, ok := m[key]; ok {
+		if strVal, ok := val.(string); ok {
+			return strVal
+		}
+		// Log unexpected types
+		log.Error("Unexpected type for %q: %T", key, val)
 	}
-	return ""
+	return "" // Default to empty string if nil or type doesn't match
 }
 
 func getFloat64(m map[string]interface{}, key string) float64 {
-	if val, ok := m[key].(float64); ok {
-		return val
-	} else if valStr, ok := m[key].(string); ok {
-		if valFloat, err := strconv.ParseFloat(valStr, 64); err == nil {
-			return valFloat
-		} else {
-			log.Error("Failed to parse float64 for key %s: %v", key, err)
+	if val, ok := m[key]; ok {
+		switch v := val.(type) {
+		case float64:
+			return v
+		case string:
+			parsedVal, err := strconv.ParseFloat(v, 64)
+			if err == nil {
+				return parsedVal
+			}
+			log.Error("Failed to parse string to float64 for key %q: %v", key, err)
+		default:
+			log.Error("Unhandled type for key %q: %T", key, val)
 		}
-	} else {
-		log.Error("Unhandled type for key %s: %T", key, m[key])
 	}
-	return 0.0
+	return 0.0 // Default to 0.0 if nil or type doesn't match
 }
 
 func getInt64(m map[string]interface{}, key string) int64 {
-	if val, ok := m[key].(float64); ok {
-		return int64(val)
-	} else if valStr, ok := m[key].(string); ok {
-		if valInt, err := strconv.ParseInt(valStr, 10, 64); err == nil {
-			return valInt
-		} else {
-			log.Error("Failed to parse int64 for key %s: %v", key, err)
+	if val, ok := m[key]; ok {
+		switch v := val.(type) {
+		case float64:
+			return int64(v)
+		case string:
+			parsedVal, err := strconv.ParseInt(v, 10, 64)
+			if err == nil {
+				return parsedVal
+			}
+			log.Error("Failed to parse string to int64 for key %q: %v", key, err)
+		default:
+			log.Error("Unhandled type for key %q: %T", key, val)
 		}
-	} else {
-		log.Error("Unhandled type for key %s: %T", key, m[key])
 	}
-	return 0
+	return 0 // Default to 0 if nil or type doesn't match
 }
 
 func convertToStringArray(arr []interface{}) string {
@@ -434,7 +443,7 @@ func convertToStringArray(arr []interface{}) string {
 		if str, ok := v.(string); ok {
 			parts[i] = str
 		} else {
-			log.Error("Unexpected type in array: %T", v)
+			log.Error("Unexpected type in array at index %d: %T", i, v)
 		}
 	}
 	return strings.Join(parts, ", ")
@@ -446,16 +455,16 @@ func getCostSafely(costInfo map[string]interface{}, key string) float64 {
 		case float64:
 			return v
 		case string:
-			if parsedVal, err := strconv.ParseFloat(v, 64); err == nil {
+			parsedVal, err := strconv.ParseFloat(v, 64)
+			if err == nil {
 				return parsedVal
-			} else {
-				log.Error("Failed to parse string to float for key %s: %v", key, err)
 			}
+			log.Error("Failed to parse string to float64 for key %q: %v", key, err)
 		default:
-			log.Error("Unhandled type for key %s: %T", key, costValue)
+			log.Error("Unhandled type for key %q: %T", key, costValue)
 		}
 	}
-	return 0.0
+	return 0.0 // Default to 0.0 if key doesn't exist or type doesn't match
 }
 
 func formatAsTable(metrics []TableMetrics) {
