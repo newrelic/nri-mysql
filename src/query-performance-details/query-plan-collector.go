@@ -72,6 +72,10 @@ func extensiveQueryMetrics(db dataSource, QueryIDList []string) ([]QueryPlanMetr
 }
 
 func collectCurrentQueryMetrics(db dataSource, queryIDList []string) ([]QueryPlanMetrics, error) {
+	if len(queryIDList) == 0 {
+		log.Warn("queryIDList is empty")
+		return nil, nil
+	}
 	// Building the placeholder string for the IN clause
 	placeholders := make([]string, len(queryIDList))
 	for i := range queryIDList {
@@ -83,22 +87,13 @@ func collectCurrentQueryMetrics(db dataSource, queryIDList []string) ([]QueryPla
 
 	// Creating the query string with the IN clause
 	query := fmt.Sprintf(`
-        SELECT
-            DIGEST AS query_id,
-            DIGEST_TEXT AS query_text
-        FROM performance_schema.events_statements_current
-        WHERE DIGEST IN (%s)
-            AND CURRENT_SCHEMA NOT IN ('', 'mysql', 'performance_schema', 'information_schema', 'sys')
-            AND DIGEST_TEXT NOT LIKE '%%SET %%'
-            AND DIGEST_TEXT NOT LIKE '%%SHOW %%'
-            AND DIGEST_TEXT NOT LIKE '%%INFORMATION_SCHEMA%%'
-            AND DIGEST_TEXT NOT LIKE '%%PERFORMANCE_SCHEMA%%'
-            AND DIGEST_TEXT NOT LIKE '%%mysql%%'
-            AND DIGEST_TEXT NOT LIKE 'EXPLAIN %%'
-            AND SQL_TEXT NOT LIKE '%%PERFORMANCE_SCHEMA%%'
-            AND SQL_TEXT NOT LIKE '%%INFORMATION_SCHEMA%%'
-        ORDER BY TIMER_WAIT DESC;
-    `, inClause)
+		SELECT
+			DIGEST AS query_id,
+			DIGEST_TEXT AS query_text
+		FROM performance_schema.events_statements_current
+		WHERE DIGEST IN (%s)
+		ORDER BY TIMER_WAIT DESC;
+	`, inClause)
 
 	// Converting the slice of queryIDs to a slice of interface{} for db.QueryxContext
 	args := make([]interface{}, len(queryIDList))
@@ -141,6 +136,10 @@ func collectCurrentQueryMetrics(db dataSource, queryIDList []string) ([]QueryPla
 }
 
 func collectRecentQueryMetrics(db dataSource, queryIDList []string) ([]QueryPlanMetrics, error) {
+	if len(queryIDList) == 0 {
+		log.Warn("queryIDList is empty")
+		return nil, nil
+	}
 	// Building the placeholder string for the IN clause
 	placeholders := make([]string, len(queryIDList))
 	for i := range queryIDList {
@@ -152,22 +151,13 @@ func collectRecentQueryMetrics(db dataSource, queryIDList []string) ([]QueryPlan
 
 	// Creating the query string with the IN clause
 	query := fmt.Sprintf(`
-        SELECT
-            DIGEST AS query_id,
-            DIGEST_TEXT AS query_text
-        FROM performance_schema.events_statements_current
-        WHERE DIGEST IN (%s)
-            AND CURRENT_SCHEMA NOT IN ('', 'mysql', 'performance_schema', 'information_schema', 'sys')
-            AND DIGEST_TEXT NOT LIKE '%%SET %%'
-            AND DIGEST_TEXT NOT LIKE '%%SHOW %%'
-            AND DIGEST_TEXT NOT LIKE '%%INFORMATION_SCHEMA%%'
-            AND DIGEST_TEXT NOT LIKE '%%PERFORMANCE_SCHEMA%%'
-            AND DIGEST_TEXT NOT LIKE '%%mysql%%'
-            AND DIGEST_TEXT NOT LIKE 'EXPLAIN %%'
-            AND SQL_TEXT NOT LIKE '%%PERFORMANCE_SCHEMA%%'
-            AND SQL_TEXT NOT LIKE '%%INFORMATION_SCHEMA%%'
-        ORDER BY TIMER_WAIT DESC;
-    `, inClause)
+		SELECT
+			DIGEST AS query_id,
+			DIGEST_TEXT AS query_text
+		FROM performance_schema.events_statements_current
+		WHERE DIGEST IN (%s)
+		ORDER BY TIMER_WAIT DESC;
+	`, inClause)
 
 	// Converting the slice of queryIDs to a slice of interface{} for db.QueryxContext
 	args := make([]interface{}, len(queryIDList))
@@ -210,6 +200,10 @@ func collectRecentQueryMetrics(db dataSource, queryIDList []string) ([]QueryPlan
 }
 
 func collectExtensiveQueryMetrics(db dataSource, queryIDList []string) ([]QueryPlanMetrics, error) {
+	if len(queryIDList) == 0 {
+		log.Warn("queryIDList is empty")
+		return nil, nil
+	}
 	// Building the placeholder string for the IN clause
 	placeholders := make([]string, len(queryIDList))
 	for i := range queryIDList {
@@ -221,22 +215,13 @@ func collectExtensiveQueryMetrics(db dataSource, queryIDList []string) ([]QueryP
 
 	// Creating the query string with the IN clause
 	query := fmt.Sprintf(`
-        SELECT
-            DIGEST AS query_id,
-            DIGEST_TEXT AS query_text
-        FROM performance_schema.events_statements_current
-        WHERE DIGEST IN (%s)
-            AND CURRENT_SCHEMA NOT IN ('', 'mysql', 'performance_schema', 'information_schema', 'sys')
-            AND DIGEST_TEXT NOT LIKE '%%SET %%'
-            AND DIGEST_TEXT NOT LIKE '%%SHOW %%'
-            AND DIGEST_TEXT NOT LIKE '%%INFORMATION_SCHEMA%%'
-            AND DIGEST_TEXT NOT LIKE '%%PERFORMANCE_SCHEMA%%'
-            AND DIGEST_TEXT NOT LIKE '%%mysql%%'
-            AND DIGEST_TEXT NOT LIKE 'EXPLAIN %%'
-            AND SQL_TEXT NOT LIKE '%%PERFORMANCE_SCHEMA%%'
-            AND SQL_TEXT NOT LIKE '%%INFORMATION_SCHEMA%%'
-        ORDER BY TIMER_WAIT DESC;
-    `, inClause)
+		SELECT
+			DIGEST AS query_id,
+			DIGEST_TEXT AS query_text
+		FROM performance_schema.events_statements_current
+		WHERE DIGEST IN (%s)
+		ORDER BY TIMER_WAIT DESC;
+	`, inClause)
 
 	// Converting the slice of queryIDs to a slice of interface{} for db.QueryxContext
 	args := make([]interface{}, len(queryIDList))
