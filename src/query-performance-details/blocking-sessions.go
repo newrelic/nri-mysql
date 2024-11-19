@@ -100,31 +100,28 @@ func CreateBlockingSessionMetrics(ms *metric.Set, metrics []BlockingSessionMetri
 		if ms == nil {
 			return fmt.Errorf("metric set is nil")
 		}
-		metricsMap := map[string]interface{}{
-			"blocked_txn_id":     getStringValue(metricData.BlockedTxnID),
-			"blocked_thread_id":  getInt64Value(metricData.BlockedThreadID),
-			"blocked_user":       getStringValue(metricData.BlockedUser),
-			"blocked_host":       getStringValue(metricData.BlockedHost),
-			"blocked_db":         getStringValue(metricData.BlockedDB),
-			"blocking_txn_id":    getStringValue(metricData.BlockingTxnID),
-			"blocking_thread_id": getInt64Value(metricData.BlockingThreadID),
-			"blocking_user":      getStringValue(metricData.BlockingUser),
-			"blocking_host":      getStringValue(metricData.BlockingHost),
-			"blocking_db":        getStringValue(metricData.BlockingDB),
-			"blocked_query":      getStringValue(metricData.BlockedQuery),
-			"blocking_query":     getStringValue(metricData.BlockingQuery),
+		metricsMap := map[string]struct {
+			Value      interface{}
+			MetricType metric.SourceType
+		}{
+			"blocked_txn_id":     {getStringValue(metricData.BlockedTxnID), metric.ATTRIBUTE},
+			"blocked_thread_id":  {getInt64Value(metricData.BlockedThreadID), metric.GAUGE},
+			"blocked_user":       {getStringValue(metricData.BlockedUser), metric.ATTRIBUTE},
+			"blocked_host":       {getStringValue(metricData.BlockedHost), metric.ATTRIBUTE},
+			"blocked_db":         {getStringValue(metricData.BlockedDB), metric.ATTRIBUTE},
+			"blocking_txn_id":    {getStringValue(metricData.BlockingTxnID), metric.ATTRIBUTE},
+			"blocking_thread_id": {getInt64Value(metricData.BlockingThreadID), metric.GAUGE},
+			"blocking_user":      {getStringValue(metricData.BlockingUser), metric.ATTRIBUTE},
+			"blocking_host":      {getStringValue(metricData.BlockingHost), metric.ATTRIBUTE},
+			"blocking_db":        {getStringValue(metricData.BlockingDB), metric.ATTRIBUTE},
+			"blocked_query":      {getStringValue(metricData.BlockedQuery), metric.ATTRIBUTE},
+			"blocking_query":     {getStringValue(metricData.BlockingQuery), metric.ATTRIBUTE},
 		}
 
-		for metricName, value := range metricsMap {
-			var metricType metric.SourceType
-			if metricName == "blocked_thread_id" || metricName == "blocking_thread_id" {
-				metricType = metric.GAUGE
-			} else {
-				metricType = metric.ATTRIBUTE
-			}
-			err := ms.SetMetric(metricName, value, metricType)
+		for metricName, data := range metricsMap {
+			err := ms.SetMetric(metricName, data.Value, data.MetricType)
 			if err != nil {
-				log.Warn("Error setting value: %s", err)
+				log.Warn("Error setting value:  %s", err)
 				continue
 			}
 		}
