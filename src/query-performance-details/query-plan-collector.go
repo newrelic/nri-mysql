@@ -155,7 +155,7 @@ func collectRecentQueryMetrics(db dataSource, queryIDList []string) ([]QueryPlan
 		SELECT
 			DIGEST AS query_id,
 			DIGEST_TEXT AS query_text
-		FROM performance_schema.events_statements_current
+		FROM performance_schema.events_statements_history
 		WHERE DIGEST IN (%s)
 		ORDER BY TIMER_WAIT DESC;
 	`, inClause)
@@ -220,7 +220,7 @@ func collectExtensiveQueryMetrics(db dataSource, queryIDList []string) ([]QueryP
 		SELECT
 			DIGEST AS query_id,
 			DIGEST_TEXT AS query_text
-		FROM performance_schema.events_statements_current
+		FROM performance_schema.events_statements_history_long
 		WHERE DIGEST IN (%s)
 		ORDER BY TIMER_WAIT DESC;
 	`, inClause)
