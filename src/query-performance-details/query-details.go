@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/newrelic/infra-integrations-sdk/v3/data/metric"
@@ -12,7 +11,6 @@ import (
 )
 
 type QueryMetrics struct {
-	DBQueryID           string         `json:"db_query_id" db:"db_query_id"`
 	QueryID             string         `json:"query_id" db:"query_id"`
 	QueryText           sql.NullString `json:"query_text" db:"query_text"`
 	DatabaseName        sql.NullString `json:"database_name" db:"database_name"`
@@ -27,22 +25,21 @@ type QueryMetrics struct {
 	CollectionTimestamp string         `json:"collection_timestamp" db:"collection_timestamp"`
 }
 
-func collectQueryMetrics(db dataSource) ([]QueryMetrics, error) {
+func collectQueryMetrics(db dataSource) ([]QueryMetrics, []string, error) {
 	// Check Performance Schema availability
-	metrics, err := collectPerformanceSchemaMetrics(db)
+	metrics, queryIdString, err := collectPerformanceSchemaMetrics(db)
 	if err != nil {
 		log.Error("Failed to collect query metrics: %v", err)
-		return nil, err
+		return nil, []string{}, err
 	}
 
-	return metrics, nil
+	return metrics, queryIdString, nil
 }
 
-func collectPerformanceSchemaMetrics(db dataSource) ([]QueryMetrics, error) {
+func collectPerformanceSchemaMetrics(db dataSource) ([]QueryMetrics, []string, error) {
 	query := `
         SELECT
-            DIGEST AS db_query_id,
-            LEFT(UPPER(SHA2(DIGEST_TEXT, 256)), 16) AS query_id,
+            DIGEST AS query_id,
             DIGEST_TEXT AS query_text,
             SCHEMA_NAME AS database_name,
             'N/A' AS schema_name,
@@ -82,7 +79,7 @@ func collectPerformanceSchemaMetrics(db dataSource) ([]QueryMetrics, error) {
 	rows, err := db.QueryxContext(ctx, query)
 	if err != nil {
 		log.Error("Failed to collect query metrics from Performance Schema: %v", err)
-		return nil, err
+		return nil, []string{}, err
 	}
 	defer rows.Close()
 
@@ -93,20 +90,43 @@ func collectPerformanceSchemaMetrics(db dataSource) ([]QueryMetrics, error) {
 		var qId string
 		if err := rows.StructScan(&metric); err != nil {
 			log.Error("Failed to scan query metrics row: %v", err)
-			return nil, err
+			return nil, []string{}, err
 		}
-		qId = metric.DBQueryID
+		qId = metric.QueryID
 		qIdList = append(qIdList, qId)
 		metrics = append(metrics, metric)
 	}
-	commaSeparatedString := strings.Join(qIdList, ",")
-	fmt.Println("placeholders: ", commaSeparatedString)
+	//qIdString := strings.Join(qIdList, ",")
+	fmt.Println("Query Id List: ", qIdList)
 	if err := rows.Err(); err != nil {
 		log.Error("Error iterating over query metrics rows: %v", err)
+		return nil, []string{}, err
+	}
+
+	return metrics, qIdList, nil
+}
+
+func collectQueryDetails(db dataSource, queryIdList []string) ([]QueryPlanMetrics, error) {
+	metrics, err := currentQueryMetrics(db, queryIdList)
+	if err != nil {
+		log.Error("Failed to collect query metrics: %v", err)
 		return nil, err
 	}
 
-	return metrics, nil
+	metrics1, err1 := recentQueryMetrics(db, queryIdList)
+	if err1 != nil {
+		log.Error("Failed to collect query metrics: %v", err1)
+		return nil, err1
+	}
+
+	metrics2, err2 := extensiveQueryMetrics(db, queryIdList)
+	if err2 != nil {
+		log.Error("Failed to collect query metrics: %v", err2)
+		return nil, err2
+	}
+
+	queryList := append(append(metrics, metrics1...), metrics2...)
+	return queryList, nil
 }
 
 func populateMetrics(ms *metric.Set, metrics []QueryMetrics) error {
@@ -119,7 +139,6 @@ func populateMetrics(ms *metric.Set, metrics []QueryMetrics) error {
 			Value      interface{}
 			MetricType metric.SourceType
 		}{
-			"db_query_id":          {metricObject.DBQueryID, metric.ATTRIBUTE},
 			"query_id":             {metricObject.QueryID, metric.ATTRIBUTE},
 			"query_text":           {getStringValue(metricObject.QueryText), metric.ATTRIBUTE},
 			"database_name":        {getStringValue(metricObject.DatabaseName), metric.ATTRIBUTE},
