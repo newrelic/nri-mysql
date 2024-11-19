@@ -635,7 +635,7 @@ func populateQueryPlanMetrics(ms *metric.Set, metrics []map[string]interface{}) 
 			MetricType metric.SourceType
 		}{
 			"query_id":       {metricObject["query_id"], metric.ATTRIBUTE},
-			"query_text":     {getStringValue(sql.NullString{String: metricObject["query_text"].(string), Valid: true}), metric.ATTRIBUTE},
+			"query_text":     {getStringValueSafe(sql.NullString{String: metricObject["query_text"].(string), Valid: true}), metric.ATTRIBUTE},
 			"total_cost":     {getFloat64ValueSafe(metricObject["total_cost"]), metric.GAUGE},
 			"step_id":        {getInt64ValueSafe(metricObject["step_id"]), metric.GAUGE},
 			"Execution Step": {getStringValueSafe(metricObject["Execution Step"]), metric.ATTRIBUTE},
@@ -646,7 +646,7 @@ func populateQueryPlanMetrics(ms *metric.Set, metrics []map[string]interface{}) 
 			"read_cost":      {getFloat64ValueSafe(metricObject["read_cost"]), metric.GAUGE},
 			"eval_cost":      {getFloat64ValueSafe(metricObject["eval_cost"]), metric.GAUGE},
 			"data_read":      {getFloat64ValueSafe(metricObject["data_read"]), metric.GAUGE},
-			"extra_info":     {getStringValue(sql.NullString{String: metricObject["extra_info"].(string), Valid: true}), metric.ATTRIBUTE},
+			"extra_info":     {getStringValueSafe(sql.NullString{String: metricObject["extra_info"].(string), Valid: true}), metric.ATTRIBUTE},
 		}
 
 		for name, metricData := range metricsMap {
