@@ -467,6 +467,56 @@ func getCostSafely(costInfo map[string]interface{}, key string) float64 {
 	return 0.0 // Default to 0.0 if key doesn't exist or type doesn't match
 }
 
+func getStringValueSafe(value interface{}) string {
+	if value == nil {
+		return ""
+	}
+	if str, ok := value.(string); ok {
+		return str
+	}
+	log.Error("Unexpected type for value: %T", value)
+	return ""
+}
+
+func getFloat64ValueSafe(value interface{}) float64 {
+	if value == nil {
+		return 0.0
+	}
+	switch v := value.(type) {
+	case float64:
+		return v
+	case string:
+		parsedVal, err := strconv.ParseFloat(v, 64)
+		if err == nil {
+			return parsedVal
+		}
+		log.Error("Failed to parse string to float64: %v", err)
+	default:
+		log.Error("Unexpected type for value: %T", value)
+	}
+	return 0.0
+}
+
+func getInt64ValueSafe(value interface{}) int64 {
+	if value == nil {
+		return 0
+	}
+	switch v := value.(type) {
+	case int64:
+		return v
+	case float64:
+		return int64(v)
+	case string:
+		parsedVal, err := strconv.ParseInt(v, 10, 64)
+		if err == nil {
+			return parsedVal
+		}
+		log.Error("Failed to parse string to int64: %v", err)
+	default:
+		log.Error("Unexpected type for value: %T", value)
+	}
+	return 0
+}
 func formatAsTable(metrics []TableMetrics) {
 	table := tablewriter.NewWriter(os.Stdout)
 	table.SetHeader([]string{"step_id", "Execution Step", "access_type", "rows_examined", "rows_produced", "filtered (%)", "read_cost", "eval_cost", "data_read", "extra_info"})
@@ -586,16 +636,16 @@ func populateQueryPlanMetrics(ms *metric.Set, metrics []map[string]interface{}) 
 		}{
 			"query_id":       {metricObject["query_id"], metric.ATTRIBUTE},
 			"query_text":     {getStringValue(sql.NullString{String: metricObject["query_text"].(string), Valid: true}), metric.ATTRIBUTE},
-			"total_cost":     {metricObject["total_cost"], metric.GAUGE},
-			"step_id":        {metricObject["step_id"], metric.GAUGE},
-			"Execution Step": {metricObject["Execution Step"], metric.ATTRIBUTE},
-			"access_type":    {metricObject["access_type"], metric.ATTRIBUTE},
-			"rows_examined":  {metricObject["rows_examined"], metric.GAUGE},
-			"rows_produced":  {metricObject["rows_produced"], metric.GAUGE},
-			"filtered (%)":   {metricObject["filtered (%)"], metric.GAUGE},
-			"read_cost":      {metricObject["read_cost"], metric.GAUGE},
-			"eval_cost":      {metricObject["eval_cost"], metric.GAUGE},
-			"data_read":      {metricObject["data_read"], metric.GAUGE},
+			"total_cost":     {getFloat64ValueSafe(metricObject["total_cost"]), metric.GAUGE},
+			"step_id":        {getInt64ValueSafe(metricObject["step_id"]), metric.GAUGE},
+			"Execution Step": {getStringValueSafe(metricObject["Execution Step"]), metric.ATTRIBUTE},
+			"access_type":    {getStringValueSafe(metricObject["access_type"]), metric.ATTRIBUTE},
+			"rows_examined":  {getInt64ValueSafe(metricObject["rows_examined"]), metric.GAUGE},
+			"rows_produced":  {getInt64ValueSafe(metricObject["rows_produced"]), metric.GAUGE},
+			"filtered (%)":   {getFloat64ValueSafe(metricObject["filtered (%)"]), metric.GAUGE},
+			"read_cost":      {getFloat64ValueSafe(metricObject["read_cost"]), metric.GAUGE},
+			"eval_cost":      {getFloat64ValueSafe(metricObject["eval_cost"]), metric.GAUGE},
+			"data_read":      {getFloat64ValueSafe(metricObject["data_read"]), metric.GAUGE},
 			"extra_info":     {getStringValue(sql.NullString{String: metricObject["extra_info"].(string), Valid: true}), metric.ATTRIBUTE},
 		}
 
