@@ -18,7 +18,7 @@ import (
 type QueryPlanMetrics struct {
 	QueryID             string `json:"query_id" db:"query_id"`
 	AnonymizedQueryText string `json:"query_text" db:"query_text"`
-	QueryText           string `json:"sql_text" db:"sql_text"`
+	QueryText           string `json:"query_sample_text" db:"query_sample_text"`
 }
 
 type TableMetrics struct {
@@ -91,7 +91,7 @@ func collectCurrentQueryMetrics(db dataSource, queryIDList []string) ([]QueryPla
 		SELECT
 			DIGEST AS query_id,
 			DIGEST_TEXT AS query_text,
-			SQL_TEXT AS sql_text
+			SQL_TEXT AS query_sample_text
 		FROM performance_schema.events_statements_current
 		WHERE DIGEST IN (%s)
 			AND CURRENT_SCHEMA NOT IN ('', 'mysql', 'performance_schema', 'information_schema', 'sys')
@@ -166,7 +166,7 @@ func collectRecentQueryMetrics(db dataSource, queryIDList []string) ([]QueryPlan
 		SELECT
 			DIGEST AS query_id,
 			DIGEST_TEXT AS query_text
-			SQL_TEXT AS sql_text
+			SQL_TEXT AS query_sample_text
 		FROM performance_schema.events_statements_history
 		WHERE DIGEST IN (%s)
 			AND CURRENT_SCHEMA NOT IN ('', 'mysql', 'performance_schema', 'information_schema', 'sys')
@@ -241,7 +241,7 @@ func collectExtensiveQueryMetrics(db dataSource, queryIDList []string) ([]QueryP
 		SELECT
 			DIGEST AS query_id,
 			SQL_TEXT AS query_text
-			SQL_TEXT AS sql_text
+			SQL_TEXT AS query_sample_text
 		FROM performance_schema.events_statements_history_long
 		WHERE DIGEST IN (%s)
 			AND CURRENT_SCHEMA NOT IN ('', 'mysql', 'performance_schema', 'information_schema', 'sys')
