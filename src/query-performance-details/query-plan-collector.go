@@ -112,7 +112,7 @@ func collectCurrentQueryMetrics(db dataSource, queryIDList []string) ([]QueryPla
 		return nil, err
 	}
 	defer rows.Close()
-	fmt.Println("Current------", query, args, rows)
+	fmt.Println("Current------", query, args)
 	// Slice to hold the metrics
 	var metrics []QueryPlanMetrics
 
@@ -123,6 +123,7 @@ func collectCurrentQueryMetrics(db dataSource, queryIDList []string) ([]QueryPla
 			log.Error("Failed to scan query metrics row: %v", err)
 			return nil, err
 		}
+		fmt.Println("Current Metric------", metric)
 		metrics = append(metrics, metric)
 	}
 
@@ -176,7 +177,7 @@ func collectRecentQueryMetrics(db dataSource, queryIDList []string) ([]QueryPlan
 		return nil, err
 	}
 	defer rows.Close()
-	fmt.Println("Recent------", query, args, rows)
+	fmt.Println("Recent------", query, args)
 	// Slice to hold the metrics
 	var metrics []QueryPlanMetrics
 
@@ -187,6 +188,7 @@ func collectRecentQueryMetrics(db dataSource, queryIDList []string) ([]QueryPlan
 			log.Error("Failed to scan query metrics row: %v", err)
 			return nil, err
 		}
+		fmt.Println("Recent Metric------", metric)
 		metrics = append(metrics, metric)
 	}
 
@@ -240,7 +242,7 @@ func collectExtensiveQueryMetrics(db dataSource, queryIDList []string) ([]QueryP
 		return nil, err
 	}
 	defer rows.Close()
-	fmt.Println("Extensive------", query, args, rows)
+	fmt.Println("Extensive------", query, args)
 	// Slice to hold the metrics
 	var metrics []QueryPlanMetrics
 
@@ -251,6 +253,7 @@ func collectExtensiveQueryMetrics(db dataSource, queryIDList []string) ([]QueryP
 			log.Error("Failed to scan query metrics row: %v", err)
 			return nil, err
 		}
+		fmt.Println("Extensive Metric------", metric)
 		metrics = append(metrics, metric)
 	}
 
