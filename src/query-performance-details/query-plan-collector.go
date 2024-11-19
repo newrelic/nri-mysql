@@ -240,7 +240,7 @@ func collectExtensiveQueryMetrics(db dataSource, queryIDList []string) ([]QueryP
 	query := fmt.Sprintf(`
 		SELECT
 			DIGEST AS query_id,
-			SQL_TEXT AS query_text
+			DIGEST_TEXT AS query_text
 			SQL_TEXT AS query_sample_text
 		FROM performance_schema.events_statements_history_long
 		WHERE DIGEST IN (%s)
