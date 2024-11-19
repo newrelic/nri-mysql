@@ -16,8 +16,9 @@ import (
 )
 
 type QueryPlanMetrics struct {
-	QueryID   string `json:"query_id" db:"query_id"`
-	QueryText string `json:"query_text" db:"query_text"`
+	QueryID             string `json:"query_id" db:"query_id"`
+	AnonymizedQueryText string `json:"query_text" db:"query_text"`
+	QueryText           string `json:"sql_text" db:"sql_text"`
 }
 
 type TableMetrics struct {
@@ -89,9 +90,19 @@ func collectCurrentQueryMetrics(db dataSource, queryIDList []string) ([]QueryPla
 	query := fmt.Sprintf(`
 		SELECT
 			DIGEST AS query_id,
-			DIGEST_TEXT AS query_text
+			DIGEST_TEXT AS query_text,
+			SQL_TEXT AS sql_text
 		FROM performance_schema.events_statements_current
 		WHERE DIGEST IN (%s)
+			AND CURRENT_SCHEMA NOT IN ('', 'mysql', 'performance_schema', 'information_schema', 'sys')
+            AND DIGEST_TEXT NOT LIKE '%%SET %%'
+            AND DIGEST_TEXT NOT LIKE '%%SHOW %%'
+            AND DIGEST_TEXT NOT LIKE '%%INFORMATION_SCHEMA%%'
+            AND DIGEST_TEXT NOT LIKE '%%PERFORMANCE_SCHEMA%%'
+            AND DIGEST_TEXT NOT LIKE '%%mysql%%'
+            AND DIGEST_TEXT NOT LIKE 'EXPLAIN %%'
+            AND SQL_TEXT NOT LIKE '%%PERFORMANCE_SCHEMA%%'
+            AND SQL_TEXT NOT LIKE '%%INFORMATION_SCHEMA%%'
 		ORDER BY TIMER_WAIT DESC;
 	`, inClause)
 
@@ -155,8 +166,18 @@ func collectRecentQueryMetrics(db dataSource, queryIDList []string) ([]QueryPlan
 		SELECT
 			DIGEST AS query_id,
 			DIGEST_TEXT AS query_text
+			SQL_TEXT AS sql_text
 		FROM performance_schema.events_statements_history
 		WHERE DIGEST IN (%s)
+			AND CURRENT_SCHEMA NOT IN ('', 'mysql', 'performance_schema', 'information_schema', 'sys')
+            AND DIGEST_TEXT NOT LIKE '%%SET %%'
+            AND DIGEST_TEXT NOT LIKE '%%SHOW %%'
+            AND DIGEST_TEXT NOT LIKE '%%INFORMATION_SCHEMA%%'
+            AND DIGEST_TEXT NOT LIKE '%%PERFORMANCE_SCHEMA%%'
+            AND DIGEST_TEXT NOT LIKE '%%mysql%%'
+            AND DIGEST_TEXT NOT LIKE 'EXPLAIN %%'
+            AND SQL_TEXT NOT LIKE '%%PERFORMANCE_SCHEMA%%'
+            AND SQL_TEXT NOT LIKE '%%INFORMATION_SCHEMA%%'
 		ORDER BY TIMER_WAIT DESC;
 	`, inClause)
 
@@ -219,9 +240,19 @@ func collectExtensiveQueryMetrics(db dataSource, queryIDList []string) ([]QueryP
 	query := fmt.Sprintf(`
 		SELECT
 			DIGEST AS query_id,
-			DIGEST_TEXT AS query_text
+			SQL_TEXT AS query_text
+			SQL_TEXT AS sql_text
 		FROM performance_schema.events_statements_history_long
 		WHERE DIGEST IN (%s)
+			AND CURRENT_SCHEMA NOT IN ('', 'mysql', 'performance_schema', 'information_schema', 'sys')
+            AND DIGEST_TEXT NOT LIKE '%%SET %%'
+            AND DIGEST_TEXT NOT LIKE '%%SHOW %%'
+            AND DIGEST_TEXT NOT LIKE '%%INFORMATION_SCHEMA%%'
+            AND DIGEST_TEXT NOT LIKE '%%PERFORMANCE_SCHEMA%%'
+            AND DIGEST_TEXT NOT LIKE '%%mysql%%'
+            AND DIGEST_TEXT NOT LIKE 'EXPLAIN %%'
+            AND SQL_TEXT NOT LIKE '%%PERFORMANCE_SCHEMA%%'
+            AND SQL_TEXT NOT LIKE '%%INFORMATION_SCHEMA%%'
 		ORDER BY TIMER_WAIT DESC;
 	`, inClause)
 
@@ -490,7 +521,7 @@ func populateQueryMetrics(ms *metric.Set, metrics []QueryPlanMetrics) error {
 		}{
 
 			"query_id":   {metricObject.QueryID, metric.ATTRIBUTE},
-			"query_text": {metricObject.QueryText, metric.ATTRIBUTE},
+			"query_text": {metricObject.AnonymizedQueryText, metric.ATTRIBUTE},
 		}
 
 		for name, metric := range metricsMap {
