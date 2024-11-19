@@ -302,29 +302,24 @@ func extractTableMetrics(tableInfo map[string]interface{}, stepID int) ([]TableM
 	var tableMetrics []TableMetrics
 	stepID++
 
-	if table, exists := tableInfo["table"]; exists {
-		tableMap := table.(map[string]interface{})
+	if table, exists := tableInfo["table"].(map[string]interface{}); exists {
 		metrics := TableMetrics{
 			StepID:        stepID,
-			ExecutionStep: tableMap["table_name"].(string),
-			AccessType:    tableMap["access_type"].(string),
-			RowsExamined:  int64(tableMap["rows_examined_per_scan"].(float64)),
-			RowsProduced:  int64(tableMap["rows_produced_per_join"].(float64)),
-			Filtered:      tableMap["filtered"].(float64),
+			ExecutionStep: getString(table, "table_name"),
+			AccessType:    getString(table, "access_type"),
+			RowsExamined:  getInt64(table, "rows_examined_per_scan"),
+			RowsProduced:  getInt64(table, "rows_produced_per_join"),
+			Filtered:      getFloat64(table, "filtered"),
 		}
 
-		if costInfo, ok := tableMap["cost_info"].(map[string]interface{}); ok {
-			metrics.ReadCost = costInfo["read_cost"].(float64)
-			metrics.EvalCost = costInfo["eval_cost"].(float64)
-			metrics.DataRead = costInfo["data_read_per_join"].(float64)
+		if costInfo, ok := table["cost_info"].(map[string]interface{}); ok {
+			metrics.ReadCost = getFloat64(costInfo, "read_cost")
+			metrics.EvalCost = getFloat64(costInfo, "eval_cost")
+			metrics.DataRead = getFloat64(costInfo, "data_read_per_join")
 		}
 
-		if usedKeyParts, ok := tableMap["used_key_parts"].([]interface{}); ok {
-			parts := make([]string, len(usedKeyParts))
-			for i, part := range usedKeyParts {
-				parts[i] = part.(string)
-			}
-			metrics.ExtraInfo = strings.Join(parts, ", ")
+		if usedKeyParts, ok := table["used_key_parts"].([]interface{}); ok {
+			metrics.ExtraInfo = convertToStringArray(usedKeyParts)
 		}
 
 		tableMetrics = append(tableMetrics, metrics)
@@ -332,9 +327,13 @@ func extractTableMetrics(tableInfo map[string]interface{}, stepID int) ([]TableM
 
 	if nestedLoop, exists := tableInfo["nested_loop"].([]interface{}); exists {
 		for _, nested := range nestedLoop {
-			metrics, newStepID := extractTableMetrics(nested.(map[string]interface{}), stepID)
-			tableMetrics = append(tableMetrics, metrics...)
-			stepID = newStepID
+			if nestedMap, ok := nested.(map[string]interface{}); ok {
+				metrics, newStepID := extractTableMetrics(nestedMap, stepID)
+				tableMetrics = append(tableMetrics, metrics...)
+				stepID = newStepID
+			} else {
+				log.Error("Unexpected type for nested element: %T", nested)
+			}
 		}
 	}
 
@@ -346,34 +345,117 @@ func extractMetricsFromPlan(plan map[string]interface{}) ExecutionPlan {
 	queryBlock, _ := plan["query_block"].(map[string]interface{})
 	stepID := 0
 	fmt.Println("Query Plan------", plan)
+
+	// Handle cost_info safely
 	if costInfo, exists := queryBlock["cost_info"].(map[string]interface{}); exists {
-		if queryCost, ok := costInfo["query_cost"].(float64); ok {
-			metrics.TotalCost = queryCost
-		} else if queryCostStr, ok := costInfo["query_cost"].(string); ok {
-			if queryCost, err := strconv.ParseFloat(queryCostStr, 64); err == nil {
-				metrics.TotalCost = queryCost
-			} else {
-				log.Error("Failed to parse query_cost: %v", err)
-			}
-		} else {
-			log.Error("Unhandled type for query_cost: %T", costInfo["query_cost"])
-		}
+		metrics.TotalCost = getCostSafely(costInfo, "query_cost")
 	}
 
+	// Handle nested_loop safely
 	if nestedLoop, exists := queryBlock["nested_loop"].([]interface{}); exists {
 		for _, nested := range nestedLoop {
-			nestedMetrics, newStepID := extractTableMetrics(nested.(map[string]interface{}), stepID)
-			metrics.TableMetrics = append(metrics.TableMetrics, nestedMetrics...)
-			stepID = newStepID
+			if nestedMap, ok := nested.(map[string]interface{}); ok {
+				nestedMetrics, newStepID := extractTableMetrics(nestedMap, stepID)
+				metrics.TableMetrics = append(metrics.TableMetrics, nestedMetrics...)
+				stepID = newStepID
+			} else {
+				log.Error("Unexpected type for nested element: %T", nested)
+			}
 		}
 	}
 
+	// Handle ordering_operation and nested grouping_operation
+	if orderingOp, exists := queryBlock["ordering_operation"].(map[string]interface{}); exists {
+		if groupingOp, exists := orderingOp["grouping_operation"].(map[string]interface{}); exists {
+			if nestedLoop, exists := groupingOp["nested_loop"].([]interface{}); exists {
+				for _, nested := range nestedLoop {
+					if nestedMap, ok := nested.(map[string]interface{}); ok {
+						nestedMetrics, newStepID := extractTableMetrics(nestedMap, stepID)
+						metrics.TableMetrics = append(metrics.TableMetrics, nestedMetrics...)
+						stepID = newStepID
+					} else {
+						log.Error("Unexpected type for nested element in grouping_operation: %T", nested)
+					}
+				}
+			}
+		}
+	}
+
+	// Handle table entry safely
 	if table, exists := queryBlock["table"].(map[string]interface{}); exists {
 		metricsTable, _ := extractTableMetrics(map[string]interface{}{"table": table}, stepID)
 		metrics.TableMetrics = append(metrics.TableMetrics, metricsTable...)
 	}
 
 	return metrics
+}
+
+// Helper functions for type-safe extraction and conversion
+func getString(m map[string]interface{}, key string) string {
+	if val, ok := m[key].(string); ok {
+		return val
+	}
+	return ""
+}
+
+func getFloat64(m map[string]interface{}, key string) float64 {
+	if val, ok := m[key].(float64); ok {
+		return val
+	} else if valStr, ok := m[key].(string); ok {
+		if valFloat, err := strconv.ParseFloat(valStr, 64); err == nil {
+			return valFloat
+		} else {
+			log.Error("Failed to parse float64 for key %s: %v", key, err)
+		}
+	} else {
+		log.Error("Unhandled type for key %s: %T", key, m[key])
+	}
+	return 0.0
+}
+
+func getInt64(m map[string]interface{}, key string) int64 {
+	if val, ok := m[key].(float64); ok {
+		return int64(val)
+	} else if valStr, ok := m[key].(string); ok {
+		if valInt, err := strconv.ParseInt(valStr, 10, 64); err == nil {
+			return valInt
+		} else {
+			log.Error("Failed to parse int64 for key %s: %v", key, err)
+		}
+	} else {
+		log.Error("Unhandled type for key %s: %T", key, m[key])
+	}
+	return 0
+}
+
+func convertToStringArray(arr []interface{}) string {
+	parts := make([]string, len(arr))
+	for i, v := range arr {
+		if str, ok := v.(string); ok {
+			parts[i] = str
+		} else {
+			log.Error("Unexpected type in array: %T", v)
+		}
+	}
+	return strings.Join(parts, ", ")
+}
+
+func getCostSafely(costInfo map[string]interface{}, key string) float64 {
+	if costValue, ok := costInfo[key]; ok {
+		switch v := costValue.(type) {
+		case float64:
+			return v
+		case string:
+			if parsedVal, err := strconv.ParseFloat(v, 64); err == nil {
+				return parsedVal
+			} else {
+				log.Error("Failed to parse string to float for key %s: %v", key, err)
+			}
+		default:
+			log.Error("Unhandled type for key %s: %T", key, costValue)
+		}
+	}
+	return 0.0
 }
 
 func formatAsTable(metrics []TableMetrics) {
