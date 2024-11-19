@@ -95,8 +95,8 @@ func collectCurrentQueryMetrics(db dataSource, queryIDList []string) ([]QueryPla
             AND DIGEST_TEXT NOT LIKE '%%PERFORMANCE_SCHEMA%%'
             AND DIGEST_TEXT NOT LIKE '%%mysql%%'
             AND DIGEST_TEXT NOT LIKE 'EXPLAIN %%'
-            AND QUERY_SAMPLE_TEXT NOT LIKE '%%PERFORMANCE_SCHEMA%%'
-            AND QUERY_SAMPLE_TEXT NOT LIKE '%%INFORMATION_SCHEMA%%'
+            AND SQL_TEXT NOT LIKE '%%PERFORMANCE_SCHEMA%%'
+            AND SQL_TEXT NOT LIKE '%%INFORMATION_SCHEMA%%'
         ORDER BY TIMER_WAIT DESC;
     `, inClause)
 
@@ -157,15 +157,15 @@ func collectRecentQueryMetrics(db dataSource, queryIDList []string) ([]QueryPlan
             DIGEST_TEXT AS query_text
         FROM performance_schema.events_statements_current
         WHERE DIGEST IN (%s)
-            AND SCHEMA_NAME NOT IN ('', 'mysql', 'performance_schema', 'information_schema', 'sys')
+            AND CURRENT_SCHEMA NOT IN ('', 'mysql', 'performance_schema', 'information_schema', 'sys')
             AND DIGEST_TEXT NOT LIKE '%%SET %%'
             AND DIGEST_TEXT NOT LIKE '%%SHOW %%'
             AND DIGEST_TEXT NOT LIKE '%%INFORMATION_SCHEMA%%'
             AND DIGEST_TEXT NOT LIKE '%%PERFORMANCE_SCHEMA%%'
             AND DIGEST_TEXT NOT LIKE '%%mysql%%'
             AND DIGEST_TEXT NOT LIKE 'EXPLAIN %%'
-            AND QUERY_SAMPLE_TEXT NOT LIKE '%%PERFORMANCE_SCHEMA%%'
-            AND QUERY_SAMPLE_TEXT NOT LIKE '%%INFORMATION_SCHEMA%%'
+            AND SQL_TEXT NOT LIKE '%%PERFORMANCE_SCHEMA%%'
+            AND SQL_TEXT NOT LIKE '%%INFORMATION_SCHEMA%%'
         ORDER BY TIMER_WAIT DESC;
     `, inClause)
 
@@ -233,8 +233,8 @@ func collectExtensiveQueryMetrics(db dataSource, queryIDList []string) ([]QueryP
             AND DIGEST_TEXT NOT LIKE '%%PERFORMANCE_SCHEMA%%'
             AND DIGEST_TEXT NOT LIKE '%%mysql%%'
             AND DIGEST_TEXT NOT LIKE 'EXPLAIN %%'
-            AND QUERY_SAMPLE_TEXT NOT LIKE '%%PERFORMANCE_SCHEMA%%'
-            AND QUERY_SAMPLE_TEXT NOT LIKE '%%INFORMATION_SCHEMA%%'
+            AND SQL_TEXT NOT LIKE '%%PERFORMANCE_SCHEMA%%'
+            AND SQL_TEXT NOT LIKE '%%INFORMATION_SCHEMA%%'
         ORDER BY TIMER_WAIT DESC;
     `, inClause)
 
