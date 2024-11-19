@@ -104,7 +104,7 @@ func collectCurrentQueryMetrics(db dataSource, queryIDList []string) ([]QueryPla
 	// Create a context with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	fmt.Println("Current------", query, args)
+
 	// Execute the query using QueryxContext
 	rows, err := db.QueryxContext(ctx, query, args...)
 	if err != nil {
@@ -112,7 +112,7 @@ func collectCurrentQueryMetrics(db dataSource, queryIDList []string) ([]QueryPla
 		return nil, err
 	}
 	defer rows.Close()
-
+	fmt.Println("Current------", query, args, rows)
 	// Slice to hold the metrics
 	var metrics []QueryPlanMetrics
 
@@ -168,7 +168,7 @@ func collectRecentQueryMetrics(db dataSource, queryIDList []string) ([]QueryPlan
 	// Create a context with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	fmt.Println("Recent------", query, args)
+
 	// Execute the query using QueryxContext
 	rows, err := db.QueryxContext(ctx, query, args...)
 	if err != nil {
@@ -176,7 +176,7 @@ func collectRecentQueryMetrics(db dataSource, queryIDList []string) ([]QueryPlan
 		return nil, err
 	}
 	defer rows.Close()
-
+	fmt.Println("Recent------", query, args, rows)
 	// Slice to hold the metrics
 	var metrics []QueryPlanMetrics
 
@@ -232,7 +232,7 @@ func collectExtensiveQueryMetrics(db dataSource, queryIDList []string) ([]QueryP
 	// Create a context with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	fmt.Println("Extensive------", query, args)
+
 	// Execute the query using QueryxContext
 	rows, err := db.QueryxContext(ctx, query, args...)
 	if err != nil {
@@ -240,7 +240,7 @@ func collectExtensiveQueryMetrics(db dataSource, queryIDList []string) ([]QueryP
 		return nil, err
 	}
 	defer rows.Close()
-
+	fmt.Println("Extensive------", query, args, rows)
 	// Slice to hold the metrics
 	var metrics []QueryPlanMetrics
 
