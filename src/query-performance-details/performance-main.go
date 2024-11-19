@@ -30,16 +30,20 @@ func PopulateQueryPerformanceMetrics(args arguments.ArgumentList, e *integration
 		}
 		fmt.Println("Metrics collected successfully.", rawMetrics)
 		// Data ingestion logic
-		ms := metricSet(
-			e,
-			"MysqlSlowQueriesSample",
-			args.Hostname,
-			args.Port,
-			args.RemoteMonitoring,
-		)
+		ms := createMetricSet(e, "MysqlSlowQueriesSample", args)
 		populateMetrics(ms, rawMetrics)
 	}
 
+}
+
+func createMetricSet(e *integration.Entity, sampleName string, args arguments.ArgumentList) *metric.Set {
+	return metricSet(
+		e,
+		sampleName,
+		args.Hostname,
+		args.Port,
+		args.RemoteMonitoring,
+	)
 }
 
 func metricSet(e *integration.Entity, eventType, hostname string, port int, remoteMonitoring bool) *metric.Set {

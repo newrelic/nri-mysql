@@ -26,6 +26,10 @@ type QueryMetrics struct {
 	CollectionTimestamp string         `json:"collection_timestamp" db:"collection_timestamp"`
 }
 
+type QueryIdList struct {
+	QueryDigest string `json:"db_query_id" db:"db_query_id"`
+}
+
 func collectQueryMetrics(db dataSource) ([]QueryMetrics, error) {
 	// Check Performance Schema availability
 	metrics, err := collectPerformanceSchemaMetrics(db)
@@ -64,6 +68,15 @@ func collectPerformanceSchemaMetrics(db dataSource) ([]QueryMetrics, error) {
             DATE_FORMAT(UTC_TIMESTAMP(), '%Y-%m-%dT%H:%i:%sZ') AS collection_timestamp
         FROM performance_schema.events_statements_summary_by_digest
         WHERE LAST_SEEN >= UTC_TIMESTAMP() - INTERVAL 30 SECOND
+            AND SCHEMA_NAME NOT IN ('', 'mysql', 'performance_schema', 'information_schema', 'sys')
+            AND DIGEST_TEXT NOT LIKE '%SET %'
+            AND DIGEST_TEXT NOT LIKE '%SHOW %'
+            AND DIGEST_TEXT NOT LIKE '%INFORMATION_SCHEMA%'
+            AND DIGEST_TEXT NOT LIKE '%PERFORMANCE_SCHEMA%'
+            AND DIGEST_TEXT NOT LIKE '%mysql%'
+            AND DIGEST_TEXT NOT LIKE 'EXPLAIN %'
+            AND QUERY_SAMPLE_TEXT NOT LIKE '%PERFORMANCE_SCHEMA%'
+            AND QUERY_SAMPLE_TEXT NOT LIKE '%INFORMATION_SCHEMA%'
         ORDER BY avg_elapsed_time_ms DESC;
     `
 
@@ -78,15 +91,20 @@ func collectPerformanceSchemaMetrics(db dataSource) ([]QueryMetrics, error) {
 	defer rows.Close()
 
 	var metrics []QueryMetrics
+	var qIdList []QueryIdList
 	for rows.Next() {
 		var metric QueryMetrics
+		var qId QueryIdList
 		if err := rows.StructScan(&metric); err != nil {
 			log.Error("Failed to scan query metrics row: %v", err)
 			return nil, err
 		}
+		qId.QueryDigest = metric.DBQueryID
+		qIdList = append(qIdList, qId)
 		metrics = append(metrics, metric)
 	}
-
+	placeholders := make([]string, len(qIdList))
+	fmt.Println("placeholders: ", placeholders)
 	if err := rows.Err(); err != nil {
 		log.Error("Error iterating over query metrics rows: %v", err)
 		return nil, err
