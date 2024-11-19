@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -346,7 +347,17 @@ func extractMetricsFromPlan(plan map[string]interface{}) ExecutionPlan {
 	stepID := 0
 
 	if costInfo, exists := queryBlock["cost_info"].(map[string]interface{}); exists {
-		metrics.TotalCost = costInfo["query_cost"].(float64)
+		if queryCost, ok := costInfo["query_cost"].(float64); ok {
+			metrics.TotalCost = queryCost
+		} else if queryCostStr, ok := costInfo["query_cost"].(string); ok {
+			if queryCost, err := strconv.ParseFloat(queryCostStr, 64); err == nil {
+				metrics.TotalCost = queryCost
+			} else {
+				log.Error("Failed to parse query_cost: %v", err)
+			}
+		} else {
+			log.Error("Unhandled type for query_cost: %T", costInfo["query_cost"])
+		}
 	}
 
 	if nestedLoop, exists := queryBlock["nested_loop"].([]interface{}); exists {
