@@ -124,7 +124,7 @@ func collectCurrentQueryMetrics(db dataSource, queryIDList []string) ([]QueryPla
 		return nil, err
 	}
 	defer rows.Close()
-	fmt.Println("Current------", query, args)
+	// fmt.Println("Current------", query, args)
 	// Slice to hold the metrics
 	var metrics []QueryPlanMetrics
 
@@ -135,7 +135,7 @@ func collectCurrentQueryMetrics(db dataSource, queryIDList []string) ([]QueryPla
 			log.Error("Failed to scan query metrics row: %v", err)
 			return nil, err
 		}
-		fmt.Println("Current Metric------", metric)
+		// fmt.Println("Current Metric------", metric)
 		metrics = append(metrics, metric)
 	}
 
@@ -199,7 +199,7 @@ func collectRecentQueryMetrics(db dataSource, queryIDList []string) ([]QueryPlan
 		return nil, err
 	}
 	defer rows.Close()
-	fmt.Println("Recent------", query, args)
+	// fmt.Println("Recent------", query, args)
 	// Slice to hold the metrics
 	var metrics []QueryPlanMetrics
 
@@ -210,7 +210,7 @@ func collectRecentQueryMetrics(db dataSource, queryIDList []string) ([]QueryPlan
 			log.Error("Failed to scan query metrics row: %v", err)
 			return nil, err
 		}
-		fmt.Println("Recent Metric------", metric)
+		// fmt.Println("Recent Metric------", metric)
 		metrics = append(metrics, metric)
 	}
 
@@ -274,7 +274,7 @@ func collectExtensiveQueryMetrics(db dataSource, queryIDList []string) ([]QueryP
 		return nil, err
 	}
 	defer rows.Close()
-	fmt.Println("Extensive------", query, args)
+	// fmt.Println("Extensive------", query, args)
 	// Slice to hold the metrics
 	var metrics []QueryPlanMetrics
 
@@ -285,7 +285,7 @@ func collectExtensiveQueryMetrics(db dataSource, queryIDList []string) ([]QueryP
 			log.Error("Failed to scan query metrics row: %v", err)
 			return nil, err
 		}
-		fmt.Println("Extensive Metric------", metric)
+		// fmt.Println("Extensive Metric------", metric)
 		metrics = append(metrics, metric)
 	}
 
@@ -345,7 +345,7 @@ func extractMetricsFromPlan(plan map[string]interface{}) ExecutionPlan {
 	var metrics ExecutionPlan
 	queryBlock, _ := plan["query_block"].(map[string]interface{})
 	stepID := 0
-
+	fmt.Println("Query Plan------", plan)
 	if costInfo, exists := queryBlock["cost_info"].(map[string]interface{}); exists {
 		if queryCost, ok := costInfo["query_cost"].(float64); ok {
 			metrics.TotalCost = queryCost
@@ -443,7 +443,7 @@ func captureExecutionPlans(db dataSource, queries []QueryPlanMetrics) ([]map[str
 			log.Error("Failed to unmarshal execution plan: %v", err)
 			continue
 		}
-
+		fmt.Println("Query execPlan------", execPlan)
 		metrics := extractMetricsFromPlan(execPlan)
 
 		baseIngestionData := map[string]interface{}{
