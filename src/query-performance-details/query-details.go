@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/newrelic/infra-integrations-sdk/v3/data/metric"
@@ -24,10 +25,6 @@ type QueryMetrics struct {
 	HasFullTableScan    string         `json:"has_full_table_scan" db:"has_full_table_scan"`
 	StatementType       string         `json:"statement_type" db:"statement_type"`
 	CollectionTimestamp string         `json:"collection_timestamp" db:"collection_timestamp"`
-}
-
-type QueryIdList struct {
-	QueryDigest string `json:"db_query_id" db:"db_query_id"`
 }
 
 func collectQueryMetrics(db dataSource) ([]QueryMetrics, error) {
@@ -67,8 +64,7 @@ func collectPerformanceSchemaMetrics(db dataSource) ([]QueryMetrics, error) {
             END AS statement_type,
             DATE_FORMAT(UTC_TIMESTAMP(), '%Y-%m-%dT%H:%i:%sZ') AS collection_timestamp
         FROM performance_schema.events_statements_summary_by_digest
-        WHERE LAST_SEEN >= UTC_TIMESTAMP() - INTERVAL 30 SECOND
-            AND SCHEMA_NAME NOT IN ('', 'mysql', 'performance_schema', 'information_schema', 'sys')
+        WHERE SCHEMA_NAME NOT IN ('', 'mysql', 'performance_schema', 'information_schema', 'sys')
             AND DIGEST_TEXT NOT LIKE '%SET %'
             AND DIGEST_TEXT NOT LIKE '%SHOW %'
             AND DIGEST_TEXT NOT LIKE '%INFORMATION_SCHEMA%'
@@ -91,20 +87,20 @@ func collectPerformanceSchemaMetrics(db dataSource) ([]QueryMetrics, error) {
 	defer rows.Close()
 
 	var metrics []QueryMetrics
-	var qIdList []QueryIdList
+	var qIdList []string
 	for rows.Next() {
 		var metric QueryMetrics
-		var qId QueryIdList
+		var qId string
 		if err := rows.StructScan(&metric); err != nil {
 			log.Error("Failed to scan query metrics row: %v", err)
 			return nil, err
 		}
-		qId.QueryDigest = metric.DBQueryID
+		qId = metric.DBQueryID
 		qIdList = append(qIdList, qId)
 		metrics = append(metrics, metric)
 	}
-	placeholders := make([]string, len(qIdList))
-	fmt.Println("placeholders: ", placeholders)
+	commaSeparatedString := strings.Join(qIdList, ",")
+	fmt.Println("placeholders: ", commaSeparatedString)
 	if err := rows.Err(); err != nil {
 		log.Error("Error iterating over query metrics rows: %v", err)
 		return nil, err
