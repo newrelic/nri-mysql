@@ -95,12 +95,12 @@ func collectCurrentQueryMetrics(db dataSource, queryIDList []string) ([]QueryPla
 		FROM performance_schema.events_statements_current
 		WHERE DIGEST IN (%s)
 			AND CURRENT_SCHEMA NOT IN ('', 'mysql', 'performance_schema', 'information_schema', 'sys')
-            AND DIGEST_TEXT NOT LIKE '%%SET %%'
-            AND DIGEST_TEXT NOT LIKE '%%SHOW %%'
-            AND DIGEST_TEXT NOT LIKE '%%INFORMATION_SCHEMA%%'
-            AND DIGEST_TEXT NOT LIKE '%%PERFORMANCE_SCHEMA%%'
-            AND DIGEST_TEXT NOT LIKE '%%mysql%%'
-            AND DIGEST_TEXT NOT LIKE 'EXPLAIN %%'
+            AND SQL_TEXT NOT LIKE '%%SET %%'
+            AND SQL_TEXT NOT LIKE '%%SHOW %%'
+            AND SQL_TEXT NOT LIKE '%%INFORMATION_SCHEMA%%'
+            AND SQL_TEXT NOT LIKE '%%PERFORMANCE_SCHEMA%%'
+            AND SQL_TEXT NOT LIKE '%%mysql%%'
+            AND SQL_TEXT NOT LIKE 'EXPLAIN %%'
             AND SQL_TEXT NOT LIKE '%%PERFORMANCE_SCHEMA%%'
             AND SQL_TEXT NOT LIKE '%%INFORMATION_SCHEMA%%'
 		ORDER BY TIMER_WAIT DESC;
@@ -165,17 +165,17 @@ func collectRecentQueryMetrics(db dataSource, queryIDList []string) ([]QueryPlan
 	query := fmt.Sprintf(`
 		SELECT
 			DIGEST AS query_id,
-			DIGEST_TEXT AS query_text
+			DIGEST_TEXT AS query_text,
 			SQL_TEXT AS query_sample_text
 		FROM performance_schema.events_statements_history
 		WHERE DIGEST IN (%s)
 			AND CURRENT_SCHEMA NOT IN ('', 'mysql', 'performance_schema', 'information_schema', 'sys')
-            AND DIGEST_TEXT NOT LIKE '%%SET %%'
-            AND DIGEST_TEXT NOT LIKE '%%SHOW %%'
-            AND DIGEST_TEXT NOT LIKE '%%INFORMATION_SCHEMA%%'
-            AND DIGEST_TEXT NOT LIKE '%%PERFORMANCE_SCHEMA%%'
-            AND DIGEST_TEXT NOT LIKE '%%mysql%%'
-            AND DIGEST_TEXT NOT LIKE 'EXPLAIN %%'
+            AND SQL_TEXT NOT LIKE '%%SET %%'
+            AND SQL_TEXT NOT LIKE '%%SHOW %%'
+            AND SQL_TEXT NOT LIKE '%%INFORMATION_SCHEMA%%'
+            AND SQL_TEXT NOT LIKE '%%PERFORMANCE_SCHEMA%%'
+            AND SQL_TEXT NOT LIKE '%%mysql%%'
+            AND SQL_TEXT NOT LIKE 'EXPLAIN %%'
             AND SQL_TEXT NOT LIKE '%%PERFORMANCE_SCHEMA%%'
             AND SQL_TEXT NOT LIKE '%%INFORMATION_SCHEMA%%'
 		ORDER BY TIMER_WAIT DESC;
@@ -240,17 +240,17 @@ func collectExtensiveQueryMetrics(db dataSource, queryIDList []string) ([]QueryP
 	query := fmt.Sprintf(`
 		SELECT
 			DIGEST AS query_id,
-			DIGEST_TEXT AS query_text
+			DIGEST_TEXT AS query_text,
 			SQL_TEXT AS query_sample_text
 		FROM performance_schema.events_statements_history_long
 		WHERE DIGEST IN (%s)
 			AND CURRENT_SCHEMA NOT IN ('', 'mysql', 'performance_schema', 'information_schema', 'sys')
-            AND DIGEST_TEXT NOT LIKE '%%SET %%'
-            AND DIGEST_TEXT NOT LIKE '%%SHOW %%'
-            AND DIGEST_TEXT NOT LIKE '%%INFORMATION_SCHEMA%%'
-            AND DIGEST_TEXT NOT LIKE '%%PERFORMANCE_SCHEMA%%'
-            AND DIGEST_TEXT NOT LIKE '%%mysql%%'
-            AND DIGEST_TEXT NOT LIKE 'EXPLAIN %%'
+            AND SQL_TEXT NOT LIKE '%%SET %%'
+            AND SQL_TEXT NOT LIKE '%%SHOW %%'
+            AND SQL_TEXT NOT LIKE '%%INFORMATION_SCHEMA%%'
+            AND SQL_TEXT NOT LIKE '%%PERFORMANCE_SCHEMA%%'
+            AND SQL_TEXT NOT LIKE '%%mysql%%'
+            AND SQL_TEXT NOT LIKE 'EXPLAIN %%'
             AND SQL_TEXT NOT LIKE '%%PERFORMANCE_SCHEMA%%'
             AND SQL_TEXT NOT LIKE '%%INFORMATION_SCHEMA%%'
 		ORDER BY TIMER_WAIT DESC;
