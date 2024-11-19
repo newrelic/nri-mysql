@@ -540,7 +540,7 @@ func captureExecutionPlans(db dataSource, queries []QueryPlanMetrics) ([]map[str
 		baseIngestionData := map[string]interface{}{
 			"eventType":  "MySQLExecutionPlan",
 			"query_id":   query.QueryID,
-			"query_text": query.QueryText,
+			"query_text": query.AnonymizedQueryText,
 			"total_cost": metrics.TotalCost,
 			"step_id":    0,
 		}
@@ -586,7 +586,6 @@ func populateQueryPlanMetrics(ms *metric.Set, metrics []map[string]interface{}) 
 		}{
 			"query_id":       {metricObject["query_id"], metric.ATTRIBUTE},
 			"query_text":     {getStringValue(sql.NullString{String: metricObject["query_text"].(string), Valid: true}), metric.ATTRIBUTE},
-			"database_name":  {getStringValue(sql.NullString{String: metricObject["database_name"].(string), Valid: true}), metric.ATTRIBUTE},
 			"total_cost":     {metricObject["total_cost"], metric.GAUGE},
 			"step_id":        {metricObject["step_id"], metric.GAUGE},
 			"Execution Step": {metricObject["Execution Step"], metric.ATTRIBUTE},
