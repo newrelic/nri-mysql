@@ -88,7 +88,7 @@ func collectCurrentQueryMetrics(db dataSource, queryIDList []string) ([]QueryPla
             DIGEST_TEXT AS query_text
         FROM performance_schema.events_statements_current
         WHERE DIGEST IN (%s)
-            AND SCHEMA_NAME NOT IN ('', 'mysql', 'performance_schema', 'information_schema', 'sys')
+            AND CURRENT_SCHEMA NOT IN ('', 'mysql', 'performance_schema', 'information_schema', 'sys')
             AND DIGEST_TEXT NOT LIKE '%%SET %%'
             AND DIGEST_TEXT NOT LIKE '%%SHOW %%'
             AND DIGEST_TEXT NOT LIKE '%%INFORMATION_SCHEMA%%'
@@ -226,7 +226,7 @@ func collectExtensiveQueryMetrics(db dataSource, queryIDList []string) ([]QueryP
             DIGEST_TEXT AS query_text
         FROM performance_schema.events_statements_current
         WHERE DIGEST IN (%s)
-            AND SCHEMA_NAME NOT IN ('', 'mysql', 'performance_schema', 'information_schema', 'sys')
+            AND CURRENT_SCHEMA NOT IN ('', 'mysql', 'performance_schema', 'information_schema', 'sys')
             AND DIGEST_TEXT NOT LIKE '%%SET %%'
             AND DIGEST_TEXT NOT LIKE '%%SHOW %%'
             AND DIGEST_TEXT NOT LIKE '%%INFORMATION_SCHEMA%%'
