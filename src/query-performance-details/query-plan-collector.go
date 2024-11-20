@@ -124,7 +124,7 @@ func collectCurrentQueryMetrics(db dataSource, queryIDList []string) ([]QueryPla
 		return nil, err
 	}
 	defer rows.Close()
-	// fmt.Println("Current------", query, args)
+	fmt.Println("Current------", query, args)
 	// Slice to hold the metrics
 	var metrics []QueryPlanMetrics
 
@@ -135,7 +135,7 @@ func collectCurrentQueryMetrics(db dataSource, queryIDList []string) ([]QueryPla
 			log.Error("Failed to scan query metrics row: %v", err)
 			return nil, err
 		}
-		// fmt.Println("Current Metric------", metric)
+		fmt.Println("Current Metric------", metric)
 		metrics = append(metrics, metric)
 	}
 
@@ -199,7 +199,7 @@ func collectRecentQueryMetrics(db dataSource, queryIDList []string) ([]QueryPlan
 		return nil, err
 	}
 	defer rows.Close()
-	// fmt.Println("Recent------", query, args)
+	fmt.Println("Recent------", query, args)
 	// Slice to hold the metrics
 	var metrics []QueryPlanMetrics
 
@@ -210,7 +210,7 @@ func collectRecentQueryMetrics(db dataSource, queryIDList []string) ([]QueryPlan
 			log.Error("Failed to scan query metrics row: %v", err)
 			return nil, err
 		}
-		// fmt.Println("Recent Metric------", metric)
+		fmt.Println("Recent Metric------", metric)
 		metrics = append(metrics, metric)
 	}
 
@@ -274,7 +274,7 @@ func collectExtensiveQueryMetrics(db dataSource, queryIDList []string) ([]QueryP
 		return nil, err
 	}
 	defer rows.Close()
-	// fmt.Println("Extensive------", query, args)
+	fmt.Println("Extensive------", query, args)
 	// Slice to hold the metrics
 	var metrics []QueryPlanMetrics
 
@@ -285,7 +285,7 @@ func collectExtensiveQueryMetrics(db dataSource, queryIDList []string) ([]QueryP
 			log.Error("Failed to scan query metrics row: %v", err)
 			return nil, err
 		}
-		// fmt.Println("Extensive Metric------", metric)
+		fmt.Println("Extensive Metric------", metric)
 		metrics = append(metrics, metric)
 	}
 
@@ -407,7 +407,7 @@ func getFloat64(m map[string]interface{}, key string) float64 {
 		case float64:
 			return v
 		case string:
-			parsedVal, err := strconv.ParseFloat(v, 64)
+			parsedVal, err := parseSpecialFloat(v)
 			if err == nil {
 				return parsedVal
 			}
