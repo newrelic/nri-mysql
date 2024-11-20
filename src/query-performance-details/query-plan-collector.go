@@ -137,7 +137,7 @@ func collectCurrentQueryMetrics(db dataSource, queryIDList []string) ([]QueryPla
 			log.Error("Failed to scan query metrics row: %v", err)
 			return nil, err
 		}
-		fmt.Println("Current Metric------", metric)
+		// fmt.Println("Current Metric------", metric)
 		metrics = append(metrics, metric)
 	}
 
@@ -212,7 +212,7 @@ func collectRecentQueryMetrics(db dataSource, queryIDList []string) ([]QueryPlan
 			log.Error("Failed to scan query metrics row: %v", err)
 			return nil, err
 		}
-		fmt.Println("Recent Metric------", metric)
+		// fmt.Println("Recent Metric------", metric)
 		metrics = append(metrics, metric)
 	}
 
@@ -287,7 +287,7 @@ func collectExtensiveQueryMetrics(db dataSource, queryIDList []string) ([]QueryP
 			log.Error("Failed to scan query metrics row: %v", err)
 			return nil, err
 		}
-		fmt.Println("Extensive Metric------", metric)
+		// fmt.Println("Extensive Metric------", metric)
 		metrics = append(metrics, metric)
 	}
 
@@ -346,7 +346,7 @@ func extractMetricsFromPlan(plan map[string]interface{}) ExecutionPlan {
 	var metrics ExecutionPlan
 	queryBlock, _ := plan["query_block"].(map[string]interface{})
 	stepID := 0
-	fmt.Println("Query Plan------", plan)
+	// fmt.Println("Query Plan------", plan)
 
 	// Handle cost_info safely
 	if costInfo, exists := queryBlock["cost_info"].(map[string]interface{}); exists {
@@ -671,18 +671,14 @@ func captureExecutionPlans(db dataSource, queries []QueryPlanMetrics) ([]map[str
 	if len(events) == 0 {
 		return []map[string]interface{}{}, nil
 	}
-	// fmt.Println("Events------", events)
+
 	return events, nil
 }
 
 func populateQueryPlanMetrics(e *integration.Entity, args arguments.ArgumentList, metrics []map[string]interface{}) error {
 	for _, metricObject := range metrics {
-		// if ms == nil {
-		// 	return fmt.Errorf("failed to create metric set")
-		// }
 		// Create a new metric set for each row
 		ms := createMetricSet(e, "MysqlQueryPlanDetailsSample", args)
-		// fmt.Println("metricObject------", metricObject)
 		metricsMap := map[string]struct {
 			Value      interface{}
 			MetricType metric.SourceType
@@ -703,7 +699,6 @@ func populateQueryPlanMetrics(e *integration.Entity, args arguments.ArgumentList
 		}
 
 		for name, metricData := range metricsMap {
-			fmt.Println("metricData------", name, metricData)
 			err := ms.SetMetric(name, metricData.Value, metricData.MetricType)
 			if err != nil {
 				log.Error("Error setting value for %s: %v", name, err)

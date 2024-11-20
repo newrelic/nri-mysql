@@ -46,10 +46,8 @@ func PopulateQueryPerformanceMetrics(args arguments.ArgumentList, e *integration
 		ms := createMetricSet(e, "MysqlSlowQueriesSample", args)
 		populateMetrics(ms, rawMetrics)
 		// Individual Queries
-		// ms1 := createMetricSet(e, "MysqlQueriesSample", args)
 		populateQueryMetrics(e, args, rawMetrics1)
 		// Query Execution Plan Details
-		// ms2 := createMetricSet(e, "MysqlQueryPlanDetailsSample", args)
 		populateQueryPlanMetrics(e, args, rawMetrics2)
 	}
 }
