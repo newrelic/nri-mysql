@@ -471,11 +471,40 @@ func getStringValueSafe(value interface{}) string {
 	if value == nil {
 		return ""
 	}
-	if str, ok := value.(string); ok {
-		return str
+	switch v := value.(type) {
+	case string:
+		return v
+	case sql.NullString:
+		if v.Valid {
+			return v.String
+		}
+		return ""
+	default:
+		log.Error("Unexpected type for value: %T", value)
+		return ""
 	}
-	log.Error("Unexpected type for value: %T", value)
-	return ""
+}
+
+func parseSpecialFloat(value string) (float64, error) {
+	multipliers := map[string]float64{
+		"K": 1e3,
+		"M": 1e6,
+		"G": 1e9,
+		"T": 1e12,
+	}
+
+	for suffix, multiplier := range multipliers {
+		if strings.HasSuffix(value, suffix) {
+			baseValue := strings.TrimSuffix(value, suffix)
+			parsedVal, err := strconv.ParseFloat(baseValue, 64)
+			if err != nil {
+				return 0, err
+			}
+			return parsedVal * multiplier, nil
+		}
+	}
+
+	return strconv.ParseFloat(value, 64)
 }
 
 func getFloat64ValueSafe(value interface{}) float64 {
@@ -486,11 +515,19 @@ func getFloat64ValueSafe(value interface{}) float64 {
 	case float64:
 		return v
 	case string:
-		parsedVal, err := strconv.ParseFloat(v, 64)
+		parsedVal, err := parseSpecialFloat(v)
 		if err == nil {
 			return parsedVal
 		}
 		log.Error("Failed to parse string to float64: %v", err)
+	case sql.NullString:
+		if v.Valid {
+			parsedVal, err := parseSpecialFloat(v.String)
+			if err == nil {
+				return parsedVal
+			}
+			log.Error("Failed to parse sql.NullString to float64: %v", err)
+		}
 	default:
 		log.Error("Unexpected type for value: %T", value)
 	}
@@ -512,11 +549,20 @@ func getInt64ValueSafe(value interface{}) int64 {
 			return parsedVal
 		}
 		log.Error("Failed to parse string to int64: %v", err)
+	case sql.NullString:
+		if v.Valid {
+			parsedVal, err := strconv.ParseInt(v.String, 10, 64)
+			if err == nil {
+				return parsedVal
+			}
+			log.Error("Failed to parse sql.NullString to int64: %v", err)
+		}
 	default:
 		log.Error("Unexpected type for value: %T", value)
 	}
 	return 0
 }
+
 func formatAsTable(metrics []TableMetrics) {
 	table := tablewriter.NewWriter(os.Stdout)
 	table.SetHeader([]string{"step_id", "Execution Step", "access_type", "rows_examined", "rows_produced", "filtered (%)", "read_cost", "eval_cost", "data_read", "extra_info"})
@@ -634,8 +680,8 @@ func populateQueryPlanMetrics(ms *metric.Set, metrics []map[string]interface{}) 
 			Value      interface{}
 			MetricType metric.SourceType
 		}{
-			"query_id":       {metricObject["query_id"], metric.ATTRIBUTE},
-			"query_text":     {getStringValueSafe(sql.NullString{String: metricObject["query_text"].(string), Valid: true}), metric.ATTRIBUTE},
+			"query_id":       {getStringValueSafe(metricObject["query_id"]), metric.ATTRIBUTE},
+			"query_text":     {getStringValueSafe(metricObject["query_text"]), metric.ATTRIBUTE},
 			"total_cost":     {getFloat64ValueSafe(metricObject["total_cost"]), metric.GAUGE},
 			"step_id":        {getInt64ValueSafe(metricObject["step_id"]), metric.GAUGE},
 			"Execution Step": {getStringValueSafe(metricObject["Execution Step"]), metric.ATTRIBUTE},
@@ -646,7 +692,7 @@ func populateQueryPlanMetrics(ms *metric.Set, metrics []map[string]interface{}) 
 			"read_cost":      {getFloat64ValueSafe(metricObject["read_cost"]), metric.GAUGE},
 			"eval_cost":      {getFloat64ValueSafe(metricObject["eval_cost"]), metric.GAUGE},
 			"data_read":      {getFloat64ValueSafe(metricObject["data_read"]), metric.GAUGE},
-			"extra_info":     {getStringValueSafe(sql.NullString{String: metricObject["extra_info"].(string), Valid: true}), metric.ATTRIBUTE},
+			"extra_info":     {getStringValueSafe(metricObject["extra_info"]), metric.ATTRIBUTE},
 		}
 
 		for name, metricData := range metricsMap {
