@@ -124,7 +124,7 @@ func collectCurrentQueryMetrics(db dataSource, queryIDList []string) ([]QueryPla
 		return nil, err
 	}
 	defer rows.Close()
-	fmt.Println("Current------", query, args)
+	// fmt.Println("Current------", query, args)
 	// Slice to hold the metrics
 	var metrics []QueryPlanMetrics
 
@@ -199,7 +199,7 @@ func collectRecentQueryMetrics(db dataSource, queryIDList []string) ([]QueryPlan
 		return nil, err
 	}
 	defer rows.Close()
-	fmt.Println("Recent------", query, args)
+	// fmt.Println("Recent------", query, args)
 	// Slice to hold the metrics
 	var metrics []QueryPlanMetrics
 
@@ -274,7 +274,7 @@ func collectExtensiveQueryMetrics(db dataSource, queryIDList []string) ([]QueryP
 		return nil, err
 	}
 	defer rows.Close()
-	fmt.Println("Extensive------", query, args)
+	// fmt.Println("Extensive------", query, args)
 	// Slice to hold the metrics
 	var metrics []QueryPlanMetrics
 
@@ -632,7 +632,7 @@ func captureExecutionPlans(db dataSource, queries []QueryPlanMetrics) ([]map[str
 			log.Error("Failed to unmarshal execution plan: %v", err)
 			continue
 		}
-		fmt.Println("Query execPlan------", execPlan)
+		// fmt.Println("Query execPlan------", execPlan)
 		metrics := extractMetricsFromPlan(execPlan)
 
 		baseIngestionData := map[string]interface{}{
@@ -669,6 +669,7 @@ func captureExecutionPlans(db dataSource, queries []QueryPlanMetrics) ([]map[str
 	if len(events) == 0 {
 		return []map[string]interface{}{}, nil
 	}
+	fmt.Println("Events------", events)
 	return events, nil
 }
 
@@ -677,7 +678,7 @@ func populateQueryPlanMetrics(ms *metric.Set, metrics []map[string]interface{}) 
 		if ms == nil {
 			return fmt.Errorf("failed to create metric set")
 		}
-
+		fmt.Println("metricObject------", metricObject)
 		metricsMap := map[string]struct {
 			Value      interface{}
 			MetricType metric.SourceType
