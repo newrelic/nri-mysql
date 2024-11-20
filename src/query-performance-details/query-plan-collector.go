@@ -707,7 +707,18 @@ func populateQueryPlanMetrics(ms *metric.Set, metrics []map[string]interface{}) 
 			}
 		}
 	}
+
+	// Print the metric set for debugging
+	printMetricSet(ms)
+
 	return nil
+}
+
+func printMetricSet(ms *metric.Set) {
+	fmt.Println("Metric Set Contents:")
+	for name, metric := range ms.Metrics {
+		fmt.Printf("Name: %s, Value: %v, Type: %v\n", name, metric, "unknown")
+	}
 }
 
 func populateQueryMetrics(ms *metric.Set, metrics []QueryPlanMetrics) error {

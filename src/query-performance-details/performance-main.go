@@ -51,9 +51,7 @@ func PopulateQueryPerformanceMetrics(args arguments.ArgumentList, e *integration
 		// Query Execution Plan Details
 		ms2 := createMetricSet(e, "MysqlQueryPlanDetailsSample", args)
 		populateQueryPlanMetrics(ms2, rawMetrics2)
-
 	}
-
 }
 
 func createMetricSet(e *integration.Entity, sampleName string, args arguments.ArgumentList) *metric.Set {
