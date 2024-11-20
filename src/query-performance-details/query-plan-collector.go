@@ -13,7 +13,9 @@ import (
 	"github.com/olekukonko/tablewriter"
 
 	"github.com/newrelic/infra-integrations-sdk/v3/data/metric"
+	"github.com/newrelic/infra-integrations-sdk/v3/integration"
 	"github.com/newrelic/infra-integrations-sdk/v3/log"
+	arguments "github.com/newrelic/nri-mysql/src/args"
 )
 
 type QueryPlanMetrics struct {
@@ -673,11 +675,13 @@ func captureExecutionPlans(db dataSource, queries []QueryPlanMetrics) ([]map[str
 	return events, nil
 }
 
-func populateQueryPlanMetrics(ms *metric.Set, metrics []map[string]interface{}) error {
+func populateQueryPlanMetrics(e *integration.Entity, args arguments.ArgumentList, metrics []map[string]interface{}) error {
 	for _, metricObject := range metrics {
-		if ms == nil {
-			return fmt.Errorf("failed to create metric set")
-		}
+		// if ms == nil {
+		// 	return fmt.Errorf("failed to create metric set")
+		// }
+		// Create a new metric set for each row
+		ms := createMetricSet(e, "MysqlQueryPlanDetailsSample", args)
 		// fmt.Println("metricObject------", metricObject)
 		metricsMap := map[string]struct {
 			Value      interface{}
@@ -706,10 +710,10 @@ func populateQueryPlanMetrics(ms *metric.Set, metrics []map[string]interface{}) 
 				continue
 			}
 		}
-	}
 
-	// Print the metric set for debugging
-	printMetricSet(ms)
+		// Print the metric set for debugging
+		printMetricSet(ms)
+	}
 
 	return nil
 }
@@ -721,11 +725,11 @@ func printMetricSet(ms *metric.Set) {
 	}
 }
 
-func populateQueryMetrics(ms *metric.Set, metrics []QueryPlanMetrics) error {
+func populateQueryMetrics(e *integration.Entity, args arguments.ArgumentList, metrics []QueryPlanMetrics) error {
 	for _, metricObject := range metrics {
-		if ms == nil {
-			return fmt.Errorf("failed to create metric set")
-		}
+
+		// Create a new metric set for each row
+		ms := createMetricSet(e, "MysqlQueriesSample", args)
 
 		metricsMap := map[string]struct {
 			Value      interface{}
