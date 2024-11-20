@@ -541,6 +541,8 @@ func getInt64ValueSafe(value interface{}) int64 {
 	switch v := value.(type) {
 	case int64:
 		return v
+	case int:
+		return int64(v)
 	case float64:
 		return int64(v)
 	case string:
