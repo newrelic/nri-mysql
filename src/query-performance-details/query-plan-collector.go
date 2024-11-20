@@ -699,7 +699,7 @@ func populateQueryPlanMetrics(ms *metric.Set, metrics []map[string]interface{}) 
 		}
 
 		for name, metricData := range metricsMap {
-			fmt.Println("metricData------", metricData)
+			fmt.Println("metricData------", name, metricData)
 			err := ms.SetMetric(name, metricData.Value, metricData.MetricType)
 			if err != nil {
 				log.Error("Error setting value for %s: %v", name, err)
