@@ -669,7 +669,7 @@ func captureExecutionPlans(db dataSource, queries []QueryPlanMetrics) ([]map[str
 	if len(events) == 0 {
 		return []map[string]interface{}{}, nil
 	}
-	fmt.Println("Events------", events)
+	// fmt.Println("Events------", events)
 	return events, nil
 }
 
@@ -678,7 +678,7 @@ func populateQueryPlanMetrics(ms *metric.Set, metrics []map[string]interface{}) 
 		if ms == nil {
 			return fmt.Errorf("failed to create metric set")
 		}
-		fmt.Println("metricObject------", metricObject)
+		// fmt.Println("metricObject------", metricObject)
 		metricsMap := map[string]struct {
 			Value      interface{}
 			MetricType metric.SourceType
@@ -699,6 +699,7 @@ func populateQueryPlanMetrics(ms *metric.Set, metrics []map[string]interface{}) 
 		}
 
 		for name, metricData := range metricsMap {
+			fmt.Println("metricData------", metricData)
 			err := ms.SetMetric(name, metricData.Value, metricData.MetricType)
 			if err != nil {
 				log.Error("Error setting value for %s: %v", name, err)
