@@ -3,10 +3,11 @@ package query_performance_details
 import (
 	"context"
 	"database/sql"
-	"fmt"
 
 	"github.com/newrelic/infra-integrations-sdk/v3/data/metric"
+	"github.com/newrelic/infra-integrations-sdk/v3/integration"
 	"github.com/newrelic/infra-integrations-sdk/v3/log"
+	arguments "github.com/newrelic/nri-mysql/src/args"
 )
 
 type BlockingSessionMetrics struct {
@@ -95,11 +96,10 @@ func fetchBlockingSessionMetrics(db dataSource) ([]BlockingSessionMetrics, error
 }
 
 // CreateBlockingSessionMetrics creates a new set of metrics for the given BlockingSessionMetrics slice
-func CreateBlockingSessionMetrics(ms *metric.Set, metrics []BlockingSessionMetrics) error {
+func populateBlockingSessionMetrics(e *integration.Entity, args arguments.ArgumentList, metrics []BlockingSessionMetrics) error {
 	for _, metricData := range metrics {
-		if ms == nil {
-			return fmt.Errorf("metric set is nil")
-		}
+		// Create a new metric set for each row
+		ms := createMetricSet(e, "MysqlBlockingSessionSample", args)
 		metricsMap := map[string]struct {
 			Value      interface{}
 			MetricType metric.SourceType

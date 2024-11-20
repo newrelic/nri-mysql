@@ -23,58 +23,67 @@ func PopulateQueryPerformanceMetrics(args arguments.ArgumentList, e *integration
 		fmt.Println("Preconditions failed. Exiting.")
 		return
 	} else {
-		rawMetrics, err := collectQueryMetrics(db)
+		rawMetrics, queryIdList, err := collectSlowQueryMetrics(db)
 		if err != nil {
 			log.Error("Failed to collect query metrics: %v", err)
 			return
 		}
 		fmt.Println("Metrics collected successfully.", rawMetrics)
-		// Data ingestion logic
-		ms := metricSet(
-			e,
-			"MysqlSlowQueriesSample",
-			args.Hostname,
-			args.Port,
-			args.RemoteMonitoring,
-		)
+		rawMetrics1, err1 := collectIndividualQueryDetails(db, queryIdList)
+		if err1 != nil {
+			log.Error("Failed to collect query metrics: %v", err1)
+			return
+		}
+		fmt.Println("Query details collected successfully.", rawMetrics1)
+		rawMetrics2, err2 := captureExecutionPlans(db, rawMetrics1)
+		if err2 != nil {
+			log.Error("Error populating metrics: %v", err)
+			return
+		}
+		fmt.Println("Query plan details collected successfully.", rawMetrics2)
+		// Data ingestion logic for Slow Queries
+		// Grouped Slow Queries
+		ms := createMetricSet(e, "MysqlSlowQueriesSample", args)
 		populateMetrics(ms, rawMetrics)
+		// Individual Queries
+		populateQueryMetrics(e, args, rawMetrics1)
+		// Query Execution Plan Details
+		populateQueryPlanMetrics(e, args, rawMetrics2)
 
-		// Second set of metrics
-		rawMetrics2, err := collectWaitEventQueryMetrics(db)
-		if err != nil {
-			log.Error("Failed to collect wait event query metrics: %v", err)
+		// Start of Wait Event Metrics
+		rawMetrics3, err3 := collectWaitEventQueryMetrics(db)
+		if err3 != nil {
+			log.Error("Failed to collect wait event query metrics: %v", err3)
 			return
 		}
-		fmt.Println("Metrics collected successfully for wait event query metrics.", rawMetrics2)
-
-		// Data ingestion logic for rawMetrics2
-		ms2 := metricSet(
-			e,
-			"MysqlWaitEventSample",
-			args.Hostname,
-			args.Port,
-			args.RemoteMonitoring,
-		)
-		populateWaitEventMetrics(ms2, rawMetrics2)
-
-		// Third set of metrics
-		rawMetrics3, err := collectBlockingSessionMetrics(db)
-		if err != nil {
-			log.Error("Failed to collect blocking session metrics: %v", err)
-			return
-		}
-		fmt.Println("Metrics collected successfully for blocking session metrics.", rawMetrics3)
+		fmt.Println("Metrics collected successfully for wait event query metrics.", rawMetrics3)
 
 		// Data ingestion logic for rawMetrics3
-		ms3 := metricSet(
-			e,
-			"MysqlBlockingSessionSample",
-			args.Hostname,
-			args.Port,
-			args.RemoteMonitoring,
-		)
-		CreateBlockingSessionMetrics(ms3, rawMetrics3)
+		populateWaitEventMetrics(e, args, rawMetrics3)
+		// End of Wait Event Metrics
+
+		// Start of Blocking Session Metrics
+		rawMetrics4, err4 := collectBlockingSessionMetrics(db)
+		if err4 != nil {
+			log.Error("Failed to collect blocking session metrics: %v", err4)
+			return
+		}
+		fmt.Println("Metrics collected successfully for blocking session metrics.", rawMetrics4)
+
+		// Data ingestion logic for rawMetrics3
+		populateBlockingSessionMetrics(e, args, rawMetrics4)
+		// End of Blocking Session Metrics
 	}
+}
+
+func createMetricSet(e *integration.Entity, sampleName string, args arguments.ArgumentList) *metric.Set {
+	return metricSet(
+		e,
+		sampleName,
+		args.Hostname,
+		args.Port,
+		args.RemoteMonitoring,
+	)
 }
 
 func metricSet(e *integration.Entity, eventType, hostname string, port int, remoteMonitoring bool) *metric.Set {

@@ -3,10 +3,11 @@ package query_performance_details
 import (
 	"context"
 	"database/sql"
-	"fmt"
 
 	"github.com/newrelic/infra-integrations-sdk/v3/data/metric"
+	"github.com/newrelic/infra-integrations-sdk/v3/integration"
 	"github.com/newrelic/infra-integrations-sdk/v3/log"
+	arguments "github.com/newrelic/nri-mysql/src/args"
 )
 
 type WaitEventQueryMetrics struct {
@@ -97,11 +98,10 @@ func collectWaitEventMetrics(db dataSource) ([]WaitEventQueryMetrics, error) {
 }
 
 // populateWaitEventMetrics populates the metric set with the wait event metrics.
-func populateWaitEventMetrics(ms *metric.Set, metrics []WaitEventQueryMetrics) error {
+func populateWaitEventMetrics(e *integration.Entity, args arguments.ArgumentList, metrics []WaitEventQueryMetrics) error {
 	for _, metricData := range metrics {
-		if ms == nil {
-			return fmt.Errorf("metric set is nil")
-		}
+		// Create a new metric set for each row
+		ms := createMetricSet(e, "MysqlWaitEventSample", args)
 		metricsMap := map[string]struct {
 			Value      interface{}
 			MetricType metric.SourceType
