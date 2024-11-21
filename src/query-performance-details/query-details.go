@@ -64,17 +64,18 @@ func collectPerformanceSchemaMetrics(db dataSource) ([]QueryMetrics, []string, e
             DATE_FORMAT(UTC_TIMESTAMP(), '%Y-%m-%dT%H:%i:%sZ') AS collection_timestamp
         FROM performance_schema.events_statements_summary_by_digest
         WHERE SCHEMA_NAME NOT IN ('', 'mysql', 'performance_schema', 'information_schema', 'sys')
-            AND QUERY_SAMPLE_TEXT NOT LIKE '%SET %'
-            AND QUERY_SAMPLE_TEXT NOT LIKE '%SHOW %'
-			AND QUERY_SAMPLE_TEXT NOT LIKE '%COMMIT %'
-			AND QUERY_SAMPLE_TEXT NOT LIKE '%START %'
-            AND QUERY_SAMPLE_TEXT NOT LIKE '%INFORMATION_SCHEMA%'
+            AND DIGEST_TEXT NOT LIKE '%SET %'
+            AND DIGEST_TEXT NOT LIKE '%SHOW %'
+			AND DIGEST_TEXT NOT LIKE '%COMMIT %'
+			AND DIGEST_TEXT NOT LIKE '%START %'
+            AND DIGEST_TEXT NOT LIKE '%INFORMATION_SCHEMA%'
+            AND DIGEST_TEXT NOT LIKE '%PERFORMANCE_SCHEMA%'
+            AND DIGEST_TEXT NOT LIKE '%mysql%'
+            AND DIGEST_TEXT NOT LIKE 'EXPLAIN %'
             AND QUERY_SAMPLE_TEXT NOT LIKE '%PERFORMANCE_SCHEMA%'
-            AND QUERY_SAMPLE_TEXT NOT LIKE '%mysql%'
-            AND QUERY_SAMPLE_TEXT NOT LIKE 'EXPLAIN %'
-            AND QUERY_SAMPLE_TEXT NOT LIKE '%PERFORMANCE_SCHEMA%'
             AND QUERY_SAMPLE_TEXT NOT LIKE '%INFORMATION_SCHEMA%'
-        ORDER BY avg_elapsed_time_ms DESC;
+        ORDER BY avg_elapsed_time_ms DESC
+		LIMIT 10;
     `
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
