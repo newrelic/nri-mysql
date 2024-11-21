@@ -3,8 +3,10 @@ package query_performance_details
 import (
 	"database/sql"
 	"fmt"
-	"github.com/newrelic/infra-integrations-sdk/v3/log"
+	"strconv"
 	"strings"
+
+	"github.com/newrelic/infra-integrations-sdk/v3/log"
 )
 
 func validatePreconditions(db dataSource) bool {
@@ -157,38 +159,80 @@ func logEnablePerformanceSchemaInstructions(db dataSource) {
 		return
 	}
 
-	log.Error("To enable the Performance Schema, add the following line to your MySQL configuration file (my.cnf or my.ini) and restart the MySQL server:")
-	log.Error("performance_schema=ON")
+	if isVersion8OrGreater(version) {
+		log.Info("To enable the Performance Schema, add the following lines to your MySQL configuration file (my.cnf or my.ini) in the [mysqld] section and restart the MySQL server:")
+		fmt.Println("To enable the Performance Schema, add the following lines to your MySQL configuration file (my.cnf or my.ini) in the [mysqld] section and restart the MySQL server:")
+		log.Info("performance_schema=ON")
+		fmt.Println("performance_schema=ON")
 
-	if strings.HasPrefix(version, "5.6") {
-		log.Error("For MySQL 5.6, you may also need to set the following variables:")
-		log.Error("performance_schema_instrument='%=ON'")
-		log.Error("performance_schema_consumer_events_statements_current=ON")
-		log.Error("performance_schema_consumer_events_statements_history=ON")
-		log.Error("performance_schema_consumer_events_statements_history_long=ON")
-		log.Error("performance_schema_consumer_events_waits_current=ON")
-		log.Error("performance_schema_consumer_events_waits_history=ON")
-		log.Error("performance_schema_consumer_events_waits_history_long=ON")
-	} else if strings.HasPrefix(version, "5.7") || strings.HasPrefix(version, "8.0") {
-		log.Error("For MySQL 5.7 and 8.0, you may also need to set the following variables:")
-		log.Error("performance_schema_instrument='%=ON'")
-		log.Error("performance_schema_consumer_events_statements_current=ON")
-		log.Error("performance_schema_consumer_events_statements_history=ON")
-		log.Error("performance_schema_consumer_events_statements_history_long=ON")
-		log.Error("performance_schema_consumer_events_waits_current=ON")
-		log.Error("performance_schema_consumer_events_waits_history=ON")
-		log.Error("performance_schema_consumer_events_waits_history_long=ON")
+		log.Info("For MySQL 8.0 and higher, you may also need to set the following variables:")
+		fmt.Println("For MySQL 8.0 and higher, you may also need to set the following variables:")
+		log.Info("performance_schema_instrument='%%=ON'")
+		fmt.Println("performance_schema_instrument='%=ON'")
+		log.Info("performance_schema_consumer_events_statements_current=ON")
+		fmt.Println("performance_schema_consumer_events_statements_current=ON")
+		log.Info("performance_schema_consumer_events_statements_history=ON")
+		fmt.Println("performance_schema_consumer_events_statements_history=ON")
+		log.Info("performance_schema_consumer_events_statements_history_long=ON")
+		fmt.Println("performance_schema_consumer_events_statements_history_long=ON")
+		log.Info("performance_schema_consumer_events_waits_current=ON")
+		fmt.Println("performance_schema_consumer_events_waits_current=ON")
+		log.Info("performance_schema_consumer_events_waits_history=ON")
+		fmt.Println("performance_schema_consumer_events_waits_history=ON")
+		log.Info("performance_schema_consumer_events_waits_history_long=ON")
+		fmt.Println("performance_schema_consumer_events_waits_history_long=ON")
+	} else {
+		log.Error("MySQL version %s is not supported. Only version 8.0+ is supported.", version)
+		fmt.Printf("MySQL version %s is not supported. Only version 8.0+ is supported.\n", version)
 	}
+
 }
 
 func getMySQLVersion(db dataSource) (string, error) {
-	var version string
-	row, err := db.queryX("SELECT VERSION();")
-	if row.Next() {
-		err = row.Scan(&version)
-	}
+	query := "SELECT VERSION();"
+	rows, err := db.queryX(query)
 	if err != nil {
-		return "", fmt.Errorf("failed to get MySQL version: %w", err)
+		return "", fmt.Errorf("failed to execute version query: %w", err)
 	}
+	defer rows.Close()
+
+	var version string
+	if rows.Next() {
+		if err := rows.Scan(&version); err != nil {
+			return "", fmt.Errorf("failed to scan version: %w", err)
+		}
+	}
+
+	if version == "" {
+		return "", fmt.Errorf("failed to determine MySQL version")
+	}
+
 	return version, nil
+}
+
+func isVersion8OrGreater(version string) bool {
+	majorVersion, minorVersion := parseVersion(version)
+	return (majorVersion > 8) || (majorVersion == 8 && minorVersion >= 0)
+}
+
+// parseVersion extracts the major and minor version numbers from the version string
+func parseVersion(version string) (int, int) {
+	parts := strings.Split(version, ".")
+	if len(parts) < 2 {
+		return 0, 0 // Return 0 if the version string is improperly formatted
+	}
+
+	majorVersion, err := strconv.Atoi(parts[0])
+	if err != nil {
+		log.Error("Failed to parse major version: %v", err)
+		return 0, 0
+	}
+
+	minorVersion, err := strconv.Atoi(parts[1])
+	if err != nil {
+		log.Error("Failed to parse minor version: %v", err)
+		return 0, 0
+	}
+
+	return majorVersion, minorVersion
 }

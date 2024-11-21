@@ -99,7 +99,7 @@ func fetchBlockingSessionMetrics(db dataSource) ([]BlockingSessionMetrics, error
 func populateBlockingSessionMetrics(e *integration.Entity, args arguments.ArgumentList, metrics []BlockingSessionMetrics) error {
 	for _, metricData := range metrics {
 		// Create a new metric set for each row
-		ms := createMetricSet(e, "MysqlBlockingSessionSample", args)
+		ms := createMetricSet(e, "MysqlBlocking", args)
 		metricsMap := map[string]struct {
 			Value      interface{}
 			MetricType metric.SourceType

@@ -7,7 +7,9 @@ import (
 	"time"
 
 	"github.com/newrelic/infra-integrations-sdk/v3/data/metric"
+	"github.com/newrelic/infra-integrations-sdk/v3/integration"
 	"github.com/newrelic/infra-integrations-sdk/v3/log"
+	arguments "github.com/newrelic/nri-mysql/src/args"
 )
 
 type QueryMetrics struct {
@@ -61,14 +63,15 @@ func collectPerformanceSchemaMetrics(db dataSource) ([]QueryMetrics, []string, e
             END AS statement_type,
             DATE_FORMAT(UTC_TIMESTAMP(), '%Y-%m-%dT%H:%i:%sZ') AS collection_timestamp
         FROM performance_schema.events_statements_summary_by_digest
-        WHERE LAST_SEEN >= UTC_TIMESTAMP() - INTERVAL 30 SECOND
-			AND SCHEMA_NAME NOT IN ('', 'mysql', 'performance_schema', 'information_schema', 'sys')
-            AND DIGEST_TEXT NOT LIKE '%SET %'
-            AND DIGEST_TEXT NOT LIKE '%SHOW %'
-            AND DIGEST_TEXT NOT LIKE '%INFORMATION_SCHEMA%'
-            AND DIGEST_TEXT NOT LIKE '%PERFORMANCE_SCHEMA%'
-            AND DIGEST_TEXT NOT LIKE '%mysql%'
-            AND DIGEST_TEXT NOT LIKE 'EXPLAIN %'
+        WHERE SCHEMA_NAME NOT IN ('', 'mysql', 'performance_schema', 'information_schema', 'sys')
+            AND QUERY_SAMPLE_TEXT NOT LIKE '%SET %'
+            AND QUERY_SAMPLE_TEXT NOT LIKE '%SHOW %'
+			AND QUERY_SAMPLE_TEXT NOT LIKE '%COMMIT %'
+			AND QUERY_SAMPLE_TEXT NOT LIKE '%START %'
+            AND QUERY_SAMPLE_TEXT NOT LIKE '%INFORMATION_SCHEMA%'
+            AND QUERY_SAMPLE_TEXT NOT LIKE '%PERFORMANCE_SCHEMA%'
+            AND QUERY_SAMPLE_TEXT NOT LIKE '%mysql%'
+            AND QUERY_SAMPLE_TEXT NOT LIKE 'EXPLAIN %'
             AND QUERY_SAMPLE_TEXT NOT LIKE '%PERFORMANCE_SCHEMA%'
             AND QUERY_SAMPLE_TEXT NOT LIKE '%INFORMATION_SCHEMA%'
         ORDER BY avg_elapsed_time_ms DESC;
@@ -130,11 +133,9 @@ func collectIndividualQueryDetails(db dataSource, queryIdList []string) ([]Query
 	return queryList, nil
 }
 
-func populateMetrics(ms *metric.Set, metrics []QueryMetrics) error {
+func populateMetrics(e *integration.Entity, args arguments.ArgumentList, metrics []QueryMetrics) error {
 	for _, metricObject := range metrics {
-		if ms == nil {
-			return fmt.Errorf("failed to create metric set")
-		}
+		ms := createMetricSet(e, "MysqlSlowQueriesSample", args)
 
 		metricsMap := map[string]struct {
 			Value      interface{}

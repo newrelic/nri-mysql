@@ -678,7 +678,7 @@ func captureExecutionPlans(db dataSource, queries []QueryPlanMetrics) ([]map[str
 func populateQueryPlanMetrics(e *integration.Entity, args arguments.ArgumentList, metrics []map[string]interface{}) error {
 	for _, metricObject := range metrics {
 		// Create a new metric set for each row
-		ms := createMetricSet(e, "MysqlQueryPlanDetailsSample", args)
+		ms := createMetricSet(e, "MysqlQueryPlan", args)
 		metricsMap := map[string]struct {
 			Value      interface{}
 			MetricType metric.SourceType
@@ -724,7 +724,7 @@ func populateQueryMetrics(e *integration.Entity, args arguments.ArgumentList, me
 	for _, metricObject := range metrics {
 
 		// Create a new metric set for each row
-		ms := createMetricSet(e, "MysqlQueriesSample", args)
+		ms := createMetricSet(e, "MysqlIndividualQueries", args)
 
 		metricsMap := map[string]struct {
 			Value      interface{}

@@ -35,7 +35,7 @@ func collectWaitEventQueryMetrics(db dataSource) ([]WaitEventQueryMetrics, error
 func collectWaitEventMetrics(db dataSource) ([]WaitEventQueryMetrics, error) {
 	query := `
 		SELECT
-            LEFT(UPPER(SHA2(eshl.SQL_TEXT, 256)), 16) AS query_id,
+            DIGEST AS query_id,
             ewhl.OBJECT_INSTANCE_BEGIN AS instance_id,
             eshl.CURRENT_SCHEMA AS database_name,
             ewhl.EVENT_NAME AS wait_event_name,
@@ -101,7 +101,7 @@ func collectWaitEventMetrics(db dataSource) ([]WaitEventQueryMetrics, error) {
 func populateWaitEventMetrics(e *integration.Entity, args arguments.ArgumentList, metrics []WaitEventQueryMetrics) error {
 	for _, metricData := range metrics {
 		// Create a new metric set for each row
-		ms := createMetricSet(e, "MysqlWaitEventSample", args)
+		ms := createMetricSet(e, "MysqlWaitEvents", args)
 		metricsMap := map[string]struct {
 			Value      interface{}
 			MetricType metric.SourceType

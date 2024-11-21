@@ -43,8 +43,7 @@ func PopulateQueryPerformanceMetrics(args arguments.ArgumentList, e *integration
 		fmt.Println("Query Plan details collected successfully.", rawMetrics2)
 		// Data ingestion logic for Slow Queries
 		// Grouped Slow Queries
-		ms := createMetricSet(e, "MysqlSlowQueriesSample", args)
-		populateMetrics(ms, rawMetrics)
+		populateMetrics(e, args, rawMetrics)
 		// Individual Queries
 		populateQueryMetrics(e, args, rawMetrics1)
 		// Query Execution Plan Details
