@@ -59,10 +59,11 @@
     {
         "matchDatasources": [
             "dockerfile",
-            "gomod"
+            "go.mod"
         ],
         "matchPackageNames": [
-            "golang"
+            "golang",
+            "go"
         ],
         "matchPaths": [
             "build/Dockerfile",
@@ -78,10 +79,11 @@
     {
         "matchDatasources": [
             "dockerfile",
-            "gomod"
+            "go.mod"
         ],
         "matchPackageNames": [
-            "golang"
+            "golang",
+            "go"
         ],
         "matchPaths": [
             "build/Dockerfile",
@@ -91,8 +93,8 @@
             "major",
             "minor"
         ],
-        "automerge": true,
-        "automergeType": "branch",
+        "automerge": false,
+        "automergeType": "pr",
         "pruneBranchAfterAutomerge": true
     }
   ]
