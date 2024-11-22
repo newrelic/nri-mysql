@@ -71,7 +71,7 @@
         // check <https://docs.renovatebot.com/configuration-options/#groupname> for details about grouping.
         "matchPackageNames": ["golang", "go"],
         "matchUpdateTypes": ["minor", "major"],
-        "groupName": "golang version"
+        "groupName": "golang version",
         "automerge": false,
         "pruneBranchAfterAutomerge": true
     },
@@ -85,9 +85,9 @@
     },
     {
       "description": "Automerge go patch version updates",
-      "groupName": "golang patch version",
-      "matchUpdateTypes": ["patch"],
       "matchPackageNames": ["golang", "go"],
+      "matchUpdateTypes": ["patch"],
+      "groupName": "golang patch version",
       "automerge": true,
       "pruneBranchAfterAutomerge": true
     }
