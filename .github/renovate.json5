@@ -37,6 +37,8 @@
       // Exclude any dependencies which are pre-1.0.0 because those can make breaking changes at any time
       // according to the SemVer spec.
       "matchCurrentVersion": "!/^(0|v0)/",
+      // Exclude golang dependency so golang version in Docker, gomod files is not auto-merged.
+      "excludeDepNames": ["golang", "go"],
       // Renovate will do the following when detecting a new dependency bump:
       "automerge": true,
       "automergeType": "branch",
@@ -50,8 +52,8 @@
       // Exclude any dependencies which are pre-1.0.0 because those can make breaking changes at any time
       // according to the SemVer spec.
       "matchCurrentVersion": "!/^(0|v0)/",
-      // Exclude golang dependency so golang version in Docker files is not auto-merged.
-      "excludeDepNames": ["golang"],
+      // Exclude golang dependency so golang version in Docker, gomod files is not auto-merged.
+      "excludeDepNames": ["golang", "go"],
       "automerge": true,
       "automergeType": "branch",
       "pruneBranchAfterAutomerge": true
@@ -66,7 +68,7 @@
             "go"
         ],
         "matchPaths": [
-            "build/Dockerfile",
+            "*",
             "go.mod"
         ],
         "matchUpdateTypes": [
@@ -86,7 +88,7 @@
             "go"
         ],
         "matchPaths": [
-            "build/Dockerfile",
+            "*",
             "go.mod"
         ],
         "matchUpdateTypes": [
