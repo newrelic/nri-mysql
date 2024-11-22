@@ -73,7 +73,6 @@
         "matchUpdateTypes": ["minor", "major"],
         "groupName": "golang version"
         "automerge": false,
-        "automergeType": "pr",
         "pruneBranchAfterAutomerge": true
     },
     {
@@ -90,7 +89,6 @@
       "matchUpdateTypes": ["patch"],
       "matchPackageNames": ["golang", "go"],
       "automerge": true,
-      "automergeType": "branch",
       "pruneBranchAfterAutomerge": true
     }
   ]
