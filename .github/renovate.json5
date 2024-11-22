@@ -72,7 +72,7 @@
     {
         // go.mod golang-version is not updated by default, check <https://github.com/renovatebot/renovate/issues/16715>.
         // Enable golang version bumps in 'go.mod' but disable auto-merge.
-        "matchDatasources": ["golang-version"],
+        "matchDatasources": ["golang version"],
         "matchUpdateTypes": ["major", "minor"],
         // Exclude any dependencies which are pre-1.0.0 because those can make breaking changes at any time
         // according to the SemVer spec.
