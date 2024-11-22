@@ -65,6 +65,8 @@
         "rangeStrategy": "bump",
         // The packageRules are overrided/merged, therefore this rule needs to set automerge to false explicitly.
         "automerge": false,
+        "automergeType": "pr",
+        "pruneBranchAfterAutomerge": true
     },
     {
         // Group the Dockerfile go bump ("golang" package) and the go.mod go bump ("go" package) together
@@ -79,7 +81,9 @@
         "matchDatasources": ["golang-patch-version"],
         "rangeStrategy": "bump",
         // The packageRules are overrided/merged, therefore this rule needs to set automerge to false explicitly.
-        "automerge": true
+        "automerge": true,
+        "automergeType": "branch",
+        "pruneBranchAfterAutomerge": true
     },
     {
       "description": "Automerge go patch version updates",
