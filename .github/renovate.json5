@@ -64,9 +64,7 @@
         "matchDatasources": ["golang-version"],
         "rangeStrategy": "bump",
         // The packageRules are overrided/merged, therefore this rule needs to set automerge to false explicitly.
-        "automerge": false,
-        "automergeType": "pr",
-        "pruneBranchAfterAutomerge": true
+        "automerge": false
     },
     {
         // Group the Dockerfile go bump ("golang" package) and the go.mod go bump ("go" package) together
@@ -74,6 +72,9 @@
         "matchPackageNames": ["golang", "go"],
         "matchUpdateTypes": ["minor", "major"],
         "groupName": "golang version"
+        "automerge": false,
+        "automergeType": "pr",
+        "pruneBranchAfterAutomerge": true
     },
     {
         // go.mod golang-version is not updated by default, check <https://github.com/renovatebot/renovate/issues/16715>.
@@ -81,16 +82,16 @@
         "matchDatasources": ["golang-patch-version"],
         "rangeStrategy": "bump",
         // The packageRules are overrided/merged, therefore this rule needs to set automerge to false explicitly.
-        "automerge": true,
-        "automergeType": "branch",
-        "pruneBranchAfterAutomerge": true
+        "automerge": true
     },
     {
       "description": "Automerge go patch version updates",
       "groupName": "golang patch version",
       "matchUpdateTypes": ["patch"],
       "matchPackageNames": ["golang", "go"],
-      "automerge": true
+      "automerge": true,
+      "automergeType": "branch",
+      "pruneBranchAfterAutomerge": true
     }
   ]
 }
