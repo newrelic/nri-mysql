@@ -86,6 +86,7 @@
         // Group the Dockerfile go bump ("golang" package) and the go.mod go bump ("go" package) together
         // check <https://docs.renovatebot.com/configuration-options/#groupname> for details about grouping.
         "matchPackageNames": ["golang", "go"],
+        "matchPaths": ["*","go.mod"],
         "groupName": "golang version"
     }
   ]
