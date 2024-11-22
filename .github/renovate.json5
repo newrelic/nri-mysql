@@ -57,24 +57,43 @@
       "pruneBranchAfterAutomerge": true
     },
     {
-        // go.mod golang-version is not updated by default, check <https://github.com/renovatebot/renovate/issues/16715>.
-        // Enable golang version bumps in 'go.mod' but disable auto-merge.
-        "matchDatasources": ["golang-version"],
-        "matchUpdateTypes": ["patch"],
-        // Exclude any dependencies which are pre-1.0.0 because those can make breaking changes at any time
-        // according to the SemVer spec.
-        "matchCurrentVersion": "!/^(0|v0)/",
-        // Renovate will do the following when detecting a new dependency bump:
+        "matchDatasources": [
+            "dockerfile",
+            "gomod"
+        ],
+        "matchPackageNames": [
+            "golang"
+        ],
+        "matchPaths": [
+            "build/Dockerfile",
+            "go.mod"
+        ],
+        "matchUpdateTypes": [
+            "patch"
+        ],
         "automerge": true,
         "automergeType": "branch",
         "pruneBranchAfterAutomerge": true
     },
     {
-        // Group the Dockerfile go bump ("golang" package) and the go.mod go bump ("go" package) together
-        // check <https://docs.renovatebot.com/configuration-options/#groupname> for details about grouping.
-        "matchPackageNames": ["golang", "go"],
-        "matchPaths": ["*","go.mod"],
-        "groupName": "golang version"
+        "matchDatasources": [
+            "dockerfile",
+            "gomod"
+        ],
+        "matchPackageNames": [
+            "golang"
+        ],
+        "matchPaths": [
+            "build/Dockerfile",
+            "go.mod"
+        ],
+        "matchUpdateTypes": [
+            "major",
+            "minor"
+        ],
+        "automerge": true,
+        "automergeType": "branch",
+        "pruneBranchAfterAutomerge": true
     }
   ]
 }
