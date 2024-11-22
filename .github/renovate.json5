@@ -74,7 +74,7 @@
         "matchCurrentVersion": "!/^(0|v0)/",
         // Renovate will do the following when detecting a new dependency bump:
         "automerge": true,
-        "automergeType": "pr",
+        "automergeType": "branch",
         "pruneBranchAfterAutomerge": true
     },
     {
