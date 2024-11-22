@@ -89,7 +89,8 @@
       "description": "Automerge go patch version updates",
       "groupName": "golang patch version",
       "matchUpdateTypes": ["patch"],
-      "matchPackageNames": ["golang", "go"]
+      "matchPackageNames": ["golang", "go"],
+      "automerge": true
     }
   ]
 }
