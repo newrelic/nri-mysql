@@ -71,7 +71,8 @@
         "matchUpdateTypes": ["minor", "major"],
         "groupName": "golang version",
         "automerge": false,
-        "pruneBranchAfterAutomerge": true
+        "pruneBranchAfterAutomerge": true,
+        "platformAutomerge": true
     },
     {
         // go.mod golang-version is not updated by default, check <https://github.com/renovatebot/renovate/issues/16715>.
@@ -85,7 +86,8 @@
       "matchUpdateTypes": ["patch"],
       "groupName": "golang patch version",
       "automerge": true,
-      "pruneBranchAfterAutomerge": true
+      "pruneBranchAfterAutomerge": true,
+      "platformAutomerge": true
     }
   ]
 }
