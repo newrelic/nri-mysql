@@ -63,15 +63,16 @@ func collectPerformanceSchemaMetrics(db dataSource) ([]QueryMetrics, []string, e
             END AS statement_type,
             DATE_FORMAT(UTC_TIMESTAMP(), '%Y-%m-%dT%H:%i:%sZ') AS collection_timestamp
         FROM performance_schema.events_statements_summary_by_digest
-        WHERE SCHEMA_NAME NOT IN ('', 'mysql', 'performance_schema', 'information_schema', 'sys')
-            AND DIGEST_TEXT NOT LIKE '%SET %'
-            AND DIGEST_TEXT NOT LIKE '%SHOW %'
-			AND DIGEST_TEXT NOT LIKE '%COMMIT %'
-			AND DIGEST_TEXT NOT LIKE '%START %'
-            AND DIGEST_TEXT NOT LIKE '%INFORMATION_SCHEMA%'
-            AND DIGEST_TEXT NOT LIKE '%PERFORMANCE_SCHEMA%'
-            AND DIGEST_TEXT NOT LIKE '%mysql%'
-            AND DIGEST_TEXT NOT LIKE 'EXPLAIN %'
+        WHERE LAST_SEEN >= UTC_TIMESTAMP() - INTERVAL 30 SECOND
+            AND SCHEMA_NAME NOT IN ('', 'mysql', 'performance_schema', 'information_schema', 'sys')
+            AND QUERY_SAMPLE_TEXT NOT LIKE '%SET %'
+            AND QUERY_SAMPLE_TEXT NOT LIKE '%SHOW %'
+			AND QUERY_SAMPLE_TEXT NOT LIKE '%COMMIT %'
+			AND QUERY_SAMPLE_TEXT NOT LIKE '%START %'
+            AND QUERY_SAMPLE_TEXT NOT LIKE '%INFORMATION_SCHEMA%'
+            AND QUERY_SAMPLE_TEXT NOT LIKE '%PERFORMANCE_SCHEMA%'
+            AND QUERY_SAMPLE_TEXT NOT LIKE '%mysql%'
+            AND QUERY_SAMPLE_TEXT NOT LIKE 'EXPLAIN %'
             AND QUERY_SAMPLE_TEXT NOT LIKE '%PERFORMANCE_SCHEMA%'
             AND QUERY_SAMPLE_TEXT NOT LIKE '%INFORMATION_SCHEMA%'
         ORDER BY avg_elapsed_time_ms DESC
