@@ -35,42 +35,67 @@ func collectWaitEventQueryMetrics(db dataSource) ([]WaitEventQueryMetrics, error
 func collectWaitEventMetrics(db dataSource) ([]WaitEventQueryMetrics, error) {
 	query := `
 		SELECT
-            DIGEST AS query_id,
-            ewhl.OBJECT_INSTANCE_BEGIN AS instance_id,
-            eshl.CURRENT_SCHEMA AS database_name,
-            ewhl.EVENT_NAME AS wait_event_name,
-            CASE
-                WHEN ewhl.EVENT_NAME LIKE 'wait/io/file/innodb/%' THEN 'InnoDB File IO'
-                WHEN ewhl.EVENT_NAME LIKE 'wait/io/file/sql/%' THEN 'SQL File IO'
-                WHEN ewhl.EVENT_NAME LIKE 'wait/io/socket/%' THEN 'Network IO'
-                WHEN ewhl.EVENT_NAME LIKE 'wait/synch/cond/%' THEN 'Condition Wait'
-                WHEN ewhl.EVENT_NAME LIKE 'wait/synch/mutex/%' THEN 'Mutex'
-                WHEN ewhl.EVENT_NAME LIKE 'wait/lock/table/%' THEN 'Table Lock'
-                WHEN ewhl.EVENT_NAME LIKE 'wait/lock/metadata/%' THEN 'Metadata Lock'
-                WHEN ewhl.EVENT_NAME LIKE 'wait/lock/transaction/%' THEN 'Transaction Lock'
-                ELSE 'Other'
-            END AS wait_category,
-                ROUND(SUM(ewhl.TIMER_WAIT) / 1000000000000, 3) AS total_wait_time_ms,
-                SUM(ewsg.COUNT_STAR) AS waiting_tasks_count,
-                eshl.SQL_TEXT AS query_text,
-                DATE_FORMAT(UTC_TIMESTAMP(), '%Y-%m-%dT%H:%i:%sZ') AS collection_timestamp
-            FROM performance_schema.events_waits_history_long ewhl
-            JOIN performance_schema.events_statements_history_long eshl 
-            ON
-                ewhl.THREAD_ID = eshl.THREAD_ID
-            JOIN
-                 performance_schema.events_waits_summary_global_by_event_name ewsg 
-            ON
-                ewhl.EVENT_NAME = ewsg.EVENT_NAME
-            GROUP BY
-                query_id,
-                instance_id,
-                wait_event_name,
-                wait_category,
-                database_name,
-                eshl.SQL_TEXT
-            ORDER BY total_wait_time_ms DESC
-            LIMIT 10;
+			DIGEST AS query_id,
+			wait_data.instance_id,
+			schema_data.database_name,
+			wait_data.wait_event_name,
+			CASE
+				WHEN wait_data.wait_event_name LIKE 'wait/io/file/innodb/%' THEN 'InnoDB File IO'
+				WHEN wait_data.wait_event_name LIKE 'wait/io/file/sql/%' THEN 'SQL File IO'
+				WHEN wait_data.wait_event_name LIKE 'wait/io/socket/%' THEN 'Network IO'
+				WHEN wait_data.wait_event_name LIKE 'wait/synch/cond/%' THEN 'Condition Wait'
+				WHEN wait_data.wait_event_name LIKE 'wait/synch/mutex/%' THEN 'Mutex'
+				WHEN wait_data.wait_event_name LIKE 'wait/lock/table/%' THEN 'Table Lock'
+				WHEN wait_data.wait_event_name LIKE 'wait/lock/metadata/%' THEN 'Metadata Lock'
+				WHEN wait_data.wait_event_name LIKE 'wait/lock/transaction/%' THEN 'Transaction Lock'
+				ELSE 'Other'
+			END AS wait_category,
+			ROUND(SUM(wait_data.TIMER_WAIT) / 1000000000000, 3) AS total_wait_time_ms,
+			SUM(wait_data.COUNT_STAR) AS waiting_tasks_count,
+			schema_data.query_text,
+			DATE_FORMAT(UTC_TIMESTAMP(), '%Y-%m-%dT%H:%i:%sZ') AS collection_timestamp
+		FROM (
+			SELECT 
+				THREAD_ID,
+				OBJECT_INSTANCE_BEGIN AS instance_id,
+				EVENT_NAME AS wait_event_name,
+				TIMER_WAIT,
+				1 AS COUNT_STAR
+			FROM performance_schema.events_waits_history_long
+			UNION ALL
+			SELECT 
+				THREAD_ID,
+				OBJECT_INSTANCE_BEGIN AS instance_id,
+				EVENT_NAME AS wait_event_name,
+				TIMER_WAIT,
+				1 AS COUNT_STAR
+			FROM performance_schema.events_waits_current
+		) AS wait_data
+		JOIN (
+			SELECT 
+				THREAD_ID,
+				DIGEST,
+				CURRENT_SCHEMA AS database_name,
+				SQL_TEXT AS query_text
+			FROM performance_schema.events_statements_history_long
+			UNION ALL
+			SELECT 
+				THREAD_ID,
+				DIGEST,
+				CURRENT_SCHEMA AS database_name,
+				SQL_TEXT AS query_text
+			FROM performance_schema.events_statements_current
+		) AS schema_data
+		ON wait_data.THREAD_ID = schema_data.THREAD_ID
+		GROUP BY
+			query_id,
+			wait_data.instance_id,
+			wait_data.wait_event_name,
+			wait_category,
+			schema_data.database_name,
+			schema_data.query_text
+		ORDER BY 
+			total_wait_time_ms DESC;
 	`
 
 	rows, err := db.QueryxContext(context.Background(), query)

@@ -75,6 +75,8 @@ func collectPerformanceSchemaMetrics(db dataSource) ([]QueryMetrics, []string, e
             AND QUERY_SAMPLE_TEXT NOT LIKE 'EXPLAIN %'
             AND QUERY_SAMPLE_TEXT NOT LIKE '%PERFORMANCE_SCHEMA%'
             AND QUERY_SAMPLE_TEXT NOT LIKE '%INFORMATION_SCHEMA%'
+			AND QUERY_SAMPLE_TEXT NOT LIKE '%DIGEST%'
+			AND QUERY_SAMPLE_TEXT NOT LIKE '%DIGEST_TEXT%'
         ORDER BY avg_elapsed_time_ms DESC
 		LIMIT 10;
     `
