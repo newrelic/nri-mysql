@@ -20,6 +20,7 @@ type WaitEventQueryMetrics struct {
 	InstanceID          string         `json:"instance_id" db:"instance_id"`
 	WaitEventName       string         `json:"wait_event_name" db:"wait_event_name"`
 	WaitEventCount      uint64         `json:"wait_event_count" db:"wait_event_count"`
+	AvgWaitTimeMs       float64        `json:"avg_wait_time_ms" db:"avg_wait_time_ms"`
 }
 
 // Commenting out the unused function
@@ -153,7 +154,6 @@ func populateWaitEventMetrics(e *integration.Entity, args arguments.ArgumentList
 			MetricType metric.SourceType
 		}{
 
-			"total_wait_time_ms":   {metricData.TotalWaitTimeMs, metric.GAUGE},
 			"query_id":             {getStringValue(metricData.QueryID), metric.ATTRIBUTE},
 			"query_text":           {getStringValue(metricData.QueryText), metric.ATTRIBUTE},
 			"database_name":        {getStringValue(metricData.DatabaseName), metric.ATTRIBUTE},
@@ -162,6 +162,8 @@ func populateWaitEventMetrics(e *integration.Entity, args arguments.ArgumentList
 			"instance_id":          {metricData.InstanceID, metric.ATTRIBUTE},
 			"wait_event_name":      {metricData.WaitEventName, metric.ATTRIBUTE},
 			"wait_event_count":     {int(metricData.WaitEventCount), metric.GAUGE},
+			"avg_wait_time_ms":     {metricData.AvgWaitTimeMs, metric.GAUGE},
+			"total_wait_time_ms":   {metricData.TotalWaitTimeMs, metric.GAUGE},
 		}
 		for name, metric := range metricsMap {
 			err := ms.SetMetric(name, metric.Value, metric.MetricType)
