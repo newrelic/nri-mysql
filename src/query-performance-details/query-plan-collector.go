@@ -19,9 +19,13 @@ import (
 )
 
 type QueryPlanMetrics struct {
-	QueryID             string `json:"query_id" db:"query_id"`
-	AnonymizedQueryText string `json:"query_text" db:"query_text"`
-	QueryText           string `json:"query_sample_text" db:"query_sample_text"`
+	QueryID             string  `json:"query_id" db:"query_id"`
+	AnonymizedQueryText string  `json:"query_text" db:"query_text"`
+	QueryText           string  `json:"query_sample_text" db:"query_sample_text"`
+	EventID             uint64  `json:"event_id" db:"event_id"`
+	TimerWait           float64 `json:"timer_wait" db:"timer_wait"`
+	RowsSent            int64   `json:"rows_sent" db:"rows_sent"`
+	RowsExamined        int64   `json:"rows_examined" db:"rows_examined"`
 }
 
 type TableMetrics struct {
@@ -94,7 +98,11 @@ func collectCurrentQueryMetrics(db dataSource, queryIDList []string) ([]QueryPla
 		SELECT
 			DIGEST AS query_id,
 			DIGEST_TEXT AS query_text,
-			SQL_TEXT AS query_sample_text
+			SQL_TEXT AS query_sample_text,
+			EVENT_ID AS event_id,
+			ROUND(TIMER_WAIT / 1000000000, 3) AS timer_wait,
+			ROWS_SENT AS rows_sent,
+			ROWS_EXAMINED AS rows_examined
 		FROM performance_schema.events_statements_current
 		WHERE DIGEST IN (%s)
 			AND CURRENT_SCHEMA NOT IN ('', 'mysql', 'performance_schema', 'information_schema', 'sys')
@@ -169,7 +177,11 @@ func collectRecentQueryMetrics(db dataSource, queryIDList []string) ([]QueryPlan
 		SELECT
 			DIGEST AS query_id,
 			DIGEST_TEXT AS query_text,
-			SQL_TEXT AS query_sample_text
+			SQL_TEXT AS query_sample_text,
+			EVENT_ID AS event_id,
+			ROUND(TIMER_WAIT / 1000000000, 3) AS timer_wait,
+			ROWS_SENT AS rows_sent,
+			ROWS_EXAMINED AS rows_examined
 		FROM performance_schema.events_statements_history
 		WHERE DIGEST IN (%s)
 			AND CURRENT_SCHEMA NOT IN ('', 'mysql', 'performance_schema', 'information_schema', 'sys')
@@ -244,7 +256,11 @@ func collectExtensiveQueryMetrics(db dataSource, queryIDList []string) ([]QueryP
 		SELECT
 			DIGEST AS query_id,
 			DIGEST_TEXT AS query_text,
-			SQL_TEXT AS query_sample_text
+			SQL_TEXT AS query_sample_text,
+			EVENT_ID AS event_id,
+			ROUND(TIMER_WAIT / 1000000000, 3) AS timer_wait,
+			ROWS_SENT AS rows_sent,
+			ROWS_EXAMINED AS rows_examined
 		FROM performance_schema.events_statements_history_long
 		WHERE DIGEST IN (%s)
 			AND CURRENT_SCHEMA NOT IN ('', 'mysql', 'performance_schema', 'information_schema', 'sys')
@@ -731,8 +747,12 @@ func populateQueryMetrics(e *integration.Entity, args arguments.ArgumentList, me
 			MetricType metric.SourceType
 		}{
 
-			"query_id":   {metricObject.QueryID, metric.ATTRIBUTE},
-			"query_text": {metricObject.AnonymizedQueryText, metric.ATTRIBUTE},
+			"query_id":      {metricObject.QueryID, metric.ATTRIBUTE},
+			"query_text":    {metricObject.AnonymizedQueryText, metric.ATTRIBUTE},
+			"event_id":      {metricObject.EventID, metric.GAUGE},
+			"timer_wait":    {metricObject.TimerWait, metric.GAUGE},
+			"rows_sent":     {metricObject.RowsSent, metric.GAUGE},
+			"rows_examined": {metricObject.RowsExamined, metric.GAUGE},
 		}
 
 		for name, metric := range metricsMap {

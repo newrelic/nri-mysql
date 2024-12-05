@@ -35,7 +35,7 @@ func collectWaitEventQueryMetrics(db dataSource) ([]WaitEventQueryMetrics, error
 func collectWaitEventMetrics(db dataSource) ([]WaitEventQueryMetrics, error) {
 	query := `
 		SELECT
-			DIGEST AS query_id,
+			schema_data.DIGEST AS query_id,
 			wait_data.instance_id,
 			schema_data.database_name,
 			wait_data.wait_event_name,
@@ -50,8 +50,9 @@ func collectWaitEventMetrics(db dataSource) ([]WaitEventQueryMetrics, error) {
 				WHEN wait_data.wait_event_name LIKE 'wait/lock/transaction/%' THEN 'Transaction Lock'
 				ELSE 'Other'
 			END AS wait_category,
-			ROUND(SUM(wait_data.TIMER_WAIT) / 1000000000000, 3) AS total_wait_time_ms,
-			SUM(wait_data.COUNT_STAR) AS waiting_tasks_count,
+			ROUND(IFNULL(SUM(wait_data.TIMER_WAIT),0) / 1000000000, 3) AS total_wait_time_ms,
+			SUM(ewsg.COUNT_STAR) AS wait_event_count,
+			ROUND((IFNULL(SUM(wait_data.TIMER_WAIT), 0) / 1000000000) / IFNULL(SUM(ewsg.COUNT_STAR), 1), 3) AS avg_wait_time_ms,
 			schema_data.query_text,
 			DATE_FORMAT(UTC_TIMESTAMP(), '%Y-%m-%dT%H:%i:%sZ') AS collection_timestamp
 		FROM (
@@ -59,16 +60,14 @@ func collectWaitEventMetrics(db dataSource) ([]WaitEventQueryMetrics, error) {
 				THREAD_ID,
 				OBJECT_INSTANCE_BEGIN AS instance_id,
 				EVENT_NAME AS wait_event_name,
-				TIMER_WAIT,
-				1 AS COUNT_STAR
+				TIMER_WAIT
 			FROM performance_schema.events_waits_history_long
 			UNION ALL
 			SELECT 
 				THREAD_ID,
 				OBJECT_INSTANCE_BEGIN AS instance_id,
 				EVENT_NAME AS wait_event_name,
-				TIMER_WAIT,
-				1 AS COUNT_STAR
+				TIMER_WAIT
 			FROM performance_schema.events_waits_current
 		) AS wait_data
 		JOIN (
@@ -76,17 +75,39 @@ func collectWaitEventMetrics(db dataSource) ([]WaitEventQueryMetrics, error) {
 				THREAD_ID,
 				DIGEST,
 				CURRENT_SCHEMA AS database_name,
-				SQL_TEXT AS query_text
+				DIGEST_TEXT AS query_text
 			FROM performance_schema.events_statements_history_long
+			WHERE CURRENT_SCHEMA NOT IN ('', 'mysql', 'performance_schema', 'information_schema', 'sys')
+				AND SQL_TEXT NOT LIKE '%SET %'
+				AND SQL_TEXT NOT LIKE '%SHOW %'
+				AND SQL_TEXT NOT LIKE '%INFORMATION_SCHEMA%'
+				AND SQL_TEXT NOT LIKE '%PERFORMANCE_SCHEMA%'
+				AND SQL_TEXT NOT LIKE '%mysql%'
+				AND SQL_TEXT NOT LIKE '%DIGEST%'
+				AND SQL_TEXT NOT LIKE '%DIGEST_TEXT%'
+				AND SQL_TEXT NOT LIKE 'START %'
+				AND SQL_TEXT NOT LIKE 'EXPLAIN %'
 			UNION ALL
 			SELECT 
 				THREAD_ID,
 				DIGEST,
 				CURRENT_SCHEMA AS database_name,
-				SQL_TEXT AS query_text
+				DIGEST_TEXT AS query_text
 			FROM performance_schema.events_statements_current
+			WHERE CURRENT_SCHEMA NOT IN ('', 'mysql', 'performance_schema', 'information_schema', 'sys')
+				AND SQL_TEXT NOT LIKE '%SET %'
+				AND SQL_TEXT NOT LIKE '%SHOW %'
+				AND SQL_TEXT NOT LIKE '%INFORMATION_SCHEMA%'
+				AND SQL_TEXT NOT LIKE '%PERFORMANCE_SCHEMA%'
+				AND SQL_TEXT NOT LIKE '%mysql%'
+				AND SQL_TEXT NOT LIKE '%DIGEST%'
+				AND SQL_TEXT NOT LIKE '%DIGEST_TEXT%'
+				AND SQL_TEXT NOT LIKE 'START %'
+				AND SQL_TEXT NOT LIKE 'EXPLAIN %'
 		) AS schema_data
 		ON wait_data.THREAD_ID = schema_data.THREAD_ID
+		LEFT JOIN performance_schema.events_waits_summary_global_by_event_name ewsg
+		ON ewsg.EVENT_NAME = wait_data.wait_event_name
 		GROUP BY
 			query_id,
 			wait_data.instance_id,
