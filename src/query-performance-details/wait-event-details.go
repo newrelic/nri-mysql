@@ -19,7 +19,7 @@ type WaitEventQueryMetrics struct {
 	CollectionTimestamp string         `json:"collection_timestamp" db:"collection_timestamp"`
 	InstanceID          string         `json:"instance_id" db:"instance_id"`
 	WaitEventName       string         `json:"wait_event_name" db:"wait_event_name"`
-	WaitingTasksCount   uint64         `json:"waiting_tasks_count" db:"waiting_tasks_count"`
+	WaitEventCount      uint64         `json:"wait_event_count" db:"wait_event_count"`
 }
 
 // Commenting out the unused function
@@ -161,7 +161,7 @@ func populateWaitEventMetrics(e *integration.Entity, args arguments.ArgumentList
 			"collection_timestamp": {metricData.CollectionTimestamp, metric.ATTRIBUTE},
 			"instance_id":          {metricData.InstanceID, metric.ATTRIBUTE},
 			"wait_event_name":      {metricData.WaitEventName, metric.ATTRIBUTE},
-			"waiting_tasks_count":  {int(metricData.WaitingTasksCount), metric.GAUGE},
+			"wait_event_count":     {int(metricData.WaitEventCount), metric.GAUGE},
 		}
 		for name, metric := range metricsMap {
 			err := ms.SetMetric(name, metric.Value, metric.MetricType)
