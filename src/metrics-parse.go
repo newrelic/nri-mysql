@@ -1,19 +1,35 @@
 package main
 
 import (
+	"errors"
 	"fmt"
+	"regexp"
 	"strconv"
 
+	"github.com/blang/semver/v4"
 	"github.com/newrelic/infra-integrations-sdk/v3/data/inventory"
 	"github.com/newrelic/infra-integrations-sdk/v3/data/metric"
 	"github.com/newrelic/infra-integrations-sdk/v3/log"
 )
 
 const (
-	inventoryQuery = "SHOW GLOBAL VARIABLES"
-	metricsQuery   = "SHOW /*!50002 GLOBAL */ STATUS"
-	replicaQuery   = "SHOW SLAVE STATUS"
+	inventoryQuery  = "SHOW GLOBAL VARIABLES"
+	metricsQuery    = "SHOW /*!50002 GLOBAL */ STATUS"
+	replicaQuery560 = "SHOW SLAVE STATUS"
+	replicaQuery800 = "SHOW REPLICA STATUS"
+	versionQuery    = "SELECT VERSION() as version;"
 )
+
+var errVersionNotFound = errors.New("version not found in versionQueryResult")
+var errSemanticVersionNotFound = errors.New("no semantic version found")
+
+func getReplicaQuery(version *semver.Version) string {
+	if version.GE(semver.Version{Major: 8, Minor: 0, Patch: 0}) {
+		return replicaQuery800
+	} else {
+		return replicaQuery560
+	}
+}
 
 // Try to convert a string to its type or return the string if not possible
 func asValue(value string) interface{} {
@@ -31,16 +47,22 @@ func asValue(value string) interface{} {
 	return value
 }
 
-func getRawData(db dataSource) (map[string]interface{}, map[string]interface{}, error) {
+func getRawData(db dataSource) (map[string]interface{}, map[string]interface{}, *semver.Version, error) {
+	version, err := collectVersion(db)
+	if err != nil {
+		return nil, nil, nil, fmt.Errorf("metrics collection failed: error collecting version number: %w", err)
+	}
+
 	inventory, err := db.query(inventoryQuery)
 	if err != nil {
-		return nil, nil, fmt.Errorf("error querying inventory: %v", err)
+		return nil, nil, nil, fmt.Errorf("error querying inventory: %w", err)
 	}
 	metrics, err := db.query(metricsQuery)
 	if err != nil {
-		return nil, nil, fmt.Errorf("error querying metrics: %v", err)
+		return nil, nil, nil, fmt.Errorf("error querying metrics: %w", err)
 	}
 
+	replicaQuery := getReplicaQuery(version)
 	replication, err := db.query(replicaQuery)
 	if err != nil {
 		log.Warn("Can't get node type, not enough privileges (must grant REPLICATION CLIENT)")
@@ -59,7 +81,7 @@ func getRawData(db dataSource) (map[string]interface{}, map[string]interface{}, 
 	metrics["version_comment"] = inventory["version_comment"]
 	metrics["version"] = inventory["version"]
 
-	return inventory, metrics, nil
+	return inventory, metrics, version, nil
 }
 
 func populateInventory(inventory *inventory.Inventory, rawData map[string]interface{}) {
@@ -71,29 +93,32 @@ func populateInventory(inventory *inventory.Inventory, rawData map[string]interf
 	}
 }
 
-func populateMetrics(sample *metric.Set, rawMetrics map[string]interface{}) {
+func populateMetrics(sample *metric.Set, rawMetrics map[string]interface{}, version *semver.Version) {
+	defaultMetrics := getDefaultMetrics(version)
 	if rawMetrics["node_type"] != "slave" {
 		delete(defaultMetrics, "cluster.slaveRunning")
 	}
-	populatePartialMetrics(sample, rawMetrics, defaultMetrics)
+	populatePartialMetrics(sample, rawMetrics, defaultMetrics, version)
 
 	if args.ExtendedMetrics {
+		extendedMetrics := getExtendedMetrics(version)
 		if rawMetrics["node_type"] == "slave" {
+			slaveMetrics := getSlaveMetrics(version)
 			for key := range slaveMetrics {
 				extendedMetrics[key] = slaveMetrics[key]
 			}
 		}
-		populatePartialMetrics(sample, rawMetrics, extendedMetrics)
+		populatePartialMetrics(sample, rawMetrics, extendedMetrics, version)
 	}
 	if args.ExtendedInnodbMetrics {
-		populatePartialMetrics(sample, rawMetrics, innodbMetrics)
+		populatePartialMetrics(sample, rawMetrics, innodbMetrics, version)
 	}
 	if args.ExtendedMyIsamMetrics {
-		populatePartialMetrics(sample, rawMetrics, myisamMetrics)
+		populatePartialMetrics(sample, rawMetrics, myisamMetrics, version)
 	}
 
 }
-func populatePartialMetrics(ms *metric.Set, metrics map[string]interface{}, metricsDefinition map[string][]interface{}) {
+func populatePartialMetrics(ms *metric.Set, metrics map[string]interface{}, metricsDefinition map[string][]interface{}, version *semver.Version) {
 	for metricName, metricConf := range metricsDefinition {
 		rawSource := metricConf[0]
 		metricType := metricConf[1].(metric.SourceType)
@@ -106,8 +131,8 @@ func populatePartialMetrics(ms *metric.Set, metrics map[string]interface{}, metr
 			rawMetric, ok = metrics[source]
 		case func(map[string]interface{}) (float64, bool):
 			rawMetric, ok = source(metrics)
-		case func(map[string]interface{}) (int, bool):
-			rawMetric, ok = source(metrics)
+		case func(map[string]interface{}, *semver.Version) (int, bool):
+			rawMetric, ok = source(metrics, version)
 		default:
 			log.Warn("Invalid raw source metric for %s", metricName)
 			continue
@@ -125,4 +150,54 @@ func populatePartialMetrics(ms *metric.Set, metrics map[string]interface{}, metr
 			continue
 		}
 	}
+}
+
+func collectVersion(db dataSource) (*semver.Version, error) {
+	versionQueryResult, err := db.query(versionQuery)
+	if err != nil {
+		return nil, fmt.Errorf("error fetching version: %w", err)
+	}
+
+	if versionStr, exists := versionQueryResult["version"]; exists {
+		version := versionStr.(string)
+		log.Debug("Original MySQL Server version string: %s", version)
+
+		sanitizedVersion, err := extractSemver(version)
+		if err != nil {
+			return nil, fmt.Errorf("error extracting version: %w", err)
+		}
+
+		semVersion, err := semver.ParseTolerant(sanitizedVersion)
+		if err != nil {
+			return nil, err
+		}
+
+		log.Debug("Parsed version as semver: %v", semVersion)
+		return &semVersion, nil
+	} else {
+		return nil, fmt.Errorf("%w", errVersionNotFound)
+	}
+}
+
+// extractSemver uses a regular expression to extract a semver-compliant version string up to major.minor.patch
+func extractSemver(version string) (string, error) {
+	reg := regexp.MustCompile(`^(?P<major>\d+)(?:\.(?P<minor>\d+))?(?:\.(?P<patch>\d+))?`)
+	matches := reg.FindStringSubmatch(version)
+
+	if len(matches) == 0 || matches[1] == "" {
+		return "", errSemanticVersionNotFound
+	}
+
+	major := matches[1]
+	minor := "0"
+	patch := "0"
+
+	if len(matches) > 2 && matches[2] != "" {
+		minor = matches[2]
+	}
+	if len(matches) > 3 && matches[3] != "" {
+		patch = matches[3]
+	}
+
+	return fmt.Sprintf("%s.%s.%s", major, minor, patch), nil
 }

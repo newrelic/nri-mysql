@@ -12,12 +12,19 @@
       "items": {
         "type": "object",
         "properties": {
-          "events": {
-            "items": {
-              "properties": {},
-              "required": []
+          "entity": {
+            "properties": {
+              "name" : {
+                "type": "string"
+              },
+              "type": {
+                "type": "string"
+              }
             },
-            "type": "array"
+            "required": [
+              "name",
+              "type"
+            ]
           },
           "inventory": {
             "minProperties": 1,
@@ -5718,18 +5725,6 @@
                   "db.openedTablesPerSecond": {
                     "type": "number"
                   },
-                  "db.qCacheFreeMemoryBytes": {
-                    "type": "number"
-                  },
-                  "db.qCacheHitRatio": {
-                    "type": "number"
-                  },
-                  "db.qCacheNotCachedPerSecond": {
-                    "type": "number"
-                  },
-                  "db.qCacheUtilization": {
-                    "type": "number"
-                  },
                   "db.tablesLocksWaitedPerSecond": {
                     "type": "number"
                   },
@@ -5831,10 +5826,6 @@
                   "db.openFiles",
                   "db.openTables",
                   "db.openedTablesPerSecond",
-                  "db.qCacheFreeMemoryBytes",
-                  "db.qCacheHitRatio",
-                  "db.qCacheNotCachedPerSecond",
-                  "db.qCacheUtilization",
                   "db.tablesLocksWaitedPerSecond",
                   "event_type",
                   "net.abortedClientsPerSecond",
@@ -5868,17 +5859,21 @@
             "minItems": 1,
             "type": "array",
             "uniqueItems": true
-          },
-          "events" : {
-            "type": "array"
           }
+        },
+        "events": {
+          "items": {
+            "properties": {},
+            "required": []
+          },
+          "type": "array"
         },
         "required": [
           "metrics",
           "inventory",
-          "events"
-        ],
-        "additionalProperties": false
+          "events",
+          "entity"
+        ]
       }
     },
     "name": {

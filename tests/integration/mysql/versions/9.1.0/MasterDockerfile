@@ -1,0 +1,5 @@
+FROM mysql:9.1.0
+# Create and set permissions for log directory
+RUN mkdir -p /var/log/mysql && \
+    chown -R mysql:mysql /var/log/mysql
+COPY tests/integration/mysql/versions/8.0.40/master.conf.cnf /etc/mysql/conf.d/mysql.conf.cnf

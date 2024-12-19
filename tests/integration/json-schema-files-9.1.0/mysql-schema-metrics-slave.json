@@ -1,0 +1,378 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string"
+    },
+    "protocol_version": {
+      "type": "string"
+    },
+    "integration_version": {
+      "type": "string"
+    },
+    "data": {
+      "type": "array",
+      "items": [
+        {
+          "type": "object",
+          "properties": {
+            "metrics": {
+              "type": "array",
+              "items": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "cluster.execMasterLogPos": {
+                      "type": "integer"
+                    },
+                    "cluster.lastIOErrno": {
+                      "type": "integer"
+                    },
+                    "cluster.lastIOError": {
+                      "type": "string"
+                    },
+                    "cluster.lastSQLErrno": {
+                      "type": "integer"
+                    },
+                    "cluster.lastSQLError": {
+                      "type": "string"
+                    },
+                    "cluster.masterHost": {
+                      "type": "string"
+                    },
+                    "cluster.masterLogFile": {
+                      "type": "string"
+                    },
+                    "cluster.nodeType": {
+                      "type": "string"
+                    },
+                    "cluster.readMasterLogPos": {
+                      "type": "integer"
+                    },
+                    "cluster.relayMasterLogFile": {
+                      "type": "string"
+                    },
+                    "cluster.secondsBehindMaster": {
+                      "type": "integer"
+                    },
+                    "cluster.slaveIORunning": {
+                      "type": "string"
+                    },
+                    "cluster.slaveRunning": {
+                      "type": "integer"
+                    },
+                    "cluster.slaveSQLRunning": {
+                      "type": "string"
+                    },
+                    "db.createdTmpDiskTablesPerSecond": {
+                      "type": "integer"
+                    },
+                    "db.createdTmpFilesPerSecond": {
+                      "type": "integer"
+                    },
+                    "db.createdTmpTablesPerSecond": {
+                      "type": "number"
+                    },
+                    "db.handlerDeletePerSecond": {
+                      "type": "integer"
+                    },
+                    "db.handlerReadFirstPerSecond": {
+                      "type": "integer"
+                    },
+                    "db.handlerReadKeyPerSecond": {
+                      "type": "integer"
+                    },
+                    "db.handlerReadRndNextPerSecond": {
+                      "type": "integer"
+                    },
+                    "db.handlerReadRndPerSecond": {
+                      "type": "integer"
+                    },
+                    "db.handlerRollbackPerSecond": {
+                      "type": "integer"
+                    },
+                    "db.handlerUpdatePerSecond": {
+                      "type": "integer"
+                    },
+                    "db.handlerWritePerSecond": {
+                      "type": "number"
+                    },
+                    "db.innodb.bufferPoolPagesData": {
+                      "type": "integer"
+                    },
+                    "db.innodb.bufferPoolPagesFree": {
+                      "type": "integer"
+                    },
+                    "db.innodb.bufferPoolPagesTotal": {
+                      "type": "integer"
+                    },
+                    "db.innodb.dataReadBytesPerSecond": {
+                      "type": "integer"
+                    },
+                    "db.innodb.dataWrittenBytesPerSecond": {
+                      "type": "integer"
+                    },
+                    "db.innodb.logWaitsPerSecond": {
+                      "type": "integer"
+                    },
+                    "db.innodb.rowLockCurrentWaits": {
+                      "type": "integer"
+                    },
+                    "db.innodb.rowLockTimeAvg": {
+                      "type": "integer"
+                    },
+                    "db.innodb.rowLockWaitsPerSecond": {
+                      "type": "integer"
+                    },
+                    "db.maxExecutionTimeExceededPerSecond": {
+                      "type": "integer"
+                    },
+                    "db.openFiles": {
+                      "type": "integer"
+                    },
+                    "db.openTables": {
+                      "type": "integer"
+                    },
+                    "db.openedTablesPerSecond": {
+                      "type": "number"
+                    },
+                    "db.relayLogSpace": {
+                      "type": "integer"
+                    },
+                    "db.selectFullJoinPerSecond": {
+                      "type": "integer"
+                    },
+                    "db.selectFullJoinRangePerSecond": {
+                      "type": "integer"
+                    },
+                    "db.selectRangeCheckPerSecond": {
+                      "type": "integer"
+                    },
+                    "db.selectRangePerSecond": {
+                      "type": "integer"
+                    },
+                    "db.sortMergePassesPerSecond": {
+                      "type": "integer"
+                    },
+                    "db.sortRangePerSecond": {
+                      "type": "integer"
+                    },
+                    "db.sortRowsPerSecond": {
+                      "type": "integer"
+                    },
+                    "db.sortScanPerSecond": {
+                      "type": "integer"
+                    },
+                    "db.tableOpenCacheHitsPerSecond": {
+                      "type": "integer"
+                    },
+                    "db.tableOpenCacheMissesPerSecond": {
+                      "type": "number"
+                    },
+                    "db.tableOpenCacheOverflowsPerSecond": {
+                      "type": "integer"
+                    },
+                    "db.tablesLocksWaitedPerSecond": {
+                      "type": "integer"
+                    },
+                    "db.threadCacheMissRate": {
+                      "type": "number"
+                    },
+                    "db.threadsCached": {
+                      "type": "integer"
+                    },
+                    "db.threadsCreatedPerSecond": {
+                      "type": "integer"
+                    },
+                    "event_type": {
+                      "type": "string"
+                    },
+                    "net.abortedClientsPerSecond": {
+                      "type": "integer"
+                    },
+                    "net.abortedConnectsPerSecond": {
+                      "type": "integer"
+                    },
+                    "net.bytesReceivedPerSecond": {
+                      "type": "integer"
+                    },
+                    "net.bytesSentPerSecond": {
+                      "type": "number"
+                    },
+                    "net.connectionErrorsMaxConnectionsPerSecond": {
+                      "type": "integer"
+                    },
+                    "net.connectionsPerSecond": {
+                      "type": "number"
+                    },
+                    "net.maxUsedConnections": {
+                      "type": "integer"
+                    },
+                    "net.threadsConnected": {
+                      "type": "integer"
+                    },
+                    "net.threadsRunning": {
+                      "type": "integer"
+                    },
+                    "port": {
+                      "type": "string"
+                    },
+                    "query.comCommitPerSecond": {
+                      "type": "integer"
+                    },
+                    "query.comDeleteMultiPerSecond": {
+                      "type": "integer"
+                    },
+                    "query.comDeletePerSecond": {
+                      "type": "integer"
+                    },
+                    "query.comInsertPerSecond": {
+                      "type": "integer"
+                    },
+                    "query.comInsertSelectPerSecond": {
+                      "type": "integer"
+                    },
+                    "query.comReplaceSelectPerSecond": {
+                      "type": "integer"
+                    },
+                    "query.comRollbackPerSecond": {
+                      "type": "integer"
+                    },
+                    "query.comSelectPerSecond": {
+                      "type": "integer"
+                    },
+                    "query.comUpdateMultiPerSecond": {
+                      "type": "integer"
+                    },
+                    "query.comUpdatePerSecond": {
+                      "type": "integer"
+                    },
+                    "query.preparedStmtCountPerSecond": {
+                      "type": "integer"
+                    },
+                    "query.queriesPerSecond": {
+                      "type": "number"
+                    },
+                    "query.questionsPerSecond": {
+                      "type": "number"
+                    },
+                    "query.slowQueriesPerSecond": {
+                      "type": "integer"
+                    },
+                    "software.edition": {
+                      "type": "string"
+                    },
+                    "software.version": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "cluster.execMasterLogPos",
+                    "cluster.lastIOErrno",
+                    "cluster.lastIOError",
+                    "cluster.lastSQLErrno",
+                    "cluster.lastSQLError",
+                    "cluster.masterHost",
+                    "cluster.masterLogFile",
+                    "cluster.nodeType",
+                    "cluster.readMasterLogPos",
+                    "cluster.relayMasterLogFile",
+                    "cluster.slaveIORunning",
+                    "cluster.slaveRunning",
+                    "cluster.slaveSQLRunning",
+                    "db.createdTmpDiskTablesPerSecond",
+                    "db.createdTmpFilesPerSecond",
+                    "db.createdTmpTablesPerSecond",
+                    "db.handlerDeletePerSecond",
+                    "db.handlerReadFirstPerSecond",
+                    "db.handlerReadKeyPerSecond",
+                    "db.handlerReadRndNextPerSecond",
+                    "db.handlerReadRndPerSecond",
+                    "db.handlerRollbackPerSecond",
+                    "db.handlerUpdatePerSecond",
+                    "db.handlerWritePerSecond",
+                    "db.innodb.bufferPoolPagesData",
+                    "db.innodb.bufferPoolPagesFree",
+                    "db.innodb.bufferPoolPagesTotal",
+                    "db.innodb.dataReadBytesPerSecond",
+                    "db.innodb.dataWrittenBytesPerSecond",
+                    "db.innodb.logWaitsPerSecond",
+                    "db.innodb.rowLockCurrentWaits",
+                    "db.innodb.rowLockTimeAvg",
+                    "db.innodb.rowLockWaitsPerSecond",
+                    "db.maxExecutionTimeExceededPerSecond",
+                    "db.openFiles",
+                    "db.openTables",
+                    "db.openedTablesPerSecond",
+                    "db.relayLogSpace",
+                    "db.selectFullJoinPerSecond",
+                    "db.selectFullJoinRangePerSecond",
+                    "db.selectRangeCheckPerSecond",
+                    "db.selectRangePerSecond",
+                    "db.sortMergePassesPerSecond",
+                    "db.sortRangePerSecond",
+                    "db.sortRowsPerSecond",
+                    "db.sortScanPerSecond",
+                    "db.tableOpenCacheHitsPerSecond",
+                    "db.tableOpenCacheMissesPerSecond",
+                    "db.tableOpenCacheOverflowsPerSecond",
+                    "db.tablesLocksWaitedPerSecond",
+                    "db.threadCacheMissRate",
+                    "db.threadsCached",
+                    "db.threadsCreatedPerSecond",
+                    "event_type",
+                    "net.abortedClientsPerSecond",
+                    "net.abortedConnectsPerSecond",
+                    "net.bytesReceivedPerSecond",
+                    "net.bytesSentPerSecond",
+                    "net.connectionErrorsMaxConnectionsPerSecond",
+                    "net.connectionsPerSecond",
+                    "net.maxUsedConnections",
+                    "net.threadsConnected",
+                    "net.threadsRunning",
+                    "port",
+                    "query.comCommitPerSecond",
+                    "query.comDeleteMultiPerSecond",
+                    "query.comDeletePerSecond",
+                    "query.comInsertPerSecond",
+                    "query.comInsertSelectPerSecond",
+                    "query.comReplaceSelectPerSecond",
+                    "query.comRollbackPerSecond",
+                    "query.comSelectPerSecond",
+                    "query.comUpdateMultiPerSecond",
+                    "query.comUpdatePerSecond",
+                    "query.preparedStmtCountPerSecond",
+                    "query.queriesPerSecond",
+                    "query.questionsPerSecond",
+                    "query.slowQueriesPerSecond",
+                    "software.edition",
+                    "software.version"
+                  ]
+                }
+              ]
+            },
+            "inventory": {
+              "type": "object"
+            },
+            "events": {
+              "type": "array",
+              "items": {}
+            }
+          },
+          "required": [
+            "metrics",
+            "inventory",
+            "events"
+          ]
+        }
+      ]
+    }
+  },
+  "required": [
+    "name",
+    "protocol_version",
+    "integration_version",
+    "data"
+  ]
+}

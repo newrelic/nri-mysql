@@ -4,6 +4,7 @@ go 1.23.4
 
 require (
 	github.com/bitly/go-simplejson v0.5.1
+	github.com/blang/semver/v4 v4.0.0
 	github.com/go-sql-driver/mysql v1.8.1
 	github.com/newrelic/infra-integrations-sdk/v3 v3.9.1
 	github.com/sirupsen/logrus v1.9.3

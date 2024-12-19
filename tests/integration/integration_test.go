@@ -13,6 +13,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/blang/semver/v4"
 	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -26,23 +27,54 @@ var (
 
 	defaultContainer = "integration_nri-mysql_1"
 	// mysql config
-	defaultBinPath         = "/nri-mysql"
-	defaultMysqlUser       = "root"
-	defaultMysqlPass       = "DBpwd1234"
-	defaultMysqlMasterHost = "mysql_master"
-	defaultMysqlSlaveHost  = "mysql_slave"
-	defaultMysqlPort       = 3306
-	defaultMysqlDB         = "database"
+	defaultBinPath   = "/nri-mysql"
+	defaultMysqlUser = "root"
+	defaultMysqlPass = "DBpwd1234"
+	defaultMysqlPort = 3306
+	defaultMysqlDB   = "database"
 
 	// cli flags
-	container  = flag.String("container", defaultContainer, "container where the integration is installed")
-	binPath    = flag.String("bin", defaultBinPath, "Integration binary path")
-	user       = flag.String("user", defaultMysqlUser, "Mysql user name")
-	psw        = flag.String("psw", defaultMysqlPass, "Mysql user password")
-	masterHost = flag.String("masterhost", defaultMysqlMasterHost, "Mysql master host ip address")
-	slaveHost  = flag.String("slavehost", defaultMysqlSlaveHost, "Mysql master host ip address")
-	port       = flag.Int("port", defaultMysqlPort, "Mysql port")
-	database   = flag.String("database", defaultMysqlDB, "Mysql database")
+	container = flag.String("container", defaultContainer, "container where the integration is installed")
+	binPath   = flag.String("bin", defaultBinPath, "Integration binary path")
+	user      = flag.String("user", defaultMysqlUser, "Mysql user name")
+	psw       = flag.String("psw", defaultMysqlPass, "Mysql user password")
+	port      = flag.Int("port", defaultMysqlPort, "Mysql port")
+	database  = flag.String("database", defaultMysqlDB, "Mysql database")
+)
+
+type MysqlConfig struct {
+	Version        semver.Version
+	MasterHostname string // MasterHostname for the Mysql service. (Will be the master mysql service inside the docker-compose file).
+	SlaveHostname  string // SlaveHostname for the Mysql service. (Will be the slave mysql service inside the docker-compose file).
+}
+
+var (
+	MysqlConfigs = []MysqlConfig{
+		{
+			Version:        semver.MustParse("5.7.35"),
+			MasterHostname: "mysql_master-5-7-35",
+			SlaveHostname:  "mysql_slave-5-7-35",
+		},
+		{
+			/*
+				The query cache variables are removed from MySQL 8.0 - https://dev.mysql.com/doc/refman/5.7/en/query-cache-status-and-maintenance.html
+				Due to which the all qcache metrics are not supported from this version
+
+				From MySQL 8.0.23 the statement CHANGE MASTER TO is deprecated. The alias CHANGE REPLICATION SOURCE TO should be used instead.
+				The parameters for the statement also have aliases that replace the term MASTER with the term SOURCE.
+				For example, MASTER_HOST and MASTER_PORT can now be entered as SOURCE_HOST and SOURCE_PORT.
+				More Info - https://dev.mysql.com/doc/relnotes/mysql/8.0/en/news-8-0-23.html
+			*/
+			Version:        semver.MustParse("8.0.40"),
+			MasterHostname: "mysql_master-8-0-40",
+			SlaveHostname:  "mysql_slave-8-0-40",
+		},
+		{
+			Version:        semver.MustParse("9.1.0"),
+			MasterHostname: "mysql_master-latest-supported",
+			SlaveHostname:  "mysql_slave-latest-supported",
+		},
+	}
 )
 
 // Returns the standard output, or fails testing if the command returned an error
@@ -75,26 +107,32 @@ func runIntegration(t *testing.T, targetContainer string, envVars ...string) str
 	return stdout
 }
 
-func setup() error {
+func setup(mysqlConfig MysqlConfig) error {
 	flag.Parse()
 
 	if testing.Verbose() {
 		log.SetLevel(log.DebugLevel)
 	}
 
-	masterErr := helpers.WaitForPort(*container, *masterHost, *port, 60*time.Second)
+	masterErr := helpers.WaitForPort(*container, mysqlConfig.MasterHostname, *port, 60*time.Second)
 	if masterErr != nil {
 		return masterErr
 	}
 
-	slaveErr := helpers.WaitForPort(*container, *slaveHost, *port, 30*time.Second)
+	slaveErr := helpers.WaitForPort(*container, mysqlConfig.SlaveHostname, *port, 30*time.Second)
 	if slaveErr != nil {
 		return slaveErr
 	}
 
 	// Retrieve log filename and position from master
-	masterStatusCmd := []string{`mysql`, `-u`, `root`, `-e`, `SHOW MASTER STATUS;`}
-	masterStatusOut, masterStatusErr, err := helpers.ExecInContainer(*masterHost, masterStatusCmd, fmt.Sprintf("MYSQL_PWD=%s", *psw))
+	var masterStatusQuery = ""
+	if mysqlConfig.Version.GE(semver.MustParse("8.4.0")) {
+		masterStatusQuery = `SHOW BINARY LOG STATUS;`
+	} else {
+		masterStatusQuery = `SHOW MASTER STATUS;`
+	}
+	masterStatusCmd := []string{`mysql`, `-u`, `root`, `-e`, masterStatusQuery}
+	masterStatusOut, masterStatusErr, err := helpers.ExecInContainer(mysqlConfig.MasterHostname, masterStatusCmd, fmt.Sprintf("MYSQL_PWD=%s", *psw))
 	if masterStatusErr != "" {
 		log.Debug("Error fetching Master Log filename and Position: ", masterStatusErr)
 		return err
@@ -105,9 +143,14 @@ func setup() error {
 	masterLogPos := masterStatus[6]
 
 	// Activate MASTER/SLAVE replication
-	replication_stmt := fmt.Sprintf(`CHANGE MASTER TO MASTER_HOST='%s', MASTER_USER='%s', MASTER_PASSWORD='%s', MASTER_LOG_FILE='%s', MASTER_LOG_POS=%v; START SLAVE;`, *masterHost, *user, *psw, masterLogFile, masterLogPos)
+	var replication_stmt = ""
+	if mysqlConfig.Version.GE(semver.MustParse("8.0.0")) {
+		replication_stmt = fmt.Sprintf(`CHANGE REPLICATION SOURCE TO SOURCE_HOST='%s', SOURCE_USER='%s', SOURCE_PASSWORD='%s', SOURCE_LOG_FILE='%s', SOURCE_LOG_POS=%v; START REPLICA; GRANT ALL ON *.* TO %s;`, mysqlConfig.MasterHostname, *user, *psw, masterLogFile, masterLogPos, *user)
+	} else {
+		replication_stmt = fmt.Sprintf(`CHANGE MASTER TO MASTER_HOST='%s', MASTER_USER='%s', MASTER_PASSWORD='%s', MASTER_LOG_FILE='%s', MASTER_LOG_POS=%v; START SLAVE;`, mysqlConfig.MasterHostname, *user, *psw, masterLogFile, masterLogPos)
+	}
 	replicationCmd := []string{`mysql`, `-u`, `root`, `-e`, replication_stmt}
-	_, replicationStatusErr, err := helpers.ExecInContainer(*slaveHost, replicationCmd, fmt.Sprintf("MYSQL_PWD=%s", *psw))
+	_, replicationStatusErr, err := helpers.ExecInContainer(mysqlConfig.SlaveHostname, replicationCmd, fmt.Sprintf("MYSQL_PWD=%s", *psw))
 	if replicationStatusErr != "" {
 		log.Debug("Error creating Master/Slave replication: ", replicationStatusErr)
 		return err
@@ -122,19 +165,21 @@ func teardown() error {
 }
 
 func TestMain(m *testing.M) {
-	err := setup()
-	if err != nil {
-		fmt.Println(err)
-		tErr := teardown()
-		if tErr != nil {
-			fmt.Printf("Error during the teardown of the tests: %s\n", tErr)
+	for _, mysqlConfig := range MysqlConfigs {
+		err := setup(mysqlConfig)
+		if err != nil {
+			fmt.Println(err)
+			tErr := teardown()
+			if tErr != nil {
+				fmt.Printf("Error during the teardown of the tests: %s\n", tErr)
+			}
+			os.Exit(1)
 		}
-		os.Exit(1)
 	}
 
 	result := m.Run()
 
-	err = teardown()
+	err := teardown()
 	if err != nil {
 		fmt.Printf("Error during the teardown of the tests: %s\n", err)
 	}
@@ -142,50 +187,90 @@ func TestMain(m *testing.M) {
 	os.Exit(result)
 }
 
-func TestOutputIsValidJSON(t *testing.T) {
-	stdout := runIntegration(t, *masterHost)
-
+func testOutputIsValidJSON(t *testing.T, mysqlConfig MysqlConfig) {
+	stdout := runIntegration(t, mysqlConfig.MasterHostname)
 	var j map[string]interface{}
 	err := json.Unmarshal([]byte(stdout), &j)
 	assert.NoError(t, err, "Integration output should be a JSON dict")
 }
 
-func TestMySQLIntegrationValidArguments_RemoteEntity(t *testing.T) {
+func TestOutputIsValidJSON(t *testing.T) {
+	for _, mysqlConfig := range MysqlConfigs {
+		testOutputIsValidJSON(t, mysqlConfig)
+	}
+}
+
+func testMySQLIntegrationValidArguments_RemoteEntity(t *testing.T, mysqlConfig MysqlConfig) {
 	testName := helpers.GetTestName(t)
-	stdout := runIntegration(t, *masterHost, fmt.Sprintf("NRIA_CACHE_PATH=/tmp/%v.json", testName), "REMOTE_MONITORING=true")
-	schemaPath := filepath.Join("json-schema-files", "mysql-schema-master.json")
+	stdout := runIntegration(t, mysqlConfig.MasterHostname, fmt.Sprintf("NRIA_CACHE_PATH=/tmp/%v.json", testName), "REMOTE_MONITORING=true")
+	schemaDir := fmt.Sprintf("json-schema-files-%s", mysqlConfig.Version.String())
+	schemaPath := filepath.Join(schemaDir, "mysql-schema-master.json")
+	err := jsonschema.Validate(schemaPath, stdout)
+	require.NoError(t, err, "The output of MySQL integration doesn't have expected format")
+}
+
+func TestMySQLIntegrationValidArguments_RemoteEntity(t *testing.T) {
+	for _, mysqlConfig := range MysqlConfigs {
+		testMySQLIntegrationValidArguments_RemoteEntity(t, mysqlConfig)
+	}
+}
+
+func testMySQLIntegrationValidArguments_LocalEntity(t *testing.T, mysqlConfig MysqlConfig) {
+	testName := helpers.GetTestName(t)
+	stdout := runIntegration(t, mysqlConfig.MasterHostname, fmt.Sprintf("NRIA_CACHE_PATH=/tmp/%v.json", testName))
+	schemaDir := fmt.Sprintf("json-schema-files-%s", mysqlConfig.Version.String())
+	schemaPath := filepath.Join(schemaDir, "mysql-schema-master-localentity.json")
 	err := jsonschema.Validate(schemaPath, stdout)
 	require.NoError(t, err, "The output of MySQL integration doesn't have expected format")
 }
 
 func TestMySQLIntegrationValidArguments_LocalEntity(t *testing.T) {
+	for _, mysqlConfig := range MysqlConfigs {
+		testMySQLIntegrationValidArguments_LocalEntity(t, mysqlConfig)
+	}
+}
+
+func testMySQLIntegrationOnlyMetrics(t *testing.T, mysqlConfig MysqlConfig) {
 	testName := helpers.GetTestName(t)
-	stdout := runIntegration(t, *masterHost, fmt.Sprintf("NRIA_CACHE_PATH=/tmp/%v.json", testName))
-	schemaPath := filepath.Join("json-schema-files", "mysql-schema-master-localentity.json")
+	stdout := runIntegration(t, mysqlConfig.MasterHostname, "METRICS=true", fmt.Sprintf("NRIA_CACHE_PATH=/tmp/%v.json", testName))
+	schemaDir := fmt.Sprintf("json-schema-files-%s", mysqlConfig.Version.String())
+	schemaPath := filepath.Join(schemaDir, "mysql-schema-metrics-master.json")
 	err := jsonschema.Validate(schemaPath, stdout)
-	require.NoError(t, err, "The output of MySQL integration doesn't have expected format")
+	require.NoError(t, err, "The output of MySQL integration doesn't have expected format.")
 }
 
 func TestMySQLIntegrationOnlyMetrics(t *testing.T) {
+	for _, mysqlConfig := range MysqlConfigs {
+		testMySQLIntegrationOnlyMetrics(t, mysqlConfig)
+	}
+}
+
+func testMySQLIntegrationOnlyInventory(t *testing.T, mysqlConfig MysqlConfig) {
 	testName := helpers.GetTestName(t)
-	stdout := runIntegration(t, *masterHost, "METRICS=true", fmt.Sprintf("NRIA_CACHE_PATH=/tmp/%v.json", testName))
-	schemaPath := filepath.Join("json-schema-files", "mysql-schema-metrics-master.json")
+	stdout := runIntegration(t, mysqlConfig.MasterHostname, "INTEGRATION=true", fmt.Sprintf("NRIA_CACHE_PATH=/tmp/%v.json", testName))
+	schemaDir := fmt.Sprintf("json-schema-files-%s", mysqlConfig.Version.String())
+	schemaPath := filepath.Join(schemaDir, "mysql-schema-inventory-master.json")
 	err := jsonschema.Validate(schemaPath, stdout)
 	require.NoError(t, err, "The output of MySQL integration doesn't have expected format.")
 }
 
 func TestMySQLIntegrationOnlyInventory(t *testing.T) {
+	for _, mysqlConfig := range MysqlConfigs {
+		testMySQLIntegrationOnlyInventory(t, mysqlConfig)
+	}
+}
+
+func testMySQLIntegrationOnlySlaveMetrics(t *testing.T, mysqlConfig MysqlConfig) {
 	testName := helpers.GetTestName(t)
-	stdout := runIntegration(t, *masterHost, "INTEGRATION=true", fmt.Sprintf("NRIA_CACHE_PATH=/tmp/%v.json", testName))
-	schemaPath := filepath.Join("json-schema-files", "mysql-schema-inventory-master.json")
+	stdout := runIntegration(t, mysqlConfig.SlaveHostname, "METRICS=true", "EXTENDED_METRICS=true", fmt.Sprintf("NRIA_CACHE_PATH=/tmp/%v.json", testName))
+	schemaDir := fmt.Sprintf("json-schema-files-%s", mysqlConfig.Version.String())
+	schemaPath := filepath.Join(schemaDir, "mysql-schema-metrics-slave.json")
 	err := jsonschema.Validate(schemaPath, stdout)
 	require.NoError(t, err, "The output of MySQL integration doesn't have expected format.")
 }
 
 func TestMySQLIntegrationOnlySlaveMetrics(t *testing.T) {
-	testName := helpers.GetTestName(t)
-	stdout := runIntegration(t, *slaveHost, "METRICS=true", "EXTENDED_METRICS=true", fmt.Sprintf("NRIA_CACHE_PATH=/tmp/%v.json", testName))
-	schemaPath := filepath.Join("json-schema-files", "mysql-schema-metrics-slave.json")
-	err := jsonschema.Validate(schemaPath, stdout)
-	require.NoError(t, err, "The output of MySQL integration doesn't have expected format.")
+	for _, mysqlConfig := range MysqlConfigs {
+		testMySQLIntegrationOnlySlaveMetrics(t, mysqlConfig)
+	}
 }
