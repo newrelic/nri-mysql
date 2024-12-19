@@ -1,0 +1,9 @@
+[mysqld]
+
+host_cache_size = 0
+skip-name-resolve
+
+server-id = 2
+relay-log = /var/log/mysql/mysql-relay-bin.log
+log-bin = /var/log/mysql/mysql-bin.log
+binlog-do-db = database

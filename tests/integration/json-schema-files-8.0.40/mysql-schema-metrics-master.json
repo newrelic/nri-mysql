@@ -1,0 +1,239 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "description": "",
+  "properties": {
+    "integration_version": {
+      "minLength": 1,
+      "pattern": "^[0-9]+.[0-9]+.[0-9]+$",
+      "type": "string"
+    },
+    "data": {
+      "type": "array",
+      "items": [
+        {
+          "type": "object",
+          "properties": {
+            "events": {
+              "items": {
+                "properties": {},
+                "required": []
+              },
+              "type": "array"
+            },
+            "inventory": {
+              "maxProperties": 0,
+              "properties": {},
+              "required": [],
+              "type": "object"
+            },
+            "metrics": {
+              "items": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "cluster.nodeType": {
+                      "minLength": 1,
+                      "type": "string"
+                    },
+                    "db.handlerRollbackPerSecond": {
+                      "type": "number"
+                    },
+                    "db.innodb.bufferPoolPagesData": {
+                      "type": "number"
+                    },
+                    "db.innodb.bufferPoolPagesFree": {
+                      "type": "number"
+                    },
+                    "db.innodb.bufferPoolPagesTotal": {
+                      "type": "number"
+                    },
+                    "db.innodb.dataReadBytesPerSecond": {
+                      "type": "number"
+                    },
+                    "db.innodb.dataWrittenBytesPerSecond": {
+                      "type": "number"
+                    },
+                    "db.innodb.logWaitsPerSecond": {
+                      "type": "number"
+                    },
+                    "db.innodb.rowLockCurrentWaits": {
+                      "type": "number"
+                    },
+                    "db.innodb.rowLockTimeAvg": {
+                      "type": "number"
+                    },
+                    "db.innodb.rowLockWaitsPerSecond": {
+                      "type": "number"
+                    },
+                    "db.openFiles": {
+                      "type": "number"
+                    },
+                    "db.openTables": {
+                      "type": "number"
+                    },
+                    "db.openedTablesPerSecond": {
+                      "type": "number"
+                    },
+                    "db.tablesLocksWaitedPerSecond": {
+                      "type": "number"
+                    },
+                    "event_type": {
+                      "minLength": 1,
+                      "pattern": "^MysqlSample$",
+                      "type": "string"
+                    },
+                    "net.abortedClientsPerSecond": {
+                      "type": "number"
+                    },
+                    "net.abortedConnectsPerSecond": {
+                      "type": "number"
+                    },
+                    "net.bytesReceivedPerSecond": {
+                      "type": "number"
+                    },
+                    "net.bytesSentPerSecond": {
+                      "type": "number"
+                    },
+                    "net.connectionErrorsMaxConnectionsPerSecond": {
+                      "type": "number"
+                    },
+                    "net.connectionsPerSecond": {
+                      "type": "number"
+                    },
+                    "net.maxUsedConnections": {
+                      "type": "number"
+                    },
+                    "net.threadsConnected": {
+                      "type": "number"
+                    },
+                    "net.threadsRunning": {
+                      "type": "number"
+                    },
+                    "query.comCommitPerSecond": {
+                      "type": "number"
+                    },
+                    "query.comDeleteMultiPerSecond": {
+                      "type": "number"
+                    },
+                    "query.comDeletePerSecond": {
+                      "type": "number"
+                    },
+                    "query.comInsertPerSecond": {
+                      "type": "number"
+                    },
+                    "query.comInsertSelectPerSecond": {
+                      "type": "number"
+                    },
+                    "query.comReplaceSelectPerSecond": {
+                      "type": "number"
+                    },
+                    "query.comRollbackPerSecond": {
+                      "type": "number"
+                    },
+                    "query.comSelectPerSecond": {
+                      "type": "number"
+                    },
+                    "query.comUpdateMultiPerSecond": {
+                      "type": "number"
+                    },
+                    "query.comUpdatePerSecond": {
+                      "type": "number"
+                    },
+                    "query.preparedStmtCountPerSecond": {
+                      "type": "number"
+                    },
+                    "query.queriesPerSecond": {
+                      "type": "number"
+                    },
+                    "query.questionsPerSecond": {
+                      "type": "number"
+                    },
+                    "query.slowQueriesPerSecond": {
+                      "type": "number"
+                    },
+                    "software.edition": {
+                      "minLength": 1,
+                      "type": "string"
+                    },
+                    "software.version": {
+                      "minLength": 1,
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "cluster.nodeType",
+                    "db.handlerRollbackPerSecond",
+                    "db.innodb.bufferPoolPagesData",
+                    "db.innodb.bufferPoolPagesFree",
+                    "db.innodb.bufferPoolPagesTotal",
+                    "db.innodb.dataReadBytesPerSecond",
+                    "db.innodb.dataWrittenBytesPerSecond",
+                    "db.innodb.logWaitsPerSecond",
+                    "db.innodb.rowLockCurrentWaits",
+                    "db.innodb.rowLockTimeAvg",
+                    "db.innodb.rowLockWaitsPerSecond",
+                    "db.openFiles",
+                    "db.openTables",
+                    "db.openedTablesPerSecond",
+                    "db.tablesLocksWaitedPerSecond",
+                    "event_type",
+                    "net.abortedClientsPerSecond",
+                    "net.abortedConnectsPerSecond",
+                    "net.bytesReceivedPerSecond",
+                    "net.bytesSentPerSecond",
+                    "net.connectionErrorsMaxConnectionsPerSecond",
+                    "net.connectionsPerSecond",
+                    "net.maxUsedConnections",
+                    "net.threadsConnected",
+                    "net.threadsRunning",
+                    "query.comCommitPerSecond",
+                    "query.comDeleteMultiPerSecond",
+                    "query.comDeletePerSecond",
+                    "query.comInsertPerSecond",
+                    "query.comInsertSelectPerSecond",
+                    "query.comReplaceSelectPerSecond",
+                    "query.comRollbackPerSecond",
+                    "query.comSelectPerSecond",
+                    "query.comUpdateMultiPerSecond",
+                    "query.comUpdatePerSecond",
+                    "query.preparedStmtCountPerSecond",
+                    "query.queriesPerSecond",
+                    "query.questionsPerSecond",
+                    "query.slowQueriesPerSecond",
+                    "software.edition",
+                    "software.version"
+                  ]
+                }
+              ],
+              "minItems": 1,
+              "type": "array",
+              "uniqueItems": true
+            }
+          }
+        }
+      ],
+      "required": [
+        "metrics",
+        "inventory",
+        "events"
+      ]
+    },
+    "name": {
+      "minLength": 1,
+      "pattern": "^com.newrelic.mysql$",
+      "type": "string"
+    },
+    "protocol_version": {
+      "minLength": 1,
+      "pattern": "^3$",
+      "type": "string"
+    }
+  },
+  "required": [
+    "name",
+    "protocol_version",
+    "integration_version",
+    "data"
+  ],
+  "type": "object"
+}

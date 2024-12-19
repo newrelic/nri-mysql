@@ -1,0 +1,9 @@
+[mysqld]
+
+host_cache_size = 0
+skip-name-resolve
+
+server-id = 1
+log-bin = /var/log/mysql/mysql-bin.log
+binlog_format = ROW
+binlog-do-db = database
