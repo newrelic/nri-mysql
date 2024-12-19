@@ -79,8 +79,8 @@ func qCacheHitRatio(metrics map[string]interface{}) (float64, bool) {
 }
 
 func slaveRunningAsNumber(metrics map[string]interface{}) (int, bool) {
-	slaveIORunning, okIO := metrics["Slave_IO_Running"].(string)
-	slaveSQLRunning, okSQL := metrics["Slave_SQL_Running"].(string)
+	slaveIORunning, okIO := metrics["Replica_IO_Running"].(string)
+	slaveSQLRunning, okSQL := metrics["Replica_SQL_Running"].(string)
 	if !okIO || !okSQL {
 		return 0, false
 	}
@@ -138,19 +138,19 @@ func threadCacheMissRate(metrics map[string]interface{}) (float64, bool) {
 }
 
 var slaveMetrics = map[string][]interface{}{
-	"cluster.secondsBehindMaster": {"Seconds_Behind_Master", metric.GAUGE},
-	"cluster.slaveIORunning":      {"Slave_IO_Running", metric.ATTRIBUTE},
-	"cluster.slaveSQLRunning":     {"Slave_SQL_Running", metric.ATTRIBUTE},
+	"cluster.secondsBehindMaster": {"Seconds_Behind_Source", metric.GAUGE},
+	"cluster.slaveIORunning":      {"Replica_IO_Running", metric.ATTRIBUTE},
+	"cluster.slaveSQLRunning":     {"Replica_SQL_Running", metric.ATTRIBUTE},
 	"cluster.lastIOErrno":         {"Last_IO_Errno", metric.GAUGE},
 	"cluster.lastIOError":         {"Last_IO_Error", metric.ATTRIBUTE},
 	"cluster.lastSQLErrno":        {"Last_SQL_Errno", metric.GAUGE},
 	"cluster.lastSQLError":        {"Last_SQL_Error", metric.ATTRIBUTE},
-	"cluster.masterLogFile":       {"Master_Log_File", metric.ATTRIBUTE},
-	"cluster.readMasterLogPos":    {"Read_Master_Log_Pos", metric.GAUGE},
-	"cluster.relayMasterLogFile":  {"Relay_Master_Log_File", metric.ATTRIBUTE},
-	"cluster.execMasterLogPos":    {"Exec_Master_Log_Pos", metric.GAUGE},
+	"cluster.masterLogFile":       {"Source_Log_File", metric.ATTRIBUTE},
+	"cluster.readMasterLogPos":    {"Read_Source_Log_Pos", metric.GAUGE},
+	"cluster.relayMasterLogFile":  {"Relay_Source_Log_File", metric.ATTRIBUTE},
+	"cluster.execMasterLogPos":    {"Exec_Source_Log_Pos", metric.GAUGE},
 	"db.relayLogSpace":            {"Relay_Log_Space", metric.GAUGE},
-	"cluster.masterHost":          {"Master_Host", metric.ATTRIBUTE},
+	"cluster.masterHost":          {"Source_Host", metric.ATTRIBUTE},
 }
 
 var innodbMetrics = map[string][]interface{}{

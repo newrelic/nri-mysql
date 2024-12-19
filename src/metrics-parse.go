@@ -12,7 +12,7 @@ import (
 const (
 	inventoryQuery = "SHOW GLOBAL VARIABLES"
 	metricsQuery   = "SHOW /*!50002 GLOBAL */ STATUS"
-	replicaQuery   = "SHOW SLAVE STATUS"
+	replicaQuery   = "SHOW REPLICA STATUS"
 )
 
 // Try to convert a string to its type or return the string if not possible

@@ -66,6 +66,7 @@ func runIntegration(t *testing.T, targetContainer string, envVars ...string) str
 	if database != nil {
 		command = append(command, "--database", *database)
 	}
+	log.Info("starting exec the container", command)
 	stdout, stderr, err := helpers.ExecInContainer(*container, command, envVars...)
 	if stderr != "" {
 		log.Debug("Integration command Standard Error: ", stderr)
@@ -93,7 +94,7 @@ func setup() error {
 	}
 
 	// Retrieve log filename and position from master
-	masterStatusCmd := []string{`mysql`, `-u`, `root`, `-e`, `SHOW MASTER STATUS;`}
+	masterStatusCmd := []string{`mysql`, `-u`, `root`, `-e`, `SHOW BINARY LOG STATUS;`}
 	masterStatusOut, masterStatusErr, err := helpers.ExecInContainer(*masterHost, masterStatusCmd, fmt.Sprintf("MYSQL_PWD=%s", *psw))
 	if masterStatusErr != "" {
 		log.Debug("Error fetching Master Log filename and Position: ", masterStatusErr)
@@ -104,8 +105,9 @@ func setup() error {
 	masterLogFile := masterStatus[5]
 	masterLogPos := masterStatus[6]
 
+	log.Info("masterLogFIle", masterLogFile, "masterlogpos", masterLogPos)
 	// Activate MASTER/SLAVE replication
-	replication_stmt := fmt.Sprintf(`CHANGE MASTER TO MASTER_HOST='%s', MASTER_USER='%s', MASTER_PASSWORD='%s', MASTER_LOG_FILE='%s', MASTER_LOG_POS=%v; START SLAVE;`, *masterHost, *user, *psw, masterLogFile, masterLogPos)
+	replication_stmt := fmt.Sprintf(`CHANGE REPLICATION SOURCE TO SOURCE_HOST='%s', SOURCE_USER='%s', SOURCE_PASSWORD='%s', SOURCE_LOG_FILE='%s', SOURCE_LOG_POS=%v; START REPLICA; GRANT ALL ON *.* TO %s;`, *masterHost, *user, *psw, masterLogFile, masterLogPos, *user)
 	replicationCmd := []string{`mysql`, `-u`, `root`, `-e`, replication_stmt}
 	_, replicationStatusErr, err := helpers.ExecInContainer(*slaveHost, replicationCmd, fmt.Sprintf("MYSQL_PWD=%s", *psw))
 	if replicationStatusErr != "" {

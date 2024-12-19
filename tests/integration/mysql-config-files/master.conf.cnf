@@ -1,9 +1,9 @@
 [mysqld]
 
-skip-host-cache
+host_cache_size = 0
 skip-name-resolve
 
 server-id = 1
-log_bin = /var/log/mysql/mysql-bin.log
-binlog_format = ROW
-binlog_do_db = mydb
+log-bin = /var/log/mysql/mysql-bin.log
+binlog-format = ROW
+binlog-do-db = mydb
