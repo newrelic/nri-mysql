@@ -2,9 +2,8 @@
 version: '3.1'
 
 services:
-  mysql:
+  mysql_master:
     container_name: "mysql_master"
-    command: --default-authentication-plugin=mysql_native_password
     restart: always
     environment:
       MYSQL_DATABASE: database
@@ -14,16 +13,16 @@ services:
     build:
       context: ../../
       dockerfile: tests/integration/MasterDockerfile
+    volumes:
+      - ./mysql-logs:/var/log/mysql
     links:
       - nri-mysql
 
   mysql_slave:
     container_name: "mysql_slave"
-    image: mysql:5.7
-    command: --default-authentication-plugin=mysql_native_password
     restart: always
     depends_on:
-      - mysql
+      - mysql_master
     environment:
       MYSQL_DATABASE: database
       MYSQL_USER: dbuser
@@ -32,6 +31,8 @@ services:
     build:
       context: ../../
       dockerfile: tests/integration/SlaveDockerfile
+    volumes:
+      - ./mysql-logs:/var/log/mysql
     links:
       - nri-mysql
 

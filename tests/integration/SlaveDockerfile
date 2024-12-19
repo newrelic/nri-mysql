@@ -1,2 +1,2 @@
-FROM mysql:5.7.35
+FROM mysql:8.4
 COPY tests/integration/mysql-config-files/slave.conf.cnf /etc/mysql/conf.d/mysql.conf.cnf
