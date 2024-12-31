@@ -23,12 +23,12 @@ compile: bin/$(BINARY_NAME)
 
 test:
 	@echo "=== $(INTEGRATION) === [ test ]: running unit tests..."
-	@go test -v -race ./... -count=1
+	@go test -race ./... -count=1
 
 integration-test:
 	@echo "=== $(INTEGRATION) === [ test ]: running integration tests..."
 	@docker compose -f tests/integration/docker-compose.yml up -d --build
-	@go test -v -tags=integration ./tests/integration/. || (ret=$$?; docker compose -f tests/integration/docker-compose.yml down && exit $$ret)
+	@go test -tags=integration ./tests/integration/. || (ret=$$?; docker compose -f tests/integration/docker-compose.yml down && exit $$ret)
 	@docker compose -f tests/integration/docker-compose.yml down
 
 install: bin/$(BINARY_NAME)

@@ -16,4 +16,5 @@ Steps to update the integration tests for the latest supported version:
 1. Comment the `mysql_master-5-7-35`, `mysql_slave-5-7-35` services in the [docker compose](./docker-compose.yml).
 2. Also comment the lines 53-57 in [integration test file](./integration_test.go).
 3. Make you have docker installed and running in the mac.
+4. In [Makefile](../../Makefile) line 31 change `@go test` -> `@go test -v` to see the output of tests running.
 4. Run the command `make integration-test`.

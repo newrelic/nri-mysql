@@ -1,7 +1,6 @@
 package main
 
 import (
-	"github.com/blang/semver/v4"
 	"github.com/newrelic/infra-integrations-sdk/v3/data/metric"
 )
 
@@ -13,7 +12,7 @@ var slaveMetricsBase = map[string][]interface{}{
 	"db.relayLogSpace":     {"Relay_Log_Space", metric.GAUGE},
 }
 
-var slaveMetrics560 = map[string][]interface{}{
+var slaveMetricsBelowVersion8 = map[string][]interface{}{
 	"cluster.secondsBehindMaster": {"Seconds_Behind_Master", metric.GAUGE},
 	"cluster.slaveIORunning":      {"Slave_IO_Running", metric.ATTRIBUTE},
 	"cluster.slaveSQLRunning":     {"Slave_SQL_Running", metric.ATTRIBUTE},
@@ -24,7 +23,7 @@ var slaveMetrics560 = map[string][]interface{}{
 	"cluster.masterHost":          {"Master_Host", metric.ATTRIBUTE},
 }
 
-var slaveMetrics800 = map[string][]interface{}{
+var slaveMetricsForVersion8AndAbove = map[string][]interface{}{
 	"cluster.secondsBehindMaster": {"Seconds_Behind_Source", metric.GAUGE},
 	"cluster.slaveIORunning":      {"Replica_IO_Running", metric.ATTRIBUTE},
 	"cluster.slaveSQLRunning":     {"Replica_SQL_Running", metric.ATTRIBUTE},
@@ -35,40 +34,18 @@ var slaveMetrics800 = map[string][]interface{}{
 	"cluster.masterHost":          {"Source_Host", metric.ATTRIBUTE},
 }
 
-type VersionDefinition struct {
-	minVersion        semver.Version
-	metricsDefinition map[string][]interface{}
-}
-
-var versionDefinitions = []VersionDefinition{
-	{
-		minVersion:        semver.MustParse("8.0.0"),
-		metricsDefinition: mergeMaps(slaveMetricsBase, slaveMetrics800),
-	},
-	{
-		minVersion:        semver.MustParse("5.6.0"),
-		metricsDefinition: mergeMaps(slaveMetricsBase, slaveMetrics560),
-	},
-}
-
-// mergeMaps merges two maps of type map[string][]interface{}
+// mergeMaps merges two maps, overwriting map1 with any conflicting keys from map2.
 func mergeMaps(map1, map2 map[string][]interface{}) map[string][]interface{} {
-	merged := make(map[string][]interface{})
-	for k, v := range map1 {
-		merged[k] = v
-	}
 	for k, v := range map2 {
-		merged[k] = v
+		map1[k] = v
 	}
-	return merged
+	return map1
 }
 
-func getSlaveMetrics(version *semver.Version) map[string][]interface{} {
+func getSlaveMetrics(dbVersion string) map[string][]interface{} {
 	// Find the first version definition that's applicable
-	for _, versionDef := range versionDefinitions {
-		if version.GE(versionDef.minVersion) {
-			return versionDef.metricsDefinition
-		}
+	if isDBVersionLessThan8(dbVersion) {
+		return mergeMaps(slaveMetricsBase, slaveMetricsBelowVersion8)
 	}
-	return slaveMetricsBase
+	return mergeMaps(slaveMetricsBase, slaveMetricsForVersion8AndAbove)
 }

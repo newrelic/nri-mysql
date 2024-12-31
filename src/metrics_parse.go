@@ -5,30 +5,42 @@ import (
 	"fmt"
 	"regexp"
 	"strconv"
+	"strings"
 
-	"github.com/blang/semver/v4"
 	"github.com/newrelic/infra-integrations-sdk/v3/data/inventory"
 	"github.com/newrelic/infra-integrations-sdk/v3/data/metric"
 	"github.com/newrelic/infra-integrations-sdk/v3/log"
 )
 
 const (
-	inventoryQuery  = "SHOW GLOBAL VARIABLES"
-	metricsQuery    = "SHOW /*!50002 GLOBAL */ STATUS"
-	replicaQuery560 = "SHOW SLAVE STATUS"
-	replicaQuery800 = "SHOW REPLICA STATUS"
-	versionQuery    = "SELECT VERSION() as version;"
+	inventoryQuery                  = "SHOW GLOBAL VARIABLES"
+	metricsQuery                    = "SHOW /*!50002 GLOBAL */ STATUS"
+	replicaQueryBelowVersion8       = "SHOW SLAVE STATUS"
+	replicaQueryForVersion8AndAbove = "SHOW REPLICA STATUS"
+	dbVersionQuery                  = "SELECT VERSION() as version;"
+
+	dbVersionThreshold = 8
 )
 
 var errVersionNotFound = errors.New("version not found in versionQueryResult")
-var errSemanticVersionNotFound = errors.New("no semantic version found")
+var errSemanticVersionNotFound = errors.New("semantic version not found")
 
-func getReplicaQuery(version *semver.Version) string {
-	if version.GE(semver.Version{Major: 8, Minor: 0, Patch: 0}) {
-		return replicaQuery800
-	} else {
-		return replicaQuery560
+func isDBVersionLessThan8(dbVersion string) bool {
+	parts := strings.Split(dbVersion, ".")
+
+	majorVersion, err := strconv.Atoi(parts[0])
+	if err != nil {
+		return true
 	}
+
+	return majorVersion < dbVersionThreshold
+}
+
+func getReplicaQuery(dbVersion string) string {
+	if isDBVersionLessThan8(dbVersion) {
+		return replicaQueryBelowVersion8
+	}
+	return replicaQueryForVersion8AndAbove
 }
 
 // Try to convert a string to its type or return the string if not possible
@@ -47,30 +59,29 @@ func asValue(value string) interface{} {
 	return value
 }
 
-func getRawData(db dataSource) (map[string]interface{}, map[string]interface{}, *semver.Version, error) {
-	version, err := collectVersion(db)
+func getRawData(db dataSource) (map[string]interface{}, map[string]interface{}, string, error) {
+	dbVersion, err := collectDBVersion(db)
 	if err != nil {
-		return nil, nil, nil, fmt.Errorf("metrics collection failed: error collecting version number: %w", err)
+		return nil, nil, "", fmt.Errorf("metrics collection failed: error collecting version number: %w", err)
 	}
 
 	inventory, err := db.query(inventoryQuery)
 	if err != nil {
-		return nil, nil, nil, fmt.Errorf("error querying inventory: %w", err)
+		return nil, nil, "", fmt.Errorf("error querying inventory: %w", err)
 	}
 	metrics, err := db.query(metricsQuery)
 	if err != nil {
-		return nil, nil, nil, fmt.Errorf("error querying metrics: %w", err)
+		return nil, nil, "", fmt.Errorf("error querying metrics: %w", err)
 	}
 
-	replicaQuery := getReplicaQuery(version)
-	replication, err := db.query(replicaQuery)
-	if err != nil {
+	replicaQuery := getReplicaQuery(dbVersion)
+	switch replication, err := db.query(replicaQuery); {
+	case err != nil:
 		log.Warn("Can't get node type, not enough privileges (must grant REPLICATION CLIENT)")
-	} else if len(replication) == 0 {
+	case len(replication) == 0:
 		metrics["node_type"] = "master"
-	} else {
+	default:
 		metrics["node_type"] = "slave"
-
 		for key := range replication {
 			metrics[key] = replication[key]
 		}
@@ -81,7 +92,7 @@ func getRawData(db dataSource) (map[string]interface{}, map[string]interface{}, 
 	metrics["version_comment"] = inventory["version_comment"]
 	metrics["version"] = inventory["version"]
 
-	return inventory, metrics, version, nil
+	return inventory, metrics, dbVersion, nil
 }
 
 func populateInventory(inventory *inventory.Inventory, rawData map[string]interface{}) {
@@ -93,32 +104,32 @@ func populateInventory(inventory *inventory.Inventory, rawData map[string]interf
 	}
 }
 
-func populateMetrics(sample *metric.Set, rawMetrics map[string]interface{}, version *semver.Version) {
-	defaultMetrics := getDefaultMetrics(version)
+func populateMetrics(sample *metric.Set, rawMetrics map[string]interface{}, dbVersion string) {
+	defaultMetrics := getDefaultMetrics(dbVersion)
 	if rawMetrics["node_type"] != "slave" {
 		delete(defaultMetrics, "cluster.slaveRunning")
 	}
-	populatePartialMetrics(sample, rawMetrics, defaultMetrics, version)
+	populatePartialMetrics(sample, rawMetrics, defaultMetrics, dbVersion)
 
 	if args.ExtendedMetrics {
-		extendedMetrics := getExtendedMetrics(version)
+		extendedMetrics := getExtendedMetrics(dbVersion)
 		if rawMetrics["node_type"] == "slave" {
-			slaveMetrics := getSlaveMetrics(version)
+			slaveMetrics := getSlaveMetrics(dbVersion)
 			for key := range slaveMetrics {
 				extendedMetrics[key] = slaveMetrics[key]
 			}
 		}
-		populatePartialMetrics(sample, rawMetrics, extendedMetrics, version)
+		populatePartialMetrics(sample, rawMetrics, extendedMetrics, dbVersion)
 	}
 	if args.ExtendedInnodbMetrics {
-		populatePartialMetrics(sample, rawMetrics, innodbMetrics, version)
+		populatePartialMetrics(sample, rawMetrics, innodbMetrics, dbVersion)
 	}
 	if args.ExtendedMyIsamMetrics {
-		populatePartialMetrics(sample, rawMetrics, myisamMetrics, version)
+		populatePartialMetrics(sample, rawMetrics, myisamMetrics, dbVersion)
 	}
-
 }
-func populatePartialMetrics(ms *metric.Set, metrics map[string]interface{}, metricsDefinition map[string][]interface{}, version *semver.Version) {
+
+func populatePartialMetrics(ms *metric.Set, metrics map[string]interface{}, metricsDefinition map[string][]interface{}, dbVersion string) {
 	for metricName, metricConf := range metricsDefinition {
 		rawSource := metricConf[0]
 		metricType := metricConf[1].(metric.SourceType)
@@ -131,8 +142,8 @@ func populatePartialMetrics(ms *metric.Set, metrics map[string]interface{}, metr
 			rawMetric, ok = metrics[source]
 		case func(map[string]interface{}) (float64, bool):
 			rawMetric, ok = source(metrics)
-		case func(map[string]interface{}, *semver.Version) (int, bool):
-			rawMetric, ok = source(metrics, version)
+		case func(map[string]interface{}, string) (int, bool):
+			rawMetric, ok = source(metrics, dbVersion)
 		default:
 			log.Warn("Invalid raw source metric for %s", metricName)
 			continue
@@ -152,35 +163,30 @@ func populatePartialMetrics(ms *metric.Set, metrics map[string]interface{}, metr
 	}
 }
 
-func collectVersion(db dataSource) (*semver.Version, error) {
-	versionQueryResult, err := db.query(versionQuery)
+func collectDBVersion(db dataSource) (string, error) {
+	versionQueryResult, err := db.query(dbVersionQuery)
 	if err != nil {
-		return nil, fmt.Errorf("error fetching version: %w", err)
+		return "", fmt.Errorf("error fetching dbVersion: %w", err)
 	}
 
 	if versionStr, exists := versionQueryResult["version"]; exists {
 		version := versionStr.(string)
 		log.Debug("Original MySQL Server version string: %s", version)
 
-		sanitizedVersion, err := extractSemver(version)
+		sanitizedVersion, err := extractSanitizedVersion(version)
 		if err != nil {
-			return nil, fmt.Errorf("error extracting version: %w", err)
+			return "", fmt.Errorf("error extracting version: %w", err)
 		}
 
-		semVersion, err := semver.ParseTolerant(sanitizedVersion)
-		if err != nil {
-			return nil, err
-		}
-
-		log.Debug("Parsed version as semver: %v", semVersion)
-		return &semVersion, nil
+		log.Debug("Parsed version as semver: %v", sanitizedVersion)
+		return sanitizedVersion, nil
 	} else {
-		return nil, fmt.Errorf("%w", errVersionNotFound)
+		return "", fmt.Errorf("%w", errVersionNotFound)
 	}
 }
 
-// extractSemver uses a regular expression to extract a semver-compliant version string up to major.minor.patch
-func extractSemver(version string) (string, error) {
+// extractSanitizedVersion uses a regular expression to extract a version string up to major.minor.patch
+func extractSanitizedVersion(version string) (string, error) {
 	reg := regexp.MustCompile(`^(?P<major>\d+)(?:\.(?P<minor>\d+))?(?:\.(?P<patch>\d+))?`)
 	matches := reg.FindStringSubmatch(version)
 

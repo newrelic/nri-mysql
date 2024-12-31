@@ -1,7 +1,6 @@
 package main
 
 import (
-	"github.com/blang/semver/v4"
 	"github.com/newrelic/infra-integrations-sdk/v3/data/metric"
 )
 
@@ -46,28 +45,23 @@ var defaultMetricsBase = map[string][]interface{}{
 	"software.edition":                            {"version_comment", metric.ATTRIBUTE},
 	"software.version":                            {"version", metric.ATTRIBUTE},
 	"cluster.nodeType":                            {"node_type", metric.ATTRIBUTE},
+	// If a cluster instance is not a slave, then the metric cluster.slaveRunning will be removed.
+	"cluster.slaveRunning": {slaveRunningAsNumber, metric.GAUGE},
 }
 
-var defaultMetrics560 = map[string][]interface{}{
+var defaultMetricsBelowVersion8 = map[string][]interface{}{
 	"db.qCacheFreeMemoryBytes":    {"Qcache_free_memory", metric.GAUGE},
 	"db.qCacheNotCachedPerSecond": {"Qcache_not_cached", metric.RATE},
 	"db.qCacheUtilization":        {qCacheUtilization, metric.GAUGE},
 	"db.qCacheHitRatio":           {qCacheHitRatio, metric.GAUGE},
-	// If a cluster instance is not a slave, then the metric cluster.slaveRunning will be removed.
-	"cluster.slaveRunning": {slaveRunningAsNumber, metric.GAUGE},
 }
 
-var defaultMetrics800 = map[string][]interface{}{
-	// If a cluster instance is not a slave, then the metric cluster.slaveRunning will be removed.
-	"cluster.slaveRunning": {slaveRunningAsNumber, metric.GAUGE},
-}
-
-func slaveRunningAsNumber(metrics map[string]interface{}, version *semver.Version) (int, bool) {
+func slaveRunningAsNumber(metrics map[string]interface{}, dbVersion string) (int, bool) {
 	var prefix string
-	if version.GE(semver.Version{Major: 8, Minor: 0, Patch: 0}) {
-		prefix = "Replica"
-	} else {
+	if isDBVersionLessThan8(dbVersion) {
 		prefix = "Slave"
+	} else {
+		prefix = "Replica"
 	}
 	slaveIORunning, okIO := metrics[prefix+"_IO_Running"].(string)
 	slaveSQLRunning, okSQL := metrics[prefix+"_SQL_Running"].(string)
@@ -87,7 +81,9 @@ func qCacheUtilization(metrics map[string]interface{}) (float64, bool) {
 
 	if qCacheTotalBlocks == 0 {
 		return 0, true
-	} else if ok1 && ok2 {
+	}
+
+	if ok1 && ok2 {
 		return 1 - (float64(qCacheFreeBlocks) / float64(qCacheTotalBlocks)), true
 	}
 	return 0, false
@@ -99,29 +95,17 @@ func qCacheHitRatio(metrics map[string]interface{}) (float64, bool) {
 
 	if queries == 0 {
 		return 0, true
-	} else if ok1 && ok2 {
+	}
+
+	if ok1 && ok2 {
 		return float64(qCacheHits) / float64(queries), true
 	}
 	return 0, false
 }
 
-var defaultMetricsVersionDefinitions = []VersionDefinition{
-	{
-		minVersion:        semver.MustParse("8.0.0"),
-		metricsDefinition: mergeMaps(defaultMetricsBase, defaultMetrics800),
-	},
-	{
-		minVersion:        semver.MustParse("5.6.0"),
-		metricsDefinition: mergeMaps(defaultMetricsBase, defaultMetrics560),
-	},
-}
-
-func getDefaultMetrics(version *semver.Version) map[string][]interface{} {
-	// Find the first version definition that's applicable
-	for _, versionDef := range defaultMetricsVersionDefinitions {
-		if version.GE(versionDef.minVersion) {
-			return versionDef.metricsDefinition
-		}
+func getDefaultMetrics(dbVersion string) map[string][]interface{} {
+	if isDBVersionLessThan8(dbVersion) {
+		return mergeMaps(defaultMetricsBase, defaultMetricsBelowVersion8)
 	}
 	return defaultMetricsBase
 }

@@ -1,7 +1,6 @@
 package main
 
 import (
-	"github.com/blang/semver/v4"
 	"github.com/newrelic/infra-integrations-sdk/v3/data/metric"
 )
 
@@ -33,7 +32,7 @@ var extendedMetricsBase = map[string][]interface{}{
 	"db.threadCacheMissRate":               {threadCacheMissRate, metric.GAUGE},
 }
 
-var extendedMetrics560 = map[string][]interface{}{
+var extendedMetricsBelowVersion8 = map[string][]interface{}{
 	"db.qCacheFreeBlocks":              {"Qcache_free_blocks", metric.GAUGE},
 	"db.qCacheHitsPerSecond":           {"Qcache_hits", metric.RATE},
 	"db.qCacheInserts":                 {"Qcache_inserts", metric.GAUGE},
@@ -55,23 +54,9 @@ func threadCacheMissRate(metrics map[string]interface{}) (float64, bool) {
 	return 0, false
 }
 
-var extendedMetricsVersionDefinitions = []VersionDefinition{
-	{
-		minVersion:        semver.MustParse("8.0.0"),
-		metricsDefinition: extendedMetricsBase,
-	},
-	{
-		minVersion:        semver.MustParse("5.6.0"),
-		metricsDefinition: mergeMaps(extendedMetricsBase, extendedMetrics560),
-	},
-}
-
-func getExtendedMetrics(version *semver.Version) map[string][]interface{} {
-	// Find the first version definition that's applicable
-	for _, versionDef := range extendedMetricsVersionDefinitions {
-		if version.GE(versionDef.minVersion) {
-			return versionDef.metricsDefinition
-		}
+func getExtendedMetrics(dbVersion string) map[string][]interface{} {
+	if isDBVersionLessThan8(dbVersion) {
+		return mergeMaps(extendedMetricsBase, extendedMetricsBelowVersion8)
 	}
 	return extendedMetricsBase
 }

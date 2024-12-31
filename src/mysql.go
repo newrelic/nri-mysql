@@ -117,7 +117,7 @@ func main() {
 	fatalIfErr(err)
 	defer db.close()
 
-	rawInventory, rawMetrics, version, err := getRawData(db)
+	rawInventory, rawMetrics, dbVersion, err := getRawData(db)
 	fatalIfErr(err)
 
 	if args.HasInventory() {
@@ -132,7 +132,7 @@ func main() {
 			args.Port,
 			args.RemoteMonitoring,
 		)
-		populateMetrics(ms, rawMetrics, version)
+		populateMetrics(ms, rawMetrics, dbVersion)
 	}
 
 	fatalIfErr(i.Publish())
