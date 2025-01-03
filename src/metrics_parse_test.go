@@ -77,3 +77,31 @@ func TestExtractSanitizedVersion(t *testing.T) {
 		})
 	}
 }
+
+func TestGetRawDataWithoutDBVersion(t *testing.T) {
+	database := testdb{
+		inventory: map[string]interface{}{
+			"key_cache_block_size": 10,
+			"key_buffer_size":      10,
+			"version_comment":      "mysql",
+			"version":              "5.7.0",
+		},
+		metrics: map[string]interface{}{},
+		replica: map[string]interface{}{},
+		version: map[string]interface{}{},
+	}
+	inventory, metrics, dbVersion, err := getRawData(database)
+	assert.Equal(t, "5.7.0", dbVersion)
+	if err != nil {
+		t.Error()
+	}
+	if metrics == nil {
+		t.Error()
+	}
+	if inventory == nil {
+		t.Error()
+	}
+	if dbVersion == "" {
+		t.Error()
+	}
+}

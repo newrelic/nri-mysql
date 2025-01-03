@@ -62,7 +62,9 @@ func asValue(value string) interface{} {
 func getRawData(db dataSource) (map[string]interface{}, map[string]interface{}, string, error) {
 	dbVersion, err := collectDBVersion(db)
 	if err != nil {
-		return nil, nil, "", fmt.Errorf("metrics collection failed: error collecting version number: %w", err)
+		log.Warn(err.Error())
+		log.Warn("Assuming the mysql version to be less than 8.0 and proceeding further")
+		dbVersion = "5.7.0"
 	}
 
 	inventory, err := db.query(inventoryQuery)
@@ -178,7 +180,7 @@ func collectDBVersion(db dataSource) (string, error) {
 			return "", fmt.Errorf("error extracting version: %w", err)
 		}
 
-		log.Debug("Parsed version as semver: %v", sanitizedVersion)
+		log.Debug("sanitized version: %v", sanitizedVersion)
 		return sanitizedVersion, nil
 	} else {
 		return "", fmt.Errorf("%w", errVersionNotFound)
