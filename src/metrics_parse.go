@@ -15,11 +15,16 @@ import (
 const (
 	inventoryQuery                  = "SHOW GLOBAL VARIABLES"
 	metricsQuery                    = "SHOW /*!50002 GLOBAL */ STATUS"
-	replicaQueryBelowVersion8       = "SHOW SLAVE STATUS"
-	replicaQueryForVersion8AndAbove = "SHOW REPLICA STATUS"
-	dbVersionQuery                  = "SELECT VERSION() as version;"
+	replicaQueryBelowVersion8Point4 = "SHOW SLAVE STATUS"
+	/*
+		From Mysql 8.4 SHOW SLAVE STATUS is removed and SHOW REPLICA STATUS should be used instead
+		Ref - https://dev.mysql.com/doc/relnotes/mysql/8.4/en/news-8-4-0.html#:~:text=SQL%20statements%20removed
+	*/
+	replicaQueryForVersion8Point4AndAbove = "SHOW REPLICA STATUS"
+	dbVersionQuery                        = "SELECT VERSION() as version;"
 
-	dbVersionThreshold = 8
+	dbMajorVersionThreshold = 8
+	dbMinorVersionThreshold = 4
 )
 
 var errVersionNotFound = errors.New("version not found in versionQueryResult")
@@ -30,17 +35,35 @@ func isDBVersionLessThan8(dbVersion string) bool {
 
 	majorVersion, err := strconv.Atoi(parts[0])
 	if err != nil {
+		log.Warn("Could not convert major version from str to int. Assuming to be less than version 8.4 and returning")
 		return true
 	}
 
-	return majorVersion < dbVersionThreshold
+	return majorVersion < dbMajorVersionThreshold
+}
+
+func isDBVersionLessThan8Point4(dbVersion string) bool {
+	parts := strings.Split(dbVersion, ".")
+
+	majorVersion, err := strconv.Atoi(parts[0])
+	if err != nil {
+		log.Warn("Could not convert major version from str to int. Assuming to be less than version 8.4 and returning")
+		return true
+	}
+
+	minorVersion, err := strconv.Atoi(parts[1])
+	if err != nil {
+		log.Warn("Could not convert minor version from str to int. Assuming to be less than version 8.4 and returning")
+		return true
+	}
+	return majorVersion < dbMajorVersionThreshold || (majorVersion == dbMajorVersionThreshold && minorVersion < dbMinorVersionThreshold)
 }
 
 func getReplicaQuery(dbVersion string) string {
-	if isDBVersionLessThan8(dbVersion) {
-		return replicaQueryBelowVersion8
+	if isDBVersionLessThan8Point4(dbVersion) {
+		return replicaQueryBelowVersion8Point4
 	}
-	return replicaQueryForVersion8AndAbove
+	return replicaQueryForVersion8Point4AndAbove
 }
 
 // Try to convert a string to its type or return the string if not possible
@@ -63,7 +86,7 @@ func getRawData(db dataSource) (map[string]interface{}, map[string]interface{}, 
 	dbVersion, err := collectDBVersion(db)
 	if err != nil {
 		log.Warn(err.Error())
-		log.Warn("Assuming the mysql version to be less than 8.0 and proceeding further")
+		log.Warn("Assuming the mysql version to be less than 8.4 and proceeding further")
 		dbVersion = "5.7.0"
 	}
 

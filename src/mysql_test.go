@@ -108,7 +108,7 @@ func (d testdb) query(query string) (map[string]interface{}, error) {
 	if query == metricsQuery {
 		return d.metrics, nil
 	}
-	if query == replicaQueryBelowVersion8 {
+	if query == replicaQueryBelowVersion8Point4 {
 		return d.replica, nil
 	}
 	if query == dbVersionQuery {

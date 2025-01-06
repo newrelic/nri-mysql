@@ -58,7 +58,7 @@ var defaultMetricsBelowVersion8 = map[string][]interface{}{
 
 func slaveRunningAsNumber(metrics map[string]interface{}, dbVersion string) (int, bool) {
 	var prefix string
-	if isDBVersionLessThan8(dbVersion) {
+	if isDBVersionLessThan8Point4(dbVersion) {
 		prefix = "Slave"
 	} else {
 		prefix = "Replica"

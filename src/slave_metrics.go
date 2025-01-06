@@ -12,7 +12,7 @@ var slaveMetricsBase = map[string][]interface{}{
 	"db.relayLogSpace":     {"Relay_Log_Space", metric.GAUGE},
 }
 
-var slaveMetricsBelowVersion8 = map[string][]interface{}{
+var slaveMetricsBelowVersion8Point4 = map[string][]interface{}{
 	"cluster.secondsBehindMaster": {"Seconds_Behind_Master", metric.GAUGE},
 	"cluster.slaveIORunning":      {"Slave_IO_Running", metric.ATTRIBUTE},
 	"cluster.slaveSQLRunning":     {"Slave_SQL_Running", metric.ATTRIBUTE},
@@ -23,7 +23,8 @@ var slaveMetricsBelowVersion8 = map[string][]interface{}{
 	"cluster.masterHost":          {"Master_Host", metric.ATTRIBUTE},
 }
 
-var slaveMetricsForVersion8AndAbove = map[string][]interface{}{
+// From Mysql 8.4 Master, Slave are renamed to Source, Replica - Ref https://dev.mysql.com/blog-archive/mysql-terminology-updates/
+var slaveMetricsForVersion8Point4AndAbove = map[string][]interface{}{
 	"cluster.secondsBehindMaster": {"Seconds_Behind_Source", metric.GAUGE},
 	"cluster.slaveIORunning":      {"Replica_IO_Running", metric.ATTRIBUTE},
 	"cluster.slaveSQLRunning":     {"Replica_SQL_Running", metric.ATTRIBUTE},
@@ -44,8 +45,8 @@ func mergeMaps(map1, map2 map[string][]interface{}) map[string][]interface{} {
 
 func getSlaveMetrics(dbVersion string) map[string][]interface{} {
 	// Find the first version definition that's applicable
-	if isDBVersionLessThan8(dbVersion) {
-		return mergeMaps(slaveMetricsBase, slaveMetricsBelowVersion8)
+	if isDBVersionLessThan8Point4(dbVersion) {
+		return mergeMaps(slaveMetricsBase, slaveMetricsBelowVersion8Point4)
 	}
-	return mergeMaps(slaveMetricsBase, slaveMetricsForVersion8AndAbove)
+	return mergeMaps(slaveMetricsBase, slaveMetricsForVersion8Point4AndAbove)
 }

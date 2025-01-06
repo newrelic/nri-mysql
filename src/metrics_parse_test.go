@@ -34,11 +34,12 @@ func TestGetReplicaQuery(t *testing.T) {
 		dbVersion string
 		expected  string
 	}{
-		{"5.6.0", replicaQueryBelowVersion8},
-		{"8.0.0", replicaQueryForVersion8AndAbove},
-		{"9.1.0", replicaQueryForVersion8AndAbove},
-		{"07.5", replicaQueryBelowVersion8},
-		{"18.5.2", replicaQueryForVersion8AndAbove},
+		{"5.6.0", replicaQueryBelowVersion8Point4},
+		{"8.0.40", replicaQueryBelowVersion8Point4},
+		{"8.4.0", replicaQueryForVersion8Point4AndAbove},
+		{"9.1.0", replicaQueryForVersion8Point4AndAbove},
+		{"07.5", replicaQueryBelowVersion8Point4},
+		{"18.5.2", replicaQueryForVersion8Point4AndAbove},
 	}
 
 	for _, test := range tests {
