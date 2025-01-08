@@ -34,7 +34,20 @@ integrations:
     # versus remote entities:
     # https://github.com/newrelic/infra-integrations-sdk/blob/master/docs/entity-definition.md
     REMOTE_MONITORING: true
-  interval: 30s
+    
+    # Enable query performance monitoring
+    ENABLE_QUERY_PERFORMANCE: true
+    # Fetch interval in seconds for grouped slow queries. Should match the interval in mysql-config.yml
+    SLOW_QUERY_FETCH_INTERVAL: 15
+    # Threshold in milliseconds for query response time to fetch individual query performance metrics.
+	  QUERY_RESPONSE_TIME_THRESHOLD: 500
+    # Query count limit for fetching grouped slow and individual query performance metrics.  
+    QUERY_COUNT_THRESHOLD: 20
+    # Example:
+    # EXCLUDED_DATABASES: '["employees","azure_sys"]'
+    # A JSON array that list databases that will be excluded from collection. system databases are excluded by default.
+    EXCLUDED_DATABASES: '[]'       
+  interval: 15s
   labels:
     env: production
     role: write-replica
