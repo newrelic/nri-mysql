@@ -5725,18 +5725,6 @@
                   "db.openedTablesPerSecond": {
                     "type": "number"
                   },
-                  "db.qCacheFreeMemoryBytes": {
-                    "type": "number"
-                  },
-                  "db.qCacheHitRatio": {
-                    "type": "number"
-                  },
-                  "db.qCacheNotCachedPerSecond": {
-                    "type": "number"
-                  },
-                  "db.qCacheUtilization": {
-                    "type": "number"
-                  },
                   "db.tablesLocksWaitedPerSecond": {
                     "type": "number"
                   },
@@ -5838,10 +5826,6 @@
                   "db.openFiles",
                   "db.openTables",
                   "db.openedTablesPerSecond",
-                  "db.qCacheFreeMemoryBytes",
-                  "db.qCacheHitRatio",
-                  "db.qCacheNotCachedPerSecond",
-                  "db.qCacheUtilization",
                   "db.tablesLocksWaitedPerSecond",
                   "event_type",
                   "net.abortedClientsPerSecond",

@@ -9,6 +9,10 @@ Unreleased section should follow [Release Toolkit](https://github.com/newrelic/r
 
 ## Unreleased
 
+### enhancements
+- Added Support for Mysql 8.4 and above
+- Removed qcache metrics for Mysql 8.0 and above
+
 ## v1.11.1 - 2024-12-09
 
 ### ⛓️ Dependencies

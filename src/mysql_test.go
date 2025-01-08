@@ -66,7 +66,8 @@ func TestPopulatePartialMetrics(t *testing.T) {
 	}
 
 	var ms = metric.NewSet("eventType", nil)
-	populatePartialMetrics(ms, rawMetrics, metricDefinition)
+	dbVersion := "5.6.0"
+	populatePartialMetrics(ms, rawMetrics, metricDefinition, dbVersion)
 
 	assert.Equal(t, 1., ms.Metrics["rawMetric1"])
 	assert.Equal(t, 2., ms.Metrics["rawMetric2"])
@@ -96,6 +97,7 @@ type testdb struct {
 	inventory map[string]interface{}
 	metrics   map[string]interface{}
 	replica   map[string]interface{}
+	version   map[string]interface{}
 }
 
 func (d testdb) close() {}
@@ -106,8 +108,11 @@ func (d testdb) query(query string) (map[string]interface{}, error) {
 	if query == metricsQuery {
 		return d.metrics, nil
 	}
-	if query == replicaQuery {
+	if query == replicaQueryBelowVersion8Point4 {
 		return d.replica, nil
+	}
+	if query == dbVersionQuery {
+		return d.version, nil
 	}
 	return nil, nil
 }
@@ -118,12 +123,15 @@ func TestGetRawData(t *testing.T) {
 			"key_cache_block_size": 10,
 			"key_buffer_size":      10,
 			"version_comment":      "mysql",
-			"version":              "5.4.3",
+			"version":              "5.6.3",
 		},
 		metrics: map[string]interface{}{},
 		replica: map[string]interface{}{},
+		version: map[string]interface{}{
+			"version": "5.6.3",
+		},
 	}
-	inventory, metrics, err := getRawData(database)
+	inventory, metrics, dbVersion, err := getRawData(database)
 	if err != nil {
 		t.Error()
 	}
@@ -131,6 +139,9 @@ func TestGetRawData(t *testing.T) {
 		t.Error()
 	}
 	if inventory == nil {
+		t.Error()
+	}
+	if dbVersion == "" {
 		t.Error()
 	}
 }
@@ -149,9 +160,10 @@ func TestPopulateMetricsWithZeroValuesInData(t *testing.T) {
 		"Key_buffer_size":      0,
 	}
 	ms := metric.NewSet("eventType", nil)
-	populatePartialMetrics(ms, rawMetrics, defaultMetrics)
-	populatePartialMetrics(ms, rawMetrics, extendedMetrics)
-	populatePartialMetrics(ms, rawMetrics, myisamMetrics)
+	dbVersion := "5.6.0"
+	populatePartialMetrics(ms, rawMetrics, getDefaultMetrics(dbVersion), dbVersion)
+	populatePartialMetrics(ms, rawMetrics, getExtendedMetrics(dbVersion), dbVersion)
+	populatePartialMetrics(ms, rawMetrics, myisamMetrics, dbVersion)
 
 	testMetrics := []string{"db.qCacheUtilization", "db.qCacheHitRatio", "db.threadCacheMissRate", "db.myisam.keyCacheUtilization"}
 
