@@ -119,7 +119,7 @@ func main() {
 		populateMetrics(ms, rawMetrics, dbVersion)
 	}
 	fatalIfErr(i.Publish())
-	// New functionality
+
 	if args.EnableQueryPerformance {
 		queryperformancemonitoring.PopulateQueryPerformanceMetrics(args, e, i)
 	}

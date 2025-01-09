@@ -31,10 +31,7 @@ func PopulateQueryPerformanceMetrics(args arguments.ArgumentList, e *integration
 	}
 
 	// Get the list of unique excluded databases
-	excludedDatabases, err := utils.GetExcludedDatabases(args.ExcludedDatabases)
-	if err != nil {
-		utils.FatalIfErr(fmt.Errorf("error unmarshaling json: %w", err))
-	}
+	excludedDatabases := utils.GetExcludedDatabases(args.ExcludedDatabases)
 
 	// Populate metrics for slow queries
 	start := time.Now()

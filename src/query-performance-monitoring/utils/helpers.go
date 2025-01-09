@@ -16,9 +16,6 @@ import (
 	constants "github.com/newrelic/nri-mysql/src/query-performance-monitoring/constants"
 )
 
-// Default excluded databases
-var defaultExcludedDatabases = []string{"", "mysql", "information_schema", "performance_schema", "sys"}
-
 // Dynamic error
 var (
 	ErrEssentialConsumerNotEnabled   = errors.New("essential consumer is not enabled")
@@ -76,7 +73,7 @@ func getUniqueExcludedDatabases(excludedDBList string) []string {
 	uniqueSchemas := make(map[string]struct{})
 
 	// Populate the map with default excluded databases
-	for _, schema := range defaultExcludedDatabases {
+	for _, schema := range constants.DefaultExcludedDatabases {
 		uniqueSchemas[schema] = struct{}{}
 	}
 
@@ -95,11 +92,11 @@ func getUniqueExcludedDatabases(excludedDBList string) []string {
 }
 
 // GetExcludedDatabases parses the excluded databases list from a JSON string and returns a list of unique excluded databases.
-func GetExcludedDatabases(excludedDatabasesList string) ([]string, error) {
+func GetExcludedDatabases(excludedDatabasesList string) []string {
 	// Parse the excluded databases list from JSON string
 	var excludedDatabasesSlice []string
 	if err := json.Unmarshal([]byte(excludedDatabasesList), &excludedDatabasesSlice); err != nil {
-		return nil, err
+		log.Warn("Error parsing excluded databases list: %v", err)
 	}
 
 	// Join the slice into a comma-separated string
@@ -110,13 +107,13 @@ func GetExcludedDatabases(excludedDatabasesList string) ([]string, error) {
 
 	// Get the list of unique excluded databases
 	if cachedDatabases, found := excludedDatabasesCache[excludedDatabasesStr]; found {
-		return cachedDatabases, nil
+		return cachedDatabases
 	}
 
 	excludedDatabases := getUniqueExcludedDatabases(excludedDatabasesStr)
 	excludedDatabasesCache[excludedDatabasesStr] = excludedDatabases
 
-	return excludedDatabases, nil
+	return excludedDatabases
 }
 
 // Helper function to convert a slice of strings to a slice of interfaces

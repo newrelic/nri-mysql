@@ -114,7 +114,7 @@ func extractMetricsFromJSONString(jsonString string, eventID uint64, threadID ui
 	return dbPerformanceEvents, nil
 }
 
-// extractMetrics recursively extracts metrics from a simplejson.Json object.
+// extractMetrics recursively retrieves metrics from the query plan.
 func extractMetrics(js *simplejson.Json, dbPerformanceEvents []utils.QueryPlanMetrics, eventID uint64, threadID uint64, memo utils.Memo, stepID *int) []utils.QueryPlanMetrics {
 	tableName, _ := js.Get("table_name").String()
 	queryCost, _ := js.Get("cost_info").Get("query_cost").String()
@@ -124,10 +124,17 @@ func extractMetrics(js *simplejson.Json, dbPerformanceEvents []utils.QueryPlanMe
 	filtered, _ := js.Get("filtered").String()
 	readCost, _ := js.Get("cost_info").Get("read_cost").String()
 	evalCost, _ := js.Get("cost_info").Get("eval_cost").String()
+	prefixCost, _ := js.Get("cost_info").Get("prefix_cost").String()
+	dataReadPerJoin, _ := js.Get("cost_info").Get("data_read_per_join").String()
+	usingIndex, _ := js.Get("using_index").Bool()
+	keyLength, _ := js.Get("key_length").String()
 	possibleKeysArray, _ := js.Get("possible_keys").StringArray()
 	key, _ := js.Get("key").String()
 	usedKeyPartsArray, _ := js.Get("used_key_parts").StringArray()
 	refArray, _ := js.Get("ref").StringArray()
+	insert, _ := js.Get("insert").Bool()
+	update, _ := js.Get("update").Bool()
+	delete, _ := js.Get("delete").Bool()
 
 	possibleKeys := strings.Join(possibleKeysArray, ",")
 	usedKeyParts := strings.Join(usedKeyPartsArray, ",")
@@ -154,6 +161,13 @@ func extractMetrics(js *simplejson.Json, dbPerformanceEvents []utils.QueryPlanMe
 			Key:                 key,
 			UsedKeyParts:        usedKeyParts,
 			Ref:                 ref,
+			PrefixCost:          prefixCost,
+			DataReadPerJoin:     dataReadPerJoin,
+			UsingIndex:          fmt.Sprintf("%t", usingIndex),
+			KeyLength:           keyLength,
+			InsertOperation:     fmt.Sprintf("%t", insert),
+			UpdateOperation:     fmt.Sprintf("%t", update),
+			DeleteOperation:     fmt.Sprintf("%t", delete),
 		})
 		*stepID++
 	}

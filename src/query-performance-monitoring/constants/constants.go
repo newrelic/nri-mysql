@@ -14,3 +14,6 @@ const (
 	IndividualQueryCountThreshold = 10
 	MinVersionParts               = 2
 )
+
+// Default excluded databases
+var DefaultExcludedDatabases = []string{"", "mysql", "information_schema", "performance_schema", "sys"}

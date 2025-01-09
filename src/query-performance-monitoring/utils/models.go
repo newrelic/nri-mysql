@@ -49,6 +49,13 @@ type QueryPlanMetrics struct {
 	Key                 string `json:"key" metric_name:"key" source_type:"attribute"`
 	UsedKeyParts        string `json:"used_key_parts" metric_name:"used_key_parts" source_type:"attribute"`
 	Ref                 string `json:"ref" metric_name:"ref" source_type:"attribute"`
+	PrefixCost          string `json:"prefix_cost" metric_name:"prefix_cost" source_type:"attribute"`
+	DataReadPerJoin     string `json:"data_read_per_join" metric_name:"data_read_per_join" source_type:"attribute"`
+	UsingIndex          string `json:"using_index" metric_name:"using_index" source_type:"attribute"`
+	KeyLength           string `json:"key_length" metric_name:"key_length" source_type:"attribute"`
+	UpdateOperation     string `json:"update" metric_name:"update_operation" source_type:"attribute"`
+	InsertOperation     string `json:"insert" metric_name:"insert_operation" source_type:"attribute"`
+	DeleteOperation     string `json:"delete" metric_name:"delete_operation" source_type:"attribute"`
 }
 
 type Memo struct {
@@ -75,13 +82,11 @@ type BlockingSessionMetrics struct {
 	BlockedQueryID       *string  `json:"blocked_query_id" db:"blocked_query_id" metric_name:"blocked_query_id" source_type:"attribute"`
 	BlockedQuery         *string  `json:"blocked_query" db:"blocked_query" metric_name:"blocked_query" source_type:"attribute"`
 	BlockedStatus        *string  `json:"blocked_status" db:"blocked_status" metric_name:"blocked_status" source_type:"attribute"`
-	BlockedUser          *string  `json:"blocked_user" db:"blocked_user" metric_name:"blocked_user" source_type:"attribute"`
 	BlockedHost          *string  `json:"blocked_host" db:"blocked_host" metric_name:"blocked_host" source_type:"attribute"`
 	BlockedDB            *string  `json:"database_name" db:"database_name" metric_name:"database_name" source_type:"attribute"`
 	BlockingTxnID        *string  `json:"blocking_txn_id" db:"blocking_txn_id" metric_name:"blocking_txn_id" source_type:"attribute"`
 	BlockingPID          *string  `json:"blocking_pid" db:"blocking_pid" metric_name:"blocking_pid" source_type:"attribute"`
 	BlockingThreadID     *int64   `json:"blocking_thread_id" db:"blocking_thread_id" metric_name:"blocking_thread_id" source_type:"gauge"`
-	BlockingUser         *string  `json:"blocking_user" db:"blocking_user" metric_name:"blocking_user" source_type:"attribute"`
 	BlockingHost         *string  `json:"blocking_host" db:"blocking_host" metric_name:"blocking_host" source_type:"attribute"`
 	BlockingQueryID      *string  `json:"blocking_query_id" db:"blocking_query_id" metric_name:"blocking_query_id" source_type:"attribute"`
 	BlockingQuery        *string  `json:"blocking_query" db:"blocking_query" metric_name:"blocking_query" source_type:"attribute"`
