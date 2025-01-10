@@ -51,8 +51,8 @@ func processExecutionPlanMetrics(db utils.DataSource, query utils.IndividualQuer
 	ctx, cancel := context.WithTimeout(context.Background(), constants.QueryPlanTimeoutDuration)
 	defer cancel()
 
-	if *query.QueryText == "" {
-		log.Warn("Query text is empty, skipping.")
+	if query.QueryText == nil || strings.TrimSpace(*query.QueryText) == "" {
+		log.Warn("Query text is empty or nil, skipping.")
 		return []utils.QueryPlanMetrics{}, nil
 	}
 	queryText := strings.TrimSpace(*query.QueryText)

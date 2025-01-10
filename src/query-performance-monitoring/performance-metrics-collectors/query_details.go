@@ -57,6 +57,10 @@ func collectGroupedSlowQueryMetrics(db utils.DataSource, slowQueryfetchInterval 
 		if err := rows.StructScan(&metric); err != nil {
 			return nil, []string{}, err
 		}
+		if metric.QueryID == nil {
+			log.Warn("Query ID is nil")
+			continue
+		}
 		qID = *metric.QueryID
 		qIDList = append(qIDList, qID)
 		metrics = append(metrics, metric)
@@ -127,6 +131,10 @@ func groupQueriesByDatabase(filteredList []utils.IndividualQueryMetrics) []utils
 	groupMap := make(map[string][]utils.IndividualQueryMetrics)
 
 	for _, query := range filteredList {
+		if query.DatabaseName == nil {
+			log.Warn("Database name is nil")
+			continue
+		}
 		groupMap[*query.DatabaseName] = append(groupMap[*query.DatabaseName], query)
 	}
 
