@@ -98,6 +98,46 @@ const (
 		LIMIT ?;
 	`
 	WaitEventsQuery = `
+		WITH wait_data AS (
+			SELECT DISTINCT
+				THREAD_ID,
+				OBJECT_INSTANCE_BEGIN AS instance_id,
+				EVENT_NAME AS wait_event_name,
+				TIMER_WAIT,
+				TIMER_START
+			FROM performance_schema.events_waits_current
+			UNION ALL
+			SELECT DISTINCT
+				THREAD_ID,
+				OBJECT_INSTANCE_BEGIN AS instance_id,
+				EVENT_NAME AS wait_event_name,
+				TIMER_WAIT,
+				TIMER_START
+			FROM performance_schema.events_waits_history
+		),
+		schema_data AS (
+			SELECT DISTINCT
+				THREAD_ID,
+				DIGEST,
+				CURRENT_SCHEMA AS database_name,
+				DIGEST_TEXT AS query_text,
+				ROUND(TIMER_WAIT / 1000000000, 3) AS execution_time_ms
+			FROM performance_schema.events_statements_current
+			WHERE CURRENT_SCHEMA NOT IN (?)
+			AND SQL_TEXT RLIKE '^(SELECT|INSERT|UPDATE|DELETE|WITH)'
+			AND DIGEST_TEXT NOT LIKE '%DIGEST_TEXT%'
+			UNION ALL
+			SELECT DISTINCT
+				THREAD_ID,
+				DIGEST,
+				CURRENT_SCHEMA AS database_name,
+				DIGEST_TEXT AS query_text,
+				ROUND(TIMER_WAIT / 1000000000, 3) AS execution_time_ms
+			FROM performance_schema.events_statements_history
+			WHERE CURRENT_SCHEMA NOT IN (?)
+			AND SQL_TEXT RLIKE '^(SELECT|INSERT|UPDATE|DELETE|WITH)'
+			AND DIGEST_TEXT NOT LIKE '%DIGEST_TEXT%'
+		)
 		SELECT
 			schema_data.DIGEST AS query_id,
 			wait_data.instance_id,
@@ -114,81 +154,24 @@ const (
 				WHEN wait_data.wait_event_name LIKE 'wait/lock/transaction/%' THEN 'Transaction Lock'
 				ELSE 'Other'
 			END AS wait_category,
-			ROUND(IFNULL(SUM(wait_data.TIMER_WAIT), 0) / 1000000000, 3) AS total_wait_time_ms,
-			SUM(ewsg.COUNT_STAR) AS wait_event_count,
-			ROUND((IFNULL(SUM(wait_data.TIMER_WAIT), 0) / 1000000000) / IFNULL(SUM(ewsg.COUNT_STAR), 1), 3) AS avg_wait_time_ms,
+			ROUND(SUM(wait_data.TIMER_WAIT) / 1000000000, 3) AS total_wait_time_ms,
+			COUNT(DISTINCT wait_data.instance_id) AS wait_event_count,
+			ROUND(SUM(wait_data.TIMER_WAIT) / 1000000000 / COUNT(DISTINCT wait_data.instance_id), 3) AS avg_wait_time_ms,
 			CASE
 				WHEN CHAR_LENGTH(schema_data.query_text) > 4000 THEN CONCAT(LEFT(schema_data.query_text, 3997), '...')
 				ELSE schema_data.query_text
 			END AS query_text,
 			DATE_FORMAT(UTC_TIMESTAMP(), '%Y-%m-%dT%H:%i:%sZ') AS collection_timestamp
-		FROM (
-			SELECT 
-				THREAD_ID,
-				OBJECT_INSTANCE_BEGIN AS instance_id,
-				EVENT_NAME AS wait_event_name,
-				TIMER_WAIT
-			FROM performance_schema.events_waits_history_long
-			UNION ALL
-			SELECT 
-				THREAD_ID,
-				OBJECT_INSTANCE_BEGIN AS instance_id,
-				EVENT_NAME AS wait_event_name,
-				TIMER_WAIT
-			FROM performance_schema.events_waits_history
-			UNION ALL
-			SELECT 
-				THREAD_ID,
-				OBJECT_INSTANCE_BEGIN AS instance_id,
-				EVENT_NAME AS wait_event_name,
-				TIMER_WAIT
-			FROM performance_schema.events_waits_current
-		) AS wait_data
-		JOIN (
-			SELECT 
-				THREAD_ID,
-				DIGEST,
-				CURRENT_SCHEMA AS database_name,
-				DIGEST_TEXT AS query_text
-			FROM performance_schema.events_statements_history_long
-			WHERE CURRENT_SCHEMA IS NOT NULL
-				AND CURRENT_SCHEMA NOT IN (?)
-				AND SQL_TEXT RLIKE '^(SELECT|INSERT|UPDATE|DELETE|WITH)'
-				AND SQL_TEXT NOT LIKE '%DIGEST_TEXT%'
-			UNION ALL
-			SELECT 
-				THREAD_ID,
-				DIGEST,
-				CURRENT_SCHEMA AS database_name,
-				DIGEST_TEXT AS query_text
-			FROM performance_schema.events_statements_history
-			WHERE CURRENT_SCHEMA IS NOT NULL
-				AND CURRENT_SCHEMA NOT IN (?)
-				AND SQL_TEXT RLIKE '^(SELECT|INSERT|UPDATE|DELETE|WITH)'
-				AND SQL_TEXT NOT LIKE '%DIGEST_TEXT%'
-			UNION ALL
-			SELECT 
-				THREAD_ID,
-				DIGEST,
-				CURRENT_SCHEMA AS database_name,
-				DIGEST_TEXT AS query_text
-			FROM performance_schema.events_statements_current
-			WHERE CURRENT_SCHEMA IS NOT NULL
-				AND CURRENT_SCHEMA NOT IN (?)
-				AND SQL_TEXT RLIKE '^(SELECT|INSERT|UPDATE|DELETE|WITH)'
-				AND SQL_TEXT NOT LIKE '%DIGEST_TEXT%'
-		) AS schema_data
-		ON wait_data.THREAD_ID = schema_data.THREAD_ID
-		LEFT JOIN performance_schema.events_waits_summary_global_by_event_name ewsg
-		ON ewsg.EVENT_NAME = wait_data.wait_event_name
+		FROM wait_data
+		JOIN schema_data ON wait_data.THREAD_ID = schema_data.THREAD_ID
 		GROUP BY
 			query_id,
 			wait_data.instance_id,
+			schema_data.database_name,
 			wait_data.wait_event_name,
 			wait_category,
-			schema_data.database_name,
 			schema_data.query_text
-		ORDER BY 
+		ORDER BY
 			total_wait_time_ms DESC
 		LIMIT ?;
 	`
