@@ -17,15 +17,16 @@ type SlowQueryMetrics struct {
 }
 
 type IndividualQueryMetrics struct {
-	QueryID             *string  `json:"query_id" db:"query_id" metric_name:"query_id" source_type:"attribute"`
-	AnonymizedQueryText *string  `json:"query_text" db:"query_text" metric_name:"query_text" source_type:"attribute"`
-	QueryText           *string  `json:"query_sample_text" db:"query_sample_text" metric_name:"query_sample_text" source_type:"attribute"`
-	EventID             *uint64  `json:"event_id" db:"event_id" metric_name:"event_id" source_type:"gauge"`
-	ThreadID            *uint64  `json:"thread_id" db:"thread_id" metric_name:"thread_id" source_type:"gauge"`
-	ExecutionTimeMs     *float64 `json:"execution_time_ms" db:"execution_time_ms" metric_name:"execution_time_ms" source_type:"gauge"`
-	RowsSent            *int64   `json:"rows_sent" db:"rows_sent" metric_name:"rows_sent" source_type:"gauge"`
-	RowsExamined        *int64   `json:"rows_examined" db:"rows_examined" metric_name:"rows_examined" source_type:"gauge"`
-	DatabaseName        *string  `json:"database_name" db:"database_name" metric_name:"database_name" source_type:"attribute"`
+	QueryID             *string `json:"query_id" db:"query_id" metric_name:"query_id" source_type:"attribute"`
+	AnonymizedQueryText *string `json:"query_text" db:"query_text" metric_name:"query_text" source_type:"attribute"`
+	// QueryText is used only for fetching query execution plan and not ingested to New Relic
+	QueryText       *string  `json:"query_sample_text" db:"query_sample_text" metric_name:"query_sample_text" source_type:"attribute"`
+	EventID         *uint64  `json:"event_id" db:"event_id" metric_name:"event_id" source_type:"gauge"`
+	ThreadID        *uint64  `json:"thread_id" db:"thread_id" metric_name:"thread_id" source_type:"gauge"`
+	ExecutionTimeMs *float64 `json:"execution_time_ms" db:"execution_time_ms" metric_name:"execution_time_ms" source_type:"gauge"`
+	RowsSent        *int64   `json:"rows_sent" db:"rows_sent" metric_name:"rows_sent" source_type:"gauge"`
+	RowsExamined    *int64   `json:"rows_examined" db:"rows_examined" metric_name:"rows_examined" source_type:"gauge"`
+	DatabaseName    *string  `json:"database_name" db:"database_name" metric_name:"database_name" source_type:"attribute"`
 }
 
 type QueryGroup struct {
