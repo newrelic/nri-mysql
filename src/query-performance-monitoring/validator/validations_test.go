@@ -28,7 +28,7 @@ func (m *mockDataSource) QueryxContext(ctx context.Context, query string, args .
 
 var errQuery = errors.New("query failed")
 
-func TestCheckEssentialInstruments_AllEnabledAndTimed(t *testing.T) {
+func TestCheckEssentialInstruments_AllEnabled(t *testing.T) {
 	rows := sqlmock.NewRows([]string{"NAME", "ENABLED"}).
 		AddRow("wait/synch/mutex/sql/LOCK_plugin", "YES").
 		AddRow("statement/sql/select", "YES").
@@ -42,7 +42,7 @@ func TestCheckEssentialInstruments_AllEnabledAndTimed(t *testing.T) {
 	sqlxDB := sqlx.NewDb(db, "sqlmock")
 	mockDataSource := &mockDataSource{db: sqlxDB}
 
-	mock.ExpectQuery("SELECT NAME, ENABLED, TIMED FROM performance_schema.setup_instruments WHERE NAME LIKE 'wait/%' OR NAME LIKE 'statement/%' OR NAME LIKE '%lock%';").WillReturnRows(rows)
+	mock.ExpectQuery("SELECT NAME, ENABLED FROM performance_schema.setup_instruments WHERE NAME LIKE 'wait/%' OR NAME LIKE 'statement/%' OR NAME LIKE '%lock%';").WillReturnRows(rows)
 	err = checkEssentialInstruments(mockDataSource)
 	assert.NoError(t, err)
 }
