@@ -234,7 +234,7 @@ func buildInstrumentQuery() string {
 	}
 
 	// Build the query to check the status of essential instruments
-	query := "SELECT NAME, ENABLED, TIMED FROM performance_schema.setup_instruments WHERE "
+	query := "SELECT NAME, ENABLED FROM performance_schema.setup_instruments WHERE "
 	query += strings.Join(instrumentConditions, " OR ")
 	query += ";"
 
