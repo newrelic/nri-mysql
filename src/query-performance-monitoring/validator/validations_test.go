@@ -179,15 +179,12 @@ func TestIsVersion8OrGreater(t *testing.T) {
 }
 
 func TestParseVersion(t *testing.T) {
-	major, minor := parseVersion("8.0.23")
+	major := parseVersion("8.0.23")
 	assert.Equal(t, 8, major)
-	assert.Equal(t, 0, minor)
 
-	major, minor = parseVersion("5.7.31")
+	major = parseVersion("5.7.31")
 	assert.Equal(t, 5, major)
-	assert.Equal(t, 7, minor)
 
-	major, minor = parseVersion("invalid.version")
+	major = parseVersion("invalid.version")
 	assert.Equal(t, 0, major)
-	assert.Equal(t, 0, minor)
 }
