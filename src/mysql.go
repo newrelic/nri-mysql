@@ -66,7 +66,7 @@ func main() {
 	e, err := createNodeEntity(i, args.RemoteMonitoring, args.Hostname, args.Port)
 	fatalIfErr(err)
 
-	db, err := openDB(utils.GenerateDSN(args, database))
+	db, err := openSQLDB(utils.GenerateDSN(args, database))
 	fatalIfErr(err)
 	defer db.close()
 

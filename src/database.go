@@ -17,7 +17,10 @@ type database struct {
 	source *sql.DB
 }
 
-func openDB(dsn string) (dataSource, error) {
+// openSQLDB function creates and returns a connection using the database/sql package for basic SQL database interactions.
+// It provides methods like Query, QueryRow, Exec, etc., that facilitate executing SQL queries and commands.
+// This package is well-suited for applications needing standard SQL database operations.
+func openSQLDB(dsn string) (dataSource, error) {
 	source, err := sql.Open("mysql", dsn)
 	if err != nil {
 		return nil, fmt.Errorf("error opening %s: %v", dsn, err)

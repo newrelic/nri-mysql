@@ -19,7 +19,7 @@ func PopulateQueryPerformanceMetrics(args arguments.ArgumentList, e *integration
 	dsn := utils.GenerateDSN(args, database)
 
 	// Open database connection
-	db, err := utils.OpenDB(dsn)
+	db, err := utils.OpenSQLXDB(dsn)
 	if err != nil {
 		log.Error("Error opening database connection: %v", err)
 		return

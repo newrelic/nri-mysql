@@ -22,7 +22,7 @@ func PopulateExecutionPlans(db utils.DataSource, queryGroups []utils.QueryGroup,
 	for _, group := range queryGroups {
 		dsn := utils.GenerateDSN(args, group.Database)
 		// Open the DB connection
-		db, err := utils.OpenDB(dsn)
+		db, err := utils.OpenSQLXDB(dsn)
 		if err != nil {
 			log.Error("Error opening database connection: %v", err)
 			continue

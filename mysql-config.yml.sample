@@ -40,7 +40,7 @@ integrations:
     role: write-replica
   inventory_source: config/mysql
 
-# Example configuration for enabling performance monitoring only
+# Example configuration for enabling performance monitoring
 - name: nri-mysql
   env:
     HOSTNAME: localhost
