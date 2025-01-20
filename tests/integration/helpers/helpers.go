@@ -6,12 +6,14 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/bitly/go-simplejson"
 	"github.com/sirupsen/logrus"
+	"github.com/stretchr/testify/assert"
 	"github.com/xeipuuv/gojsonschema"
 )
 
@@ -216,4 +218,42 @@ func WaitForPort(fromContainer, host string, port int, timeout time.Duration) er
 	}
 
 	return fmt.Errorf("address %s:%d is not reachable after %v: %v", host, port, timeout, err)
+}
+
+// AssertReceivedErrors check if at least one the log lines provided contains the given message.
+func AssertReceivedErrors(t *testing.T, msg string, errLog ...string) {
+	assert.GreaterOrEqual(t, len(errLog), 1)
+
+	for _, line := range errLog {
+		if strings.Contains(line, msg) {
+			return
+		}
+	}
+
+	assert.Failf(t, fmt.Sprintf("Expected to find the following error message: %s", msg), "but got %s", errLog)
+}
+
+func RunIntegrationAndGetStdout(t *testing.T, binPath *string, user *string, psw *string, port *int, slowQueryFetchInterval *int, container *string, targetContainer string, envVars []string) (string, string, error) {
+	t.Helper()
+
+	command := make([]string, 0)
+	command = append(command, *binPath)
+	if user != nil {
+		command = append(command, "-username="+*user)
+	}
+	if psw != nil {
+		command = append(command, "-password="+*psw)
+	}
+	if targetContainer != "" {
+		command = append(command, "-hostname="+targetContainer)
+	}
+	if port != nil {
+		command = append(command, "-port="+strconv.Itoa(*port))
+	}
+	if slowQueryFetchInterval != nil {
+		command = append(command, "-slow_query_fetch_interval="+strconv.Itoa(*slowQueryFetchInterval))
+	}
+	stdout, stderr, err := ExecInContainer(*container, command, envVars...)
+
+	return stdout, stderr, err
 }

@@ -1,0 +1,42 @@
+# Use root/example as user/password credentials
+version: '3.1'
+
+services:
+  mysql_perf_8-0-40:
+    container_name: "mysql_perf_8-0-40"
+    restart: always
+    environment:
+      MYSQL_ALLOW_EMPTY_PASSWORD: true
+    build:
+      context: ../../
+      dockerfile: tests/integration/mysql-performance-config/versions/8.0.40/Dockerfile
+    links:
+      - nri-mysql-perf
+
+  mysql_perf_8-4-0:
+    container_name: "mysql_perf_8-4-0"
+    restart: always
+    environment:
+      MYSQL_ALLOW_EMPTY_PASSWORD: true
+    build:
+      context: ../../
+      dockerfile: tests/integration/mysql-performance-config/versions/8.4.0/Dockerfile
+    links:
+      - nri-mysql-perf
+
+  mysql_perf_latest-supported:
+    container_name: "mysql_perf_latest-supported"
+    restart: always
+    environment:
+      MYSQL_ALLOW_EMPTY_PASSWORD: true
+    build:
+      context: ../../
+      dockerfile: tests/integration/mysql-performance-config/versions/9.1.0/Dockerfile
+    links:
+      - nri-mysql-perf
+
+  nri-mysql-perf:
+    container_name: integration_nri-mysql_perf_1
+    build:
+      context: ../../
+      dockerfile: tests/integration/Dockerfile

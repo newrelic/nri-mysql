@@ -28,8 +28,11 @@ test:
 integration-test:
 	@echo "=== $(INTEGRATION) === [ test ]: running integration tests..."
 	@docker compose -f tests/integration/docker-compose.yml up -d --build
-	@go test -tags=integration ./tests/integration/. || (ret=$$?; docker compose -f tests/integration/docker-compose.yml down && exit $$ret)
-	@docker compose -f tests/integration/docker-compose.yml down
+	@go test -tags=integration ./tests/integration/integration_test.go || (ret=$$?; docker compose -f tests/integration/docker-compose.yml down -v && exit $$ret)
+	@docker compose -f tests/integration/docker-compose.yml down -v
+	@docker compose -f tests/integration/docker-compose-performance.yml up -d --build
+	@go test -tags=integration_performance_metrics ./tests/integration/performance_integration_test.go || (ret=$$?; docker compose -f tests/integration/docker-compose-performance.yml down -v && exit $$ret)
+	@docker compose -f tests/integration/docker-compose-performance.yml down -v
 
 install: bin/$(BINARY_NAME)
 	@echo "=== $(INTEGRATION) === [ install ]: installing bin/$(BINARY_NAME)..."
