@@ -125,7 +125,7 @@ func checkEssentialInstruments(db utils.DataSource) error {
 		if err := rows.Scan(&name, &enabled, &timed); err != nil {
 			return fmt.Errorf("failed to scan instrument row: %w", err)
 		}
-		if enabled != "YES" || (timed.Valid && timed.String != "YES") {
+		if enabled != "YES" {
 			log.Error("Essential instrument %s is not fully enabled. To enable it, run: UPDATE performance_schema.setup_instruments SET ENABLED = 'YES', TIMED = 'YES' WHERE NAME = '%s';", name, name)
 			return fmt.Errorf("%w: %s", utils.ErrEssentialInstrumentNotEnabled, name)
 		}
