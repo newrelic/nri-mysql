@@ -1,7 +1,6 @@
 package queryperformancemonitoring
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/newrelic/infra-integrations-sdk/v3/integration"
@@ -21,13 +20,17 @@ func PopulateQueryPerformanceMetrics(args arguments.ArgumentList, e *integration
 
 	// Open database connection
 	db, err := utils.OpenDB(dsn)
-	utils.FatalIfErr(err)
+	if err != nil {
+		log.Error("Error opening database connection: %v", err)
+		return
+	}
 	defer db.Close()
 
 	// Validate preconditions before proceeding
 	preValidationErr := validator.ValidatePreconditions(db)
 	if preValidationErr != nil {
-		utils.FatalIfErr(fmt.Errorf("preconditions failed: %w", preValidationErr))
+		log.Error("preconditions failed: %v", preValidationErr)
+		return
 	}
 
 	// Get the list of unique excluded databases

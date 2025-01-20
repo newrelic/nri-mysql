@@ -143,24 +143,13 @@ func logEnablePerformanceSchemaInstructions(db utils.DataSource) {
 	version, err := getMySQLVersion(db)
 	if err != nil {
 		log.Error("Failed to get MySQL version: %v", err)
-		utils.FatalIfErr(err)
 	}
 
 	if isVersion8OrGreater(version) {
 		log.Debug("To enable the Performance Schema, add the following lines to your MySQL configuration file (my.cnf or my.ini) in the [mysqld] section and restart the MySQL server:")
 		log.Debug("performance_schema=ON")
-
-		log.Debug("For MySQL 8.0 and higher, you may also need to set the following variables:")
-		log.Debug("performance_schema_instrument='%%=ON'")
-		log.Debug("performance_schema_consumer_events_statements_current=ON")
-		log.Debug("performance_schema_consumer_events_statements_history=ON")
-		log.Debug("performance_schema_consumer_events_statements_history_long=ON")
-		log.Debug("performance_schema_consumer_events_waits_current=ON")
-		log.Debug("performance_schema_consumer_events_waits_history=ON")
-		log.Debug("performance_schema_consumer_events_waits_history_long=ON")
 	} else {
 		log.Error("MySQL version %s is not supported. Only version 8.0+ is supported.", version)
-		utils.FatalIfErr(ErrMysqlVersion)
 	}
 }
 

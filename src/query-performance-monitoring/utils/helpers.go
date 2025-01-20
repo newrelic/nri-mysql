@@ -157,12 +157,6 @@ func ConvertToInterfaceSlice(slice []string) []interface{} {
 	return result
 }
 
-func FatalIfErr(err error) {
-	if err != nil {
-		log.Fatal(err)
-	}
-}
-
 // SetMetric sets a metric in the given metric set.
 func SetMetric(metricSet *metric.Set, name string, value interface{}, sourceType string) {
 	switch sourceType {

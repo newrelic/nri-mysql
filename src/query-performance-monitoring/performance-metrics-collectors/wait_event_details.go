@@ -18,12 +18,14 @@ func PopulateWaitEventMetrics(db utils.DataSource, i *integration.Integration, a
 	preparedQuery, preparedArgs, err := sqlx.In(utils.WaitEventsQuery, excludedDatabasesArgs...)
 	if err != nil {
 		log.Error("Failed to prepare wait event query: %v", err)
+		return
 	}
 
 	// Collect the wait event metrics
 	metrics, err := utils.CollectMetrics[utils.WaitEventQueryMetrics](db, preparedQuery, preparedArgs...)
 	if err != nil {
 		log.Error("Error collecting wait event metrics: %v", err)
+		return
 	}
 
 	// Return if no metrics are collected
@@ -34,6 +36,7 @@ func PopulateWaitEventMetrics(db utils.DataSource, i *integration.Integration, a
 	err = setWaitEventMetrics(i, args, metrics)
 	if err != nil {
 		log.Error("Error setting wait event metrics: %v", err)
+		return
 	}
 }
 

@@ -23,13 +23,17 @@ func PopulateExecutionPlans(db utils.DataSource, queryGroups []utils.QueryGroup,
 		dsn := utils.GenerateDSN(args, group.Database)
 		// Open the DB connection
 		db, err := utils.OpenDB(dsn)
-		utils.FatalIfErr(err)
+		if err != nil {
+			log.Error("Error opening database connection: %v", err)
+			continue
+		}
 		defer db.Close()
 
 		for _, query := range group.Queries {
 			tableIngestionDataList, err := processExecutionPlanMetrics(db, query)
 			if err != nil {
 				log.Error("Error processing execution plan metrics: %v", err)
+				continue
 			}
 			events = append(events, tableIngestionDataList...)
 		}
@@ -43,6 +47,7 @@ func PopulateExecutionPlans(db utils.DataSource, queryGroups []utils.QueryGroup,
 	err := SetExecutionPlanMetrics(i, args, events)
 	if err != nil {
 		log.Error("Error publishing execution plan metrics: %v", err)
+		return
 	}
 }
 

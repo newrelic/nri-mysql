@@ -15,12 +15,14 @@ func PopulateBlockingSessionMetrics(db utils.DataSource, i *integration.Integrat
 	query, inputArgs, err := sqlx.In(utils.BlockingSessionsQuery, excludedDatabases, min(args.QueryCountThreshold, constants.MaxQueryCountThreshold))
 	if err != nil {
 		log.Error("Failed to prepare blocking sessions query: %v", err)
+		return
 	}
 
 	// Collect the blocking session metrics
 	metrics, err := utils.CollectMetrics[utils.BlockingSessionMetrics](db, query, inputArgs...)
 	if err != nil {
 		log.Error("Error collecting blocking session metrics: %v", err)
+		return
 	}
 
 	// Return if no metrics are collected
@@ -32,6 +34,7 @@ func PopulateBlockingSessionMetrics(db utils.DataSource, i *integration.Integrat
 	err = setBlockingQueryMetrics(metrics, i, args)
 	if err != nil {
 		log.Error("Error setting blocking session metrics: %v", err)
+		return
 	}
 }
 

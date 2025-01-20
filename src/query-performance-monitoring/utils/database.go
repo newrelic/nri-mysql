@@ -6,7 +6,6 @@ import (
 
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/jmoiron/sqlx"
-	"github.com/newrelic/infra-integrations-sdk/v3/log"
 	constants "github.com/newrelic/nri-mysql/src/query-performance-monitoring/constants"
 )
 
@@ -43,14 +42,7 @@ func (db *Database) Close() {
 
 func (db *Database) QueryX(query string) (*sqlx.Rows, error) {
 	rows, err := db.source.Queryx(query)
-	fatalIfErr(err)
 	return rows, err
-}
-
-func fatalIfErr(err error) {
-	if err != nil {
-		log.Fatal(err)
-	}
 }
 
 // QueryxContext method implementation
