@@ -55,7 +55,6 @@ func TestPopulateWaitEventMetrics(t *testing.T) {
 	dataSource := &DataSource{DB: sqlxDB}
 	i, err := integration.New("test-integration", "1.0.0")
 	require.NoError(t, err)
-	e := i.LocalEntity()
 	args := args.ArgumentList{QueryCountThreshold: 10, QueryResponseTimeThreshold: 10}
 	excludedDatabases := []string{"mysql", "information_schema"}
 
@@ -77,7 +76,7 @@ func TestPopulateWaitEventMetrics(t *testing.T) {
 	))
 
 	// Call the function under test
-	PopulateWaitEventMetrics(dataSource, i, e, args, excludedDatabases)
+	PopulateWaitEventMetrics(dataSource, i, args, excludedDatabases)
 	assert.NoError(t, err)
 
 	// Verify that all expectations were met

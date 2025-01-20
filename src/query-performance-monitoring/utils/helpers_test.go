@@ -2,6 +2,7 @@ package utils
 
 import (
 	"errors"
+	"strings"
 	"testing"
 
 	"github.com/newrelic/infra-integrations-sdk/v3/integration"
@@ -253,7 +254,11 @@ func TestGetUniqueExcludedDatabases(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := getUniqueExcludedDatabases(tt.excludedDBList)
+			excludedDBList := strings.Split(tt.excludedDBList, ",")
+			for i := range excludedDBList {
+				excludedDBList[i] = strings.TrimSpace(excludedDBList[i])
+			}
+			result := getUniqueExcludedDatabases(excludedDBList)
 			assert.ElementsMatch(t, tt.expectedDatabases, result)
 		})
 	}

@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net"
+	"net/url"
 	"reflect"
 	"strconv"
 	"strings"
@@ -23,6 +25,44 @@ var (
 	ErrMySQLVersion                  = errors.New("failed to determine MySQL version")
 	ErrModelIsNotValid               = errors.New("model is not a valid struct")
 )
+
+func GenerateDSN(args arguments.ArgumentList, database string) string {
+	query := url.Values{}
+	if args.OldPasswords {
+		query.Add("allowOldPasswords", "true")
+	}
+	if args.EnableTLS {
+		query.Add("tls", "true")
+	}
+	if args.InsecureSkipVerify {
+		query.Add("tls", "skip-verify")
+	}
+	extraArgsMap, err := url.ParseQuery(args.ExtraConnectionURLArgs)
+	if err == nil {
+		for k, v := range extraArgsMap {
+			query.Add(k, v[0])
+		}
+	} else {
+		log.Warn("Could not successfully parse ExtraConnectionURLArgs.", err.Error())
+	}
+	if args.Socket != "" {
+		log.Debug("Socket parameter is defined, ignoring host and port parameters")
+		return fmt.Sprintf("%s:%s@unix(%s)/%s?%s", args.Username, args.Password, args.Socket, determineDatabase(args, database), query.Encode())
+	}
+
+	// Convert hostname and port to DSN address format
+	mysqlURL := net.JoinHostPort(args.Hostname, strconv.Itoa(args.Port))
+
+	return fmt.Sprintf("%s:%s@tcp(%s)/%s?%s", args.Username, args.Password, mysqlURL, determineDatabase(args, database), query.Encode())
+}
+
+// determineDatabase determines which database name to use for the DSN.
+func determineDatabase(args arguments.ArgumentList, database string) string {
+	if database != "" {
+		return database
+	}
+	return args.Database
+}
 
 func CreateNodeEntity(
 	i *integration.Integration,
@@ -68,24 +108,27 @@ func PrintMetricSet(ms *metric.Set) {
 	}
 }
 
-func getUniqueExcludedDatabases(excludedDBList string) []string {
-	// Create a map to store unique schemas
-	uniqueSchemas := make(map[string]struct{})
+func getUniqueExcludedDatabases(excludedDBList []string) []string {
+	// Create a map to store unique databases
+	uniqueDatabases := make(map[string]struct{})
 
 	// Populate the map with default excluded databases
-	for _, schema := range constants.DefaultExcludedDatabases {
-		uniqueSchemas[schema] = struct{}{}
+	for _, dbName := range constants.DefaultExcludedDatabases {
+		uniqueDatabases[dbName] = struct{}{}
 	}
 
 	// Populate the map with values from excludedDBList
-	for _, schema := range strings.Split(excludedDBList, ",") {
-		uniqueSchemas[strings.TrimSpace(schema)] = struct{}{}
+	for _, dbName := range excludedDBList {
+		trimmedDBName := strings.TrimSpace(dbName)
+		if trimmedDBName != "" {
+			uniqueDatabases[trimmedDBName] = struct{}{}
+		}
 	}
 
 	// Convert the map keys back into a slice
-	result := make([]string, 0, len(uniqueSchemas))
-	for schema := range uniqueSchemas {
-		result = append(result, schema)
+	result := make([]string, 0, len(uniqueDatabases))
+	for dbName := range uniqueDatabases {
+		result = append(result, dbName)
 	}
 
 	return result
@@ -99,19 +142,8 @@ func GetExcludedDatabases(excludedDatabasesList string) []string {
 		log.Warn("Error parsing excluded databases list: %v", err)
 	}
 
-	// Join the slice into a comma-separated string
-	excludedDatabasesStr := strings.Join(excludedDatabasesSlice, ",")
-
-	// Assuming you have a map to store the results
-	var excludedDatabasesCache = make(map[string][]string)
-
-	// Get the list of unique excluded databases
-	if cachedDatabases, found := excludedDatabasesCache[excludedDatabasesStr]; found {
-		return cachedDatabases
-	}
-
-	excludedDatabases := getUniqueExcludedDatabases(excludedDatabasesStr)
-	excludedDatabasesCache[excludedDatabasesStr] = excludedDatabases
+	// Get unique excluded databases
+	excludedDatabases := getUniqueExcludedDatabases(excludedDatabasesSlice)
 
 	return excludedDatabases
 }

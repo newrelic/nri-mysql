@@ -1,6 +1,10 @@
 package utils
 
 const (
+	// SlowQueries: Retrieves a list of slow queries that have been executed within a certain period.
+	// This query provides insights into slow-performing queries by capturing metrics such as average CPU time,
+	// average elapsed time, and disk reads/writes. It's beneficial for identifying resource-intensive queries
+	// that may require optimization, such as indexing or query restructuring.
 	SlowQueries = `
         SELECT
 			DIGEST AS query_id,
@@ -37,6 +41,10 @@ const (
 		ORDER BY avg_elapsed_time_ms DESC
 		LIMIT ?;
     `
+
+	// CurrentRunningQueriesSearch: Fetches current running queries that match a specific digest.
+	// Useful for real-time monitoring of active query execution, enabling the identification
+	// of long-running queries that may need intervention to maintain system performance.
 	CurrentRunningQueriesSearch = `
 		SELECT
 			DIGEST AS query_id,
@@ -57,6 +65,10 @@ const (
 		ORDER BY TIMER_WAIT DESC
 		LIMIT ?;
 	`
+
+	// RecentQueriesSearch: Retrieves recent queries from history matching a specific digest.
+	// This query helps in assessing recently executed queries, reviewing their performance,
+	// and planning optimizations based on typical execution times and data handling patterns.
 	RecentQueriesSearch = `
 		SELECT
 			DIGEST AS query_id,
@@ -77,6 +89,10 @@ const (
 		ORDER BY TIMER_WAIT DESC
 		LIMIT ?;
 	`
+
+	// PastQueriesSearch: Fetches past long-running queries from the history long table based on a digest.
+	// This is useful for diagnosing historical performance issues and understanding query behavior over time.
+	// By examining past queries, you can discover inefficient patterns and possible optimization strategies.
 	PastQueriesSearch = `
 		SELECT
 			DIGEST AS query_id,
@@ -97,6 +113,11 @@ const (
 		ORDER BY TIMER_WAIT DESC
 		LIMIT ?;
 	`
+
+	// WaitEventsQuery: Analyzes waiting events across different sessions for query performance monitoring.
+	// This query collects wait event data which is crucial to understanding bottlenecks such as IO, locks,
+	// or synchronization issues. By categorizing wait events, it assists in diagnosing specific areas
+	// impacting database performance.
 	WaitEventsQuery = `
 		WITH wait_data AS (
 			SELECT DISTINCT
@@ -175,6 +196,12 @@ const (
 			total_wait_time_ms DESC
 		LIMIT ?;
 	`
+
+	// BlockingSessionsQuery: Identifies and details current database transactions that are blocked by others.
+	// This query provides information about blocked and blocking transactions, including their execution time
+	// and queries involved. It is vital for detecting deadlocks or contention issues, helping in resolving
+	// immediate blocking problems and planning long-term query and index optimizations to reduce this
+	// occurrence.
 	BlockingSessionsQuery = `
 		SELECT 
                       r.trx_id AS blocked_txn_id,

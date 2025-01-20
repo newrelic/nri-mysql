@@ -89,12 +89,11 @@ func TestPopulateBlockingSessionMetrics(t *testing.T) {
 
 	dataSource := &dbWrapper{DB: sqlx.NewDb(db, "sqlmock")}
 	i, _ := integration.New("test", "1.0.0")
-	e := i.LocalEntity()
 	// Convert []string to string
 	excludedDatabasesStr := strings.Join(excludedDatabases, ",")
-	argList := arguments.ArgumentList{ExcludedDatabases: excludedDatabasesStr, QueryCountThreshold: queryCountThreshold}
+	argList := arguments.ArgumentList{ExcludedPerformanceDatabases: excludedDatabasesStr, QueryCountThreshold: queryCountThreshold}
 
-	PopulateBlockingSessionMetrics(dataSource, i, e, argList, []string{})
+	PopulateBlockingSessionMetrics(dataSource, i, argList, []string{})
 	assert.NoError(t, err)
 }
 

@@ -173,9 +173,8 @@ func TestPopulateExecutionPlans(t *testing.T) {
 			tt.setupMocks()
 			mockDB := new(MockDataSource)
 			mockIntegration := new(integration.Integration)
-			mockEntity := new(integration.Entity)
 
-			PopulateExecutionPlans(mockDB, tt.queryGroups, mockIntegration, mockEntity, tt.args)
+			PopulateExecutionPlans(mockDB, tt.queryGroups, mockIntegration, tt.args)
 
 			mockDB.AssertExpectations(t)
 		})

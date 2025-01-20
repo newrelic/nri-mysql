@@ -16,7 +16,7 @@ import (
 )
 
 // PopulateExecutionPlans populates execution plans for the given queries.
-func PopulateExecutionPlans(db utils.DataSource, queryGroups []utils.QueryGroup, i *integration.Integration, e *integration.Entity, args arguments.ArgumentList) {
+func PopulateExecutionPlans(db utils.DataSource, queryGroups []utils.QueryGroup, i *integration.Integration, args arguments.ArgumentList) {
 	var events []utils.QueryPlanMetrics
 
 	for _, group := range queryGroups {

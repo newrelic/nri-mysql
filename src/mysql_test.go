@@ -8,8 +8,11 @@ import (
 	"github.com/newrelic/infra-integrations-sdk/v3/data/inventory"
 	"github.com/newrelic/infra-integrations-sdk/v3/data/metric"
 	"github.com/newrelic/infra-integrations-sdk/v3/integration"
+	utils "github.com/newrelic/nri-mysql/src/query-performance-monitoring/utils"
 	"github.com/stretchr/testify/assert"
 )
+
+var databaseName string
 
 func TestAsValue(t *testing.T) {
 	intValue, ok := asValue("10").(int)
@@ -189,7 +192,7 @@ func TestGenerateDSNPriorizesCliOverEnvArgs(t *testing.T) {
 	_, err := integration.New(integrationName, integrationVersion, integration.Args(&args))
 	fatalIfErr(err)
 
-	assert.Equal(t, "dbuser:dbpwd@tcp(bar:1234)/?", generateDSN(args))
+	assert.Equal(t, "dbuser:dbpwd@tcp(bar:1234)/?", utils.GenerateDSN(args, databaseName))
 
 	flag.CommandLine = flag.NewFlagSet("cmd", flag.ContinueOnError)
 }
@@ -206,7 +209,7 @@ func TestGenerateDSNSupportsOldPasswords(t *testing.T) {
 	_, err := integration.New(integrationName, integrationVersion, integration.Args(&args))
 	fatalIfErr(err)
 
-	assert.Equal(t, "dbuser:dbpwd@tcp(dbhost:1234)/?allowOldPasswords=true", generateDSN(args))
+	assert.Equal(t, "dbuser:dbpwd@tcp(dbhost:1234)/?allowOldPasswords=true", utils.GenerateDSN(args, databaseName))
 
 	flag.CommandLine = flag.NewFlagSet("cmd", flag.ContinueOnError)
 }
@@ -223,7 +226,7 @@ func TestGenerateDSNSupportsEnableTLS(t *testing.T) {
 	_, err := integration.New(integrationName, integrationVersion, integration.Args(&args))
 	fatalIfErr(err)
 
-	assert.Equal(t, "dbuser:dbpwd@tcp(dbhost:1234)/?tls=true", generateDSN(args))
+	assert.Equal(t, "dbuser:dbpwd@tcp(dbhost:1234)/?tls=true", utils.GenerateDSN(args, databaseName))
 
 	flag.CommandLine = flag.NewFlagSet("cmd", flag.ContinueOnError)
 }
@@ -240,7 +243,7 @@ func TestGenerateDSNSupportsInsecureSkipVerify(t *testing.T) {
 	_, err := integration.New(integrationName, integrationVersion, integration.Args(&args))
 	fatalIfErr(err)
 
-	assert.Equal(t, "dbuser:dbpwd@tcp(dbhost:1234)/?tls=skip-verify", generateDSN(args))
+	assert.Equal(t, "dbuser:dbpwd@tcp(dbhost:1234)/?tls=skip-verify", utils.GenerateDSN(args, databaseName))
 
 	flag.CommandLine = flag.NewFlagSet("cmd", flag.ContinueOnError)
 }
@@ -257,7 +260,7 @@ func TestGenerateDSNSupportsExtraConnectionURLArgs(t *testing.T) {
 	_, err := integration.New(integrationName, integrationVersion, integration.Args(&args))
 	fatalIfErr(err)
 
-	assert.Equal(t, "dbuser:dbpwd@tcp(dbhost:1234)/?readTimeout=1s&timeout=5s&tls=skip-verify", generateDSN(args))
+	assert.Equal(t, "dbuser:dbpwd@tcp(dbhost:1234)/?readTimeout=1s&timeout=5s&tls=skip-verify", utils.GenerateDSN(args, databaseName))
 
 	flag.CommandLine = flag.NewFlagSet("cmd", flag.ContinueOnError)
 }
@@ -274,7 +277,7 @@ func TestGenerateDSNSocketDiscardPort(t *testing.T) {
 	_, err := integration.New(integrationName, integrationVersion, integration.Args(&args))
 	fatalIfErr(err)
 
-	assert.Equal(t, "dbuser:dbpwd@unix(/path/to/socket/file)/?", generateDSN(args))
+	assert.Equal(t, "dbuser:dbpwd@unix(/path/to/socket/file)/?", utils.GenerateDSN(args, databaseName))
 
 	flag.CommandLine = flag.NewFlagSet("cmd", flag.ContinueOnError)
 }

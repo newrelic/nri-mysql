@@ -281,7 +281,7 @@ func TestPopulateSlowQueryMetrics(t *testing.T) {
 			return nil, nil, errFailedToCollectMetrics
 		}
 
-		queryIDList := PopulateSlowQueryMetrics(mockIntegration.Integration, nil, mockDB, args, excludedDatabases)
+		queryIDList := PopulateSlowQueryMetrics(mockIntegration.Integration, mockDB, args, excludedDatabases)
 		assert.Empty(t, queryIDList)
 	})
 
@@ -290,7 +290,7 @@ func TestPopulateSlowQueryMetrics(t *testing.T) {
 			return []utils.IndividualQueryMetrics{}, []string{}, nil
 		}
 
-		queryIDList := PopulateSlowQueryMetrics(mockIntegration.Integration, nil, mockDB, args, excludedDatabases)
+		queryIDList := PopulateSlowQueryMetrics(mockIntegration.Integration, mockDB, args, excludedDatabases)
 		assert.Empty(t, queryIDList)
 	})
 
@@ -316,7 +316,7 @@ func TestPopulateSlowQueryMetrics(t *testing.T) {
 			return errFailedToSetMetrics
 		}
 
-		queryIDList := PopulateSlowQueryMetrics(mockIntegration.Integration, nil, mockDB, args, excludedDatabases)
+		queryIDList := PopulateSlowQueryMetrics(mockIntegration.Integration, mockDB, args, excludedDatabases)
 		assert.Empty(t, queryIDList)
 	})
 }
