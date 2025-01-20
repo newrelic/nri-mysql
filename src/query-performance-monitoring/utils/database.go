@@ -19,10 +19,12 @@ type Database struct {
 	source *sqlx.DB
 }
 
-// OpenSQLXDB function creates and returns a connection using the sqlx package for advanced query execution
-// and mapping capabilities. It offers methods like Queryx, QueryRowx, etc., that facilitate working
-// with structs, slices, and named queries, making it well-suited for applications needing sophisticated
-// data handling compared to the standard sql package.
+/*
+OpenSQLXDB function creates and returns a connection using the sqlx package for advanced query execution
+and mapping capabilities. It offers methods like Queryx, QueryRowx, etc., that facilitate working
+with structs, slices, and named queries, making it well-suited for applications needing sophisticated
+data handling compared to the standard sql package.
+*/
 func OpenSQLXDB(dsn string) (DataSource, error) {
 	source, err := sqlx.Open("mysql", dsn)
 	if err != nil {

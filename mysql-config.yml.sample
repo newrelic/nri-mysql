@@ -68,7 +68,7 @@ integrations:
     REMOTE_MONITORING: true
 
     # Enable query performance monitoring
-    # ENABLE_QUERY_MONITORING: true
+    ENABLE_QUERY_MONITORING: true
     # Fetch interval in seconds for grouped slow queries. Should match the interval in mysql-config.yml
     # SLOW_QUERY_FETCH_INTERVAL: 30
     # Threshold in milliseconds for query response time to fetch individual query performance metrics
