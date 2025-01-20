@@ -1,7 +1,6 @@
 package validator
 
 import (
-	"database/sql"
 	"errors"
 	"fmt"
 	"strconv"
@@ -121,8 +120,7 @@ func checkEssentialInstruments(db utils.DataSource) error {
 	// Check if each essential instrument is enabled and timed
 	for rows.Next() {
 		var name, enabled string
-		var timed sql.NullString
-		if err := rows.Scan(&name, &enabled, &timed); err != nil {
+		if err := rows.Scan(&name, &enabled); err != nil {
 			return fmt.Errorf("failed to scan instrument row: %w", err)
 		}
 		if enabled != "YES" {

@@ -29,10 +29,10 @@ func (m *mockDataSource) QueryxContext(ctx context.Context, query string, args .
 var errQuery = errors.New("query failed")
 
 func TestCheckEssentialInstruments_AllEnabledAndTimed(t *testing.T) {
-	rows := sqlmock.NewRows([]string{"NAME", "ENABLED", "TIMED"}).
-		AddRow("wait/synch/mutex/sql/LOCK_plugin", "YES", "YES").
-		AddRow("statement/sql/select", "YES", "YES").
-		AddRow("wait/io/file/sql/FILE", "YES", "YES")
+	rows := sqlmock.NewRows([]string{"NAME", "ENABLED"}).
+		AddRow("wait/synch/mutex/sql/LOCK_plugin", "YES").
+		AddRow("statement/sql/select", "YES").
+		AddRow("wait/io/file/sql/FILE", "YES")
 	db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
 	if err != nil {
 		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
