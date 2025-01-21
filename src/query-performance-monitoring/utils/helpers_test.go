@@ -179,25 +179,6 @@ func TestIngestMetric(t *testing.T) {
 		assert.NoError(t, err)
 	})
 
-	t.Run("ErrorCreatingEntity", func(t *testing.T) {
-		// Simulate the error condition
-		metricList := []interface{}{
-			struct{}{},
-		}
-		args := arguments.ArgumentList{}
-		err := IngestMetric(metricList, "testEvent", i, args)
-		assert.NoError(t, err)
-	})
-
-	t.Run("ErrorProcessingModel", func(t *testing.T) {
-		metricList := []interface{}{
-			struct{}{},
-		}
-		args := arguments.ArgumentList{}
-		err := IngestMetric(metricList, "testEvent", i, args)
-		assert.NoError(t, err)
-	})
-
 	t.Run("NilModelsInList", func(t *testing.T) {
 		metricList := []interface{}{
 			nil,

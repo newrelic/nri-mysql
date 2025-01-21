@@ -1,6 +1,7 @@
 package queryperformancemonitoring
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/newrelic/infra-integrations-sdk/v3/integration"
@@ -20,17 +21,13 @@ func PopulateQueryPerformanceMetrics(args arguments.ArgumentList, e *integration
 
 	// Open database connection
 	db, err := utils.OpenSQLXDB(dsn)
-	if err != nil {
-		log.Error("Error opening database connection: %v", err)
-		return
-	}
+	utils.FatalIfErr(err)
 	defer db.Close()
 
 	// Validate preconditions before proceeding
 	preValidationErr := validator.ValidatePreconditions(db)
 	if preValidationErr != nil {
-		log.Error("preconditions failed: %v", preValidationErr)
-		return
+		utils.FatalIfErr(fmt.Errorf("preconditions failed: %w", preValidationErr))
 	}
 
 	// Get the list of unique excluded databases

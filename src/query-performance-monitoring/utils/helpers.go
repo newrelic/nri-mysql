@@ -101,13 +101,6 @@ func MetricSet(e *integration.Entity, eventType, hostname string, port int, remo
 	)
 }
 
-func PrintMetricSet(ms *metric.Set) {
-	fmt.Println("Metric Set Contents:")
-	for name, metric := range ms.Metrics {
-		fmt.Printf("Name: %s, Value: %v, Type: %v\n", name, metric, "unknown")
-	}
-}
-
 func getUniqueExcludedDatabases(excludedDBList []string) []string {
 	// Create a map to store unique databases
 	uniqueDatabases := make(map[string]struct{})
@@ -253,4 +246,10 @@ func publishMetrics(i *integration.Integration) error {
 		return err
 	}
 	return nil
+}
+
+func FatalIfErr(err error) {
+	if err != nil {
+		log.Fatal(err)
+	}
 }

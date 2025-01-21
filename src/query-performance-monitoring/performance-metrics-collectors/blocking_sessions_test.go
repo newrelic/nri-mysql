@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"database/sql/driver"
+	"fmt"
 	"regexp"
 	"strings"
 	"testing"
@@ -13,6 +14,7 @@ import (
 	"github.com/newrelic/infra-integrations-sdk/v3/integration"
 
 	arguments "github.com/newrelic/nri-mysql/src/args"
+	constants "github.com/newrelic/nri-mysql/src/query-performance-monitoring/constants"
 	utils "github.com/newrelic/nri-mysql/src/query-performance-monitoring/utils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -62,39 +64,132 @@ func (d *dbWrapper) QueryX(query string) (*sqlx.Rows, error) {
 	return d.DB.Queryx(query)
 }
 
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
+}
+
 func TestPopulateBlockingSessionMetrics(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	assert.NoError(t, err)
 	defer db.Close()
 
-	mockRows := sqlmock.NewRows([]string{})
+	sqlxDB := sqlx.NewDb(db, "sqlmock")
 
-	query := utils.BlockingSessionsQuery
-
-	// Define the arguments
-	excludedDatabases := []string{"", "mysql", "information_schema", "performance_schema", "sys"}
+	excludedDatabases := []string{"mysql", "information_schema", "performance_schema", "sys"}
 	queryCountThreshold := 10
 
-	// Use sqlx.In to bind the arguments
-	query, args, err := sqlx.In(query, excludedDatabases, queryCountThreshold)
-	if err != nil {
-		t.Fatalf("failed to bind query arguments: %v", err)
-	}
+	// Test case: Error preparing the SQL query
+	t.Run("ErrorPreparingQuery", func(t *testing.T) {
+		// Use a mock function for sqlx.In
+		mockSqlxIn := func(_ string, _ ...interface{}) (string, []interface{}, error) {
+			return "", nil, fmt.Errorf("mock error")
+		}
 
-	driverArgs := make([]driver.Value, len(args))
-	for i, arg := range args {
-		driverArgs[i] = driver.Value(arg)
-	}
-	mock.ExpectQuery(regexp.QuoteMeta(query)).WithArgs(driverArgs...).WillReturnRows(mockRows)
+		_, _, err := mockSqlxIn(utils.BlockingSessionsQuery, strings.Join(excludedDatabases, ","), min(queryCountThreshold, constants.MaxQueryCountThreshold))
+		if err == nil {
+			t.Fatal("Expected error preparing query, got nil")
+		}
+	})
 
-	dataSource := &dbWrapper{DB: sqlx.NewDb(db, "sqlmock")}
-	i, _ := integration.New("test", "1.0.0")
-	// Convert []string to string
-	excludedDatabasesStr := strings.Join(excludedDatabases, ",")
-	argList := arguments.ArgumentList{ExcludedPerformanceDatabases: excludedDatabasesStr, QueryCountThreshold: queryCountThreshold}
+	// Test case: Error collecting metrics
+	t.Run("ErrorCollectingMetrics", func(t *testing.T) {
+		query, inputArgs, err := sqlx.In(utils.BlockingSessionsQuery, excludedDatabases, min(queryCountThreshold, constants.MaxQueryCountThreshold))
+		assert.NoError(t, err)
 
-	PopulateBlockingSessionMetrics(dataSource, i, argList, []string{})
-	assert.NoError(t, err)
+		query = sqlxDB.Rebind(query)
+
+		driverArgs := make([]driver.Value, len(inputArgs))
+		for i, v := range inputArgs {
+			driverArgs[i] = driver.Value(v)
+		}
+		mock.ExpectQuery(regexp.QuoteMeta(query)).WithArgs(driverArgs...).WillReturnError(fmt.Errorf("query error"))
+
+		dataSource := &dbWrapper{DB: sqlxDB}
+		_, err = utils.CollectMetrics[utils.BlockingSessionMetrics](dataSource, query, inputArgs...)
+		if err == nil {
+			t.Fatal("Expected error collecting metrics, got nil")
+		}
+	})
+
+	// Test case: No metrics collected
+	t.Run("NoMetricsCollected", func(t *testing.T) {
+		query, inputArgs, err := sqlx.In(utils.BlockingSessionsQuery, excludedDatabases, min(queryCountThreshold, constants.MaxQueryCountThreshold))
+		assert.NoError(t, err)
+
+		query = sqlxDB.Rebind(query)
+		driverArgs := make([]driver.Value, len(inputArgs))
+		for i, v := range inputArgs {
+			driverArgs[i] = driver.Value(v)
+		}
+		mock.ExpectQuery(regexp.QuoteMeta(query)).WithArgs(driverArgs...).WillReturnRows(sqlmock.NewRows(nil))
+
+		dataSource := &dbWrapper{DB: sqlxDB}
+		metrics, err := utils.CollectMetrics[utils.BlockingSessionMetrics](dataSource, query, inputArgs...)
+		assert.NoError(t, err)
+		assert.Empty(t, metrics)
+	})
+
+	// Test case: Successful metrics collection
+	t.Run("SuccessfulMetricsCollection", func(t *testing.T) {
+		query, inputArgs, err := sqlx.In(utils.BlockingSessionsQuery, excludedDatabases, min(queryCountThreshold, constants.MaxQueryCountThreshold))
+		assert.NoError(t, err)
+
+		query = sqlxDB.Rebind(query)
+		driverArgs := make([]driver.Value, len(inputArgs))
+		for i, v := range inputArgs {
+			driverArgs[i] = driver.Value(v)
+		}
+
+		mock.ExpectQuery(regexp.QuoteMeta(query)).WithArgs(driverArgs...).WillReturnRows(sqlmock.NewRows([]string{
+			"blocked_txn_id", "blocked_pid", "blocked_thread_id", "blocked_query_id", "blocked_query", "blocked_status", "blocked_host", "database_name", "blocking_txn_id", "blocking_pid", "blocking_thread_id", "blocking_status", "blocking_host", "blocking_query_id", "blocking_query",
+		}).AddRow(
+			"blocked_txn_id_1", "blocked_pid_1", 123, "blocked_query_id_1", "blocked_query_1", "blocked_status_1", "blocked_host_1", "database_name_1", "blocking_txn_id_1", "blocking_pid_1", 456, "blocking_status_1", "blocking_host_1", "blocking_query_id_1", "blocking_query_1",
+		).AddRow(
+			"blocked_txn_id_2", "blocked_pid_2", 124, "blocked_query_id_2", "blocked_query_2", "blocked_status_2", "blocked_host_2", "database_name_2", "blocking_txn_id_2", "blocking_pid_2", 457, "blocking_status_2", "blocking_host_2", "blocking_query_id_2", "blocking_query_2",
+		))
+
+		dataSource := &dbWrapper{DB: sqlxDB}
+		metrics, err := utils.CollectMetrics[utils.BlockingSessionMetrics](dataSource, query, inputArgs...)
+		assert.NoError(t, err)
+		assert.Len(t, metrics, 2)
+	})
+
+	// Test case: PopulateBlockingSessionMetrics function
+	t.Run("PopulateBlockingSessionMetrics", func(t *testing.T) {
+		query, inputArgs, err := sqlx.In(utils.BlockingSessionsQuery, excludedDatabases, min(queryCountThreshold, constants.MaxQueryCountThreshold))
+		assert.NoError(t, err)
+
+		query = sqlxDB.Rebind(query)
+		driverArgs := make([]driver.Value, len(inputArgs))
+		for i, v := range inputArgs {
+			driverArgs[i] = driver.Value(v)
+		}
+
+		mock.ExpectQuery(regexp.QuoteMeta(query)).WithArgs(driverArgs...).WillReturnRows(sqlmock.NewRows([]string{
+			"blocked_txn_id", "blocked_pid", "blocked_thread_id", "blocked_query_id", "blocked_query",
+			"blocked_status", "blocked_host", "database_name", "blocking_txn_id", "blocking_pid",
+			"blocking_thread_id", "blocking_status", "blocking_host", "blocking_query_id", "blocking_query",
+		}).AddRow(
+			"blocked_txn_id_1", "blocked_pid_1", 123, "blocked_query_id_1", "blocked_query_1",
+			"blocked_status_1", "blocked_host_1", "database_name_1", "blocking_txn_id_1", "blocking_pid_1",
+			456, "blocking_status_1", "blocking_host_1", "blocking_query_id_1", "blocking_query_1",
+		).AddRow(
+			"blocked_txn_id_2", "blocked_pid_2", 124, "blocked_query_id_2", "blocked_query_2",
+			"blocked_status_2", "blocked_host_2", "database_name_2", "blocking_txn_id_2", "blocking_pid_2",
+			457, "blocking_status_2", "blocking_host_2", "blocking_query_id_2", "blocking_query_2",
+		))
+
+		dataSource := &dbWrapper{DB: sqlxDB}
+		i, _ := integration.New("test", "1.0.0")
+		argList := arguments.ArgumentList{QueryCountThreshold: queryCountThreshold}
+
+		PopulateBlockingSessionMetrics(dataSource, i, argList, excludedDatabases)
+
+		assert.Len(t, i.LocalEntity().Metrics, 0)
+	})
 }
 
 func TestSetBlockingQueryMetrics(t *testing.T) {

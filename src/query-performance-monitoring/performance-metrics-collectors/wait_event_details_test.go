@@ -2,6 +2,7 @@ package performancemetricscollectors
 
 import (
 	"context"
+	"database/sql"
 	"database/sql/driver"
 	"regexp"
 	"testing"
@@ -46,6 +47,13 @@ func (ds *DataSource) Close() {
 	ds.DB.Close()
 }
 
+func convertNullFloat64(ns sql.NullFloat64) *float64 {
+	if ns.Valid {
+		return &ns.Float64
+	}
+	return nil
+}
+
 func TestPopulateWaitEventMetrics(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	require.NoError(t, err)
@@ -84,26 +92,30 @@ func TestPopulateWaitEventMetrics(t *testing.T) {
 }
 
 // TestSetWaitEventMetrics tests the setWaitEventMetrics function.
-func TestSetWaitEventMetrics(t *testing.T) {
-	i, err := integration.New("test-integration", "1.0.0")
+func TestSetWaitEventQueryMetrics(t *testing.T) {
+	i, err := integration.New("test", "1.0.0")
 	require.NoError(t, err)
-
+	e := i.LocalEntity()
 	args := args.ArgumentList{}
 	metrics := []utils.WaitEventQueryMetrics{
 		{
-			QueryID:             StringPtr("digest1"),
-			InstanceID:          StringPtr("instance1"),
-			DatabaseName:        StringPtr("testdb"),
-			WaitEventName:       StringPtr("wait/io/file/innodb/log"),
-			WaitCategory:        StringPtr("InnoDB File IO"),
-			TotalWaitTimeMs:     Float64Ptr(1.0),
-			WaitEventCount:      Uint64Ptr(1),
-			AvgWaitTimeMs:       StringPtr("1.0"),
-			QueryText:           StringPtr("SELECT * FROM table1"),
-			CollectionTimestamp: StringPtr("2023-10-01T12:00:00Z"),
+			WaitEventName:       convertNullString(sql.NullString{String: "wait_event_name", Valid: true}),
+			WaitCategory:        convertNullString(sql.NullString{String: "wait_category", Valid: true}),
+			TotalWaitTimeMs:     convertNullFloat64(sql.NullFloat64{Float64: 1000.0, Valid: true}),
+			CollectionTimestamp: convertNullString(sql.NullString{String: "2023-01-01T00:00:00Z", Valid: true}),
+			QueryID:             convertNullString(sql.NullString{String: "queryid1", Valid: true}),
+			QueryText:           convertNullString(sql.NullString{String: "SELECT 1", Valid: true}),
+			DatabaseName:        convertNullString(sql.NullString{String: "testdb", Valid: true}),
 		},
 	}
-
 	err = setWaitEventMetrics(i, args, metrics)
 	assert.NoError(t, err)
+	ms := e.Metrics[0]
+	assert.Equal(t, "wait_event_name", ms.Metrics["wait_event_name"])
+	assert.Equal(t, "wait_category", ms.Metrics["wait_category"])
+	assert.Equal(t, float64(1000.0), ms.Metrics["total_wait_time_ms"])
+	assert.Equal(t, "2023-01-01T00:00:00Z", ms.Metrics["collection_timestamp"])
+	assert.Equal(t, "queryid1", ms.Metrics["query_id"])
+	assert.Equal(t, "SELECT 1", ms.Metrics["query_text"])
+	assert.Equal(t, "testdb", ms.Metrics["database_name"])
 }

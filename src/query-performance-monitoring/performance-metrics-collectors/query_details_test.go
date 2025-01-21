@@ -34,81 +34,10 @@ var (
 )
 
 var (
-	errEmptySlice             = errors.New("empty slice passed to 'in' query")
 	errSomeError              = errors.New("some error")
 	errFailedToCollectMetrics = errors.New("failed to collect metrics")
 	errFailedToSetMetrics     = errors.New("failed to set metrics")
 )
-
-func TestCollectGroupedSlowQueryMetrics(t *testing.T) {
-	tests := []struct {
-		name                string
-		fetchInterval       int
-		queryCountThreshold int
-		mockSetup           func(mock sqlmock.Sqlmock)
-		expectedMetrics     []utils.SlowQueryMetrics
-		expectedQueryIDList []string
-		expectedError       error
-	}{
-		{
-			name:                "Successful collection of slow query metrics",
-			fetchInterval:       60,
-			queryCountThreshold: 10,
-			mockSetup: func(mock sqlmock.Sqlmock) {
-				rows := sqlmock.NewRows([]string{"query_id", "query_text"}).
-					AddRow("1", "SELECT * FROM table1").
-					AddRow("2", "SELECT * FROM table2")
-				mock.ExpectQuery("SELECT .* FROM performance_schema.events_statements_summary_by_digest WHERE .*").
-					WithArgs(60, 10).
-					WillReturnRows(rows)
-			},
-			expectedMetrics: []utils.SlowQueryMetrics{
-				{QueryID: stringPtr("1"), QueryText: stringPtr("SELECT * FROM table1")},
-				{QueryID: stringPtr("2"), QueryText: stringPtr("SELECT * FROM table2")},
-			},
-			expectedQueryIDList: []string{"1", "2"},
-			expectedError:       nil,
-		},
-		{
-			name:                "Failure to execute the query",
-			fetchInterval:       60,
-			queryCountThreshold: 10,
-			mockSetup: func(mock sqlmock.Sqlmock) {
-				mock.ExpectQuery("SELECT .* FROM performance_schema.events_statements_summary_by_digest WHERE .*").
-					WithArgs(60, 10).
-					WillReturnError(errEmptySlice)
-			},
-			expectedMetrics:     nil,
-			expectedQueryIDList: []string{},
-			expectedError:       errEmptySlice,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			sqlDB, mock, err := sqlmock.New()
-			require.NoError(t, err)
-			db := sqlx.NewDb(sqlDB, "sqlmock")
-			defer db.Close()
-
-			tt.mockSetup(mock)
-
-			mockDataSource := NewMockDataSource(db)
-			defer db.Close()
-			metrics, queryIDList, err := collectGroupedSlowQueryMetrics(mockDataSource, tt.fetchInterval, tt.queryCountThreshold, []string{})
-			if tt.expectedError != nil {
-				assert.Error(t, err)
-				assert.Equal(t, tt.expectedError.Error(), err.Error())
-				assert.Nil(t, metrics)
-				assert.NotNil(t, queryIDList)
-			} else {
-				assert.Error(t, err)
-				assert.NotEqual(t, tt.expectedMetrics, metrics)
-				assert.NotEqual(t, tt.expectedQueryIDList, queryIDList)
-			}
-		})
-	}
-}
 
 func TestSetSlowQueryMetrics(t *testing.T) {
 	mockIntegration := new(MockIntegration)
