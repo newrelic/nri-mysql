@@ -21,8 +21,8 @@ import (
 )
 
 var (
-	mockError  = errors.New("mock error")
-	queryError = errors.New("query error")
+	errMock  = errors.New("mock error")
+	errQuery = errors.New("query error")
 )
 
 func convertNullString(ns sql.NullString) *string {
@@ -109,7 +109,7 @@ func TestPopulateBlockingSessionMetrics(t *testing.T) {
 
 func testErrorPreparingQuery(t *testing.T, excludedDatabases []string, queryCountThreshold int) {
 	mockSqlxIn := func(_ string, _ ...interface{}) (string, []interface{}, error) {
-		return "", nil, mockError
+		return "", nil, errMock
 	}
 
 	_, _, err := mockSqlxIn(utils.BlockingSessionsQuery, strings.Join(excludedDatabases, ","), min(queryCountThreshold, constants.MaxQueryCountThreshold))
@@ -128,7 +128,7 @@ func testErrorCollectingMetrics(t *testing.T, sqlxDB *sqlx.DB, mock sqlmock.Sqlm
 	for i, v := range inputArgs {
 		driverArgs[i] = driver.Value(v)
 	}
-	mock.ExpectQuery(regexp.QuoteMeta(query)).WithArgs(driverArgs...).WillReturnError(queryError)
+	mock.ExpectQuery(regexp.QuoteMeta(query)).WithArgs(driverArgs...).WillReturnError(errQuery)
 
 	dataSource := &dbWrapper{DB: sqlxDB}
 	_, err = utils.CollectMetrics[utils.BlockingSessionMetrics](dataSource, query, inputArgs...)
