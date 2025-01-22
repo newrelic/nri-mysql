@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/newrelic/infra-integrations-sdk/v3/log"
+	arguments "github.com/newrelic/nri-mysql/src/args"
 	constants "github.com/newrelic/nri-mysql/src/query-performance-monitoring/constants"
 	utils "github.com/newrelic/nri-mysql/src/query-performance-monitoring/utils"
 )
@@ -215,4 +216,21 @@ func buildInstrumentQuery() string {
 	query += ";"
 
 	return query
+}
+
+// ValidateAndSetDefaults checks if fields are invalid and sets defaults
+func ValidateAndSetDefaults(args *arguments.ArgumentList) {
+	// Since EnableQueryMonitoring is a boolean, no need to reset as it can't be invalid in this context
+	if args.QueryResponseTimeThreshold < 0 {
+		args.QueryResponseTimeThreshold = constants.DefaultQueryResponseTimeThreshold
+		log.Warn("Query response time threshold is negative, setting to default value: %d", constants.DefaultQueryResponseTimeThreshold)
+	}
+
+	if args.QueryCountThreshold < 0 {
+		args.QueryCountThreshold = constants.DefaultQueryCountThreshold
+		log.Warn("Query count threshold is negative, setting to default value: %d", constants.DefaultQueryCountThreshold)
+	} else if args.QueryCountThreshold >= constants.MaxQueryCountThreshold {
+		args.QueryCountThreshold = constants.MaxQueryCountThreshold
+		log.Warn("Query count threshold is greater than max supported value, setting to max supported value: %d", constants.MaxQueryCountThreshold)
+	}
 }

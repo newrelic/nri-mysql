@@ -24,21 +24,23 @@ var (
 
 	defaultPerfContainer = "integration_nri-mysql_perf_1"
 	// mysql config
-	defaultBinPath                = "/nri-mysql"
-	defaultMysqlUser              = "root"
-	defaultMysqlPass              = ""
-	defaultMysqlPort              = 3306
-	defaultEnableQueryMonitoring  = false
-	defaultSlowQueryFetchInterval = 3000
+	defaultBinPath                    = "/nri-mysql"
+	defaultMysqlUser                  = "root"
+	defaultMysqlPass                  = ""
+	defaultMysqlPort                  = 3306
+	defaultEnableQueryMonitoring      = false
+	defaultSlowQueryFetchInterval     = 3000
+	defaultQueryResponseTimeThreshold = 0 // The value is zero so that we get all the queries that ran in ./mysql-performance-config/custom-entrypoint.sh
 
 	// cli flags
-	perfContainer          = flag.String("perfContainer", defaultPerfContainer, "container where the integration is installed and used for validating performance monitoring metrics")
-	binPath                = flag.String("bin", defaultBinPath, "Integration binary path")
-	user                   = flag.String("user", defaultMysqlUser, "Mysql user name")
-	psw                    = flag.String("psw", defaultMysqlPass, "Mysql user password")
-	port                   = flag.Int("port", defaultMysqlPort, "Mysql port")
-	enableQueryMonitoring  = flag.Bool("enable_query_monitoring", defaultEnableQueryMonitoring, "flag to enable and disable collecting query metrics")
-	slowQueryFetchInterval = flag.Int("slow_query_fetch_interval", defaultSlowQueryFetchInterval, "retrives slow queries that ran in last n seconds")
+	perfContainer              = flag.String("perfContainer", defaultPerfContainer, "container where the integration is installed and used for validating performance monitoring metrics")
+	binPath                    = flag.String("bin", defaultBinPath, "Integration binary path")
+	user                       = flag.String("user", defaultMysqlUser, "Mysql user name")
+	psw                        = flag.String("psw", defaultMysqlPass, "Mysql user password")
+	port                       = flag.Int("port", defaultMysqlPort, "Mysql port")
+	enableQueryMonitoring      = flag.Bool("enable_query_monitoring", defaultEnableQueryMonitoring, "flag to enable and disable collecting query metrics")
+	slowQueryFetchInterval     = flag.Int("slow_query_fetch_interval", defaultSlowQueryFetchInterval, "retrives slow queries that ran in last n seconds")
+	queryResponseTimeThreshold = flag.Int("query_response_time_threshold", defaultQueryResponseTimeThreshold, "retrives queries that have taken more time than queryResponseTimeThreshold in milli seconds")
 )
 
 type MysqlPerformanceConfig struct {
@@ -64,7 +66,7 @@ var (
 )
 
 func runIntegrationAndGetStdoutWithError(t *testing.T, targetContainer string, envVars ...string) (string, string, error) {
-	return helpers.RunIntegrationAndGetStdout(t, binPath, user, psw, port, slowQueryFetchInterval, perfContainer, targetContainer, envVars)
+	return helpers.RunIntegrationAndGetStdout(t, binPath, user, psw, port, slowQueryFetchInterval, queryResponseTimeThreshold, perfContainer, targetContainer, envVars)
 }
 
 func executeBlockingSessionQuery(mysqlPerfConfig MysqlPerformanceConfig) error {

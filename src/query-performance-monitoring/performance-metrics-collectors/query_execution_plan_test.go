@@ -119,15 +119,15 @@ func TestSetExecutionPlanMetrics(t *testing.T) {
 func TestIsSupportedStatement(t *testing.T) {
 	t.Run("Supported Statement", func(t *testing.T) {
 		assert.True(t, isSupportedStatement("SELECT * FROM test"))
-		assert.True(t, isSupportedStatement("INSERT INTO test VALUES (1)"))
-		assert.True(t, isSupportedStatement("UPDATE test SET value = 1"))
-		assert.True(t, isSupportedStatement("DELETE FROM test"))
 		assert.True(t, isSupportedStatement("WITH cte AS (SELECT * FROM test) SELECT * FROM cte"))
 	})
 
 	t.Run("Unsupported Statement", func(t *testing.T) {
 		assert.False(t, isSupportedStatement("DROP TABLE test"))
 		assert.False(t, isSupportedStatement("ALTER TABLE test ADD COLUMN value INT"))
+		assert.False(t, isSupportedStatement("INSERT INTO test VALUES (1)"))
+		assert.False(t, isSupportedStatement("UPDATE test SET value = 1"))
+		assert.False(t, isSupportedStatement("DELETE FROM test"))
 	})
 }
 
@@ -229,5 +229,28 @@ func TestProcessSliceValue(t *testing.T) {
 			// Assert
 			require.Equal(t, tt.expectedMetricsLen, len(metrics))
 		})
+	}
+}
+
+func TestEscapeAllStringsInJSON_Success(t *testing.T) {
+	input := `{"key1": "value1", "key2": "value with \"quotes\" and \\backslashes\\", "key3": ["array", "with", "strings"]}`
+	expectedOutput := `{"key1":"value1","key2":"value with \\\"quotes\\\" and \\\\backslashes\\\\","key3":["array","with","strings"]}`
+
+	output, err := escapeAllStringsInJSON(input)
+	if err != nil {
+		t.Fatalf("Expected no error, got %v", err)
+	}
+
+	if output != expectedOutput {
+		t.Errorf("Expected %v, got %v", expectedOutput, output)
+	}
+}
+
+func TestEscapeAllStringsInJSON_Error(t *testing.T) {
+	input := `{"key1": "value1", "key2": "value with "unterminated quote}`
+
+	_, err := escapeAllStringsInJSON(input)
+	if err == nil {
+		t.Fatalf("Expected an error, got nil")
 	}
 }

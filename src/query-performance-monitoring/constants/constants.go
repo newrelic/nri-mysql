@@ -22,7 +22,7 @@ const (
 		SupportedStatements defines the SQL statements for which this integration fetches query execution plans.
 		Restricting the supported statements improves compatibility and reduces the complexity of plan analysis.
 	*/
-	SupportedStatements = "SELECT INSERT UPDATE DELETE WITH"
+	SupportedStatements = "SELECT WITH"
 
 	/*
 		QueryPlanTimeoutDuration sets the timeout for fetching query execution plans.
@@ -35,6 +35,12 @@ const (
 		This prevents long-running operations from causing the integration to hang and ensures timely data retrieval.
 	*/
 	TimeoutDuration = 5 * time.Second
+
+	//  DefaultQueryFetchInterval defines the default interval for fetching individual query performance metrics. */
+	DefaultQueryResponseTimeThreshold = 500
+
+	// DefaultQueryCountThreshold defines the default query count limit for fetching grouped slow, wait events and blocking sessions query performance metrics. */
+	DefaultQueryCountThreshold = 20
 
 	/*
 		MaxQueryCountThreshold limits the total number of collected queries to prevent performance issues

@@ -7,6 +7,8 @@ import (
 
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/jmoiron/sqlx"
+	arguments "github.com/newrelic/nri-mysql/src/args"
+	constants "github.com/newrelic/nri-mysql/src/query-performance-monitoring/constants"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -187,4 +189,58 @@ func TestParseVersion(t *testing.T) {
 
 	major = parseVersion("invalid.version")
 	assert.Equal(t, 0, major)
+}
+
+func TestValidateAndSetDefaults(t *testing.T) {
+	tests := []struct {
+		name                      string
+		input                     arguments.ArgumentList
+		expectedQueryResponseTime int
+		expectedQueryCount        int
+	}{
+		{
+			name: "Negative QueryResponseTimeThreshold",
+			input: arguments.ArgumentList{
+				QueryResponseTimeThreshold: -1,
+				QueryCountThreshold:        10,
+			},
+			expectedQueryResponseTime: constants.DefaultQueryResponseTimeThreshold,
+			expectedQueryCount:        10,
+		},
+		{
+			name: "Negative QueryCountThreshold",
+			input: arguments.ArgumentList{
+				QueryResponseTimeThreshold: 10,
+				QueryCountThreshold:        -1,
+			},
+			expectedQueryResponseTime: 10,
+			expectedQueryCount:        constants.DefaultQueryCountThreshold,
+		},
+		{
+			name: "QueryCountThreshold greater than max",
+			input: arguments.ArgumentList{
+				QueryResponseTimeThreshold: 10,
+				QueryCountThreshold:        constants.MaxQueryCountThreshold + 1,
+			},
+			expectedQueryResponseTime: 10,
+			expectedQueryCount:        constants.MaxQueryCountThreshold,
+		},
+		{
+			name: "Valid thresholds",
+			input: arguments.ArgumentList{
+				QueryResponseTimeThreshold: 10,
+				QueryCountThreshold:        5,
+			},
+			expectedQueryResponseTime: 10,
+			expectedQueryCount:        5,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ValidateAndSetDefaults(&tt.input)
+			assert.Equal(t, tt.expectedQueryResponseTime, tt.input.QueryResponseTimeThreshold)
+			assert.Equal(t, tt.expectedQueryCount, tt.input.QueryCountThreshold)
+		})
+	}
 }

@@ -33,6 +33,9 @@ func PopulateQueryPerformanceMetrics(args arguments.ArgumentList, e *integration
 	// Get the list of unique excluded databases
 	excludedDatabases := utils.GetExcludedDatabases(args.ExcludedPerformanceDatabases)
 
+	// Validate and set defaults for the arguments
+	validator.ValidateAndSetDefaults(&args)
+
 	// Populate metrics for slow queries
 	start := time.Now()
 	log.Debug("Beginning to retrieve slow query metrics")

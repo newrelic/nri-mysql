@@ -94,13 +94,70 @@ func processExecutionPlanMetrics(db utils.DataSource, query utils.IndividualQuer
 		return []utils.QueryPlanMetrics{}, nil
 	}
 
+	// Escape backticks in the JSON string
+	escapedJSON, err := escapeAllStringsInJSON(execPlanJSON)
+	if err != nil {
+		log.Error("Error escaping strings in JSON for query '%s': %v", queryText, err)
+		return []utils.QueryPlanMetrics{}, err
+	}
+
 	// Extract metrics from the JSON string
-	dbPerformanceEvents, err := extractMetricsFromJSONString(execPlanJSON, *query.EventID, *query.ThreadID)
+	dbPerformanceEvents, err := extractMetricsFromJSONString(escapedJSON, *query.EventID, *query.ThreadID)
 	if err != nil {
 		return []utils.QueryPlanMetrics{}, err
 	}
 
 	return dbPerformanceEvents, nil
+}
+
+// escapeAllStringsInJSON recursively escapes all string values in the JSON.
+func escapeAllStringsInJSON(jsonString string) (string, error) {
+	var jsonData interface{}
+	err := json.Unmarshal([]byte(jsonString), &jsonData)
+	if err != nil {
+		return "", err
+	}
+
+	escapedData := escapeJSONValue(jsonData)
+
+	escapedJSON, err := json.Marshal(escapedData)
+	if err != nil {
+		return "", err
+	}
+
+	return string(escapedJSON), nil
+}
+
+// escapeJSONValue recursively traverses the JSON data and escapes all string values.
+func escapeJSONValue(data interface{}) interface{} {
+	switch value := data.(type) {
+	case map[string]interface{}:
+		for k, v := range value {
+			value[k] = escapeJSONValue(v)
+		}
+		return value
+	case []interface{}:
+		for i, v := range value {
+			value[i] = escapeJSONValue(v)
+		}
+		return value
+	case string:
+		return escapeString(value)
+	default:
+		return value
+	}
+}
+
+// escapeString escapes special characters in a string.
+func escapeString(str string) string {
+	// Escape backslashes
+	escapedStr := strings.ReplaceAll(str, "\\", "\\\\")
+	// Escape double quotes
+	escapedStr = strings.ReplaceAll(escapedStr, "\"", "\\\"")
+	// Escape backticks
+	escapedStr = strings.ReplaceAll(escapedStr, "`", "\\`")
+	// Add more escaping rules here for other characters if needed
+	return escapedStr
 }
 
 // extractMetricsFromJSONString extracts metrics from a JSON string.
@@ -137,9 +194,6 @@ func extractMetrics(js *simplejson.Json, dbPerformanceEvents []utils.QueryPlanMe
 	key, _ := js.Get("key").String()
 	usedKeyPartsArray, _ := js.Get("used_key_parts").StringArray()
 	refArray, _ := js.Get("ref").StringArray()
-	insert, _ := js.Get("insert").Bool()
-	update, _ := js.Get("update").Bool()
-	delete, _ := js.Get("delete").Bool()
 
 	possibleKeys := strings.Join(possibleKeysArray, ",")
 	usedKeyParts := strings.Join(usedKeyPartsArray, ",")
@@ -170,9 +224,6 @@ func extractMetrics(js *simplejson.Json, dbPerformanceEvents []utils.QueryPlanMe
 			DataReadPerJoin:     dataReadPerJoin,
 			UsingIndex:          fmt.Sprintf("%t", usingIndex),
 			KeyLength:           keyLength,
-			InsertOperation:     fmt.Sprintf("%t", insert),
-			UpdateOperation:     fmt.Sprintf("%t", update),
-			DeleteOperation:     fmt.Sprintf("%t", delete),
 		})
 		*stepID++
 	}

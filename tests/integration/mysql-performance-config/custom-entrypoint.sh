@@ -19,7 +19,7 @@ mysql --user=root --password="${MYSQL_ROOT_PASSWORD}" -t < employees.sql
 
 echo "completed copying sample employees data"
 
-sleep 5
+sleep 10
 
 # Execute slow queries
 echo "started executing slow queries"
@@ -36,7 +36,7 @@ WHERE EXISTS (
         FROM salaries
         WHERE to_date = '9999-01-01'
     )
-) LIMIT 10;
+);
 "
 
 sleep 5
@@ -47,8 +47,7 @@ SELECT e.emp_no, e.first_name, e.last_name,
        (SELECT COUNT(*) FROM dept_emp de WHERE de.emp_no = e.emp_no) AS dept_count,
        (SELECT AVG(salary) FROM salaries s WHERE s.emp_no = e.emp_no AND s.to_date = '9999-01-01') AS avg_salary
 FROM employees e
-ORDER BY avg_salary DESC
-LIMIT 10;
+ORDER BY avg_salary DESC;
 "
 echo "finshed executing slow queries"
 

@@ -125,29 +125,11 @@
                             },
                             "required": [
                                 "access_type",
-                                "data_read_per_join",
-                                "delete_operation",
-                                "eval_cost",
                                 "event_id",
                                 "event_type",
-                                "filtered",
-                                "insert_operation",
-                                "key",
-                                "key_length",
-                                "port",
-                                "possible_keys",
-                                "prefix_cost",
-                                "query_cost",
-                                "read_cost",
-                                "ref",
-                                "rows_examined_per_scan",
-                                "rows_produced_per_join",
                                 "step_id",
                                 "table_name",
-                                "thread_id",
-                                "update_operation",
-                                "used_key_parts",
-                                "using_index"
+                                "thread_id"
                             ]
                         }
                     },

@@ -35,14 +35,12 @@ var (
 	defaultSlowQueryFetchInterval = 3000
 
 	// cli flags
-	container              = flag.String("container", defaultContainer, "container where the integration is installed")
-	binPath                = flag.String("bin", defaultBinPath, "Integration binary path")
-	user                   = flag.String("user", defaultMysqlUser, "Mysql user name")
-	psw                    = flag.String("psw", defaultMysqlPass, "Mysql user password")
-	port                   = flag.Int("port", defaultMysqlPort, "Mysql port")
-	database               = flag.String("database", defaultMysqlDB, "Mysql database")
-	enableQueryMonitoring  = flag.Bool("enable_query_monitoring", defaultEnableQueryMonitoring, "flag to enable and disable collecting query metrics")
-	slowQueryFetchInterval = flag.Int("slow_query_fetch_interval", defaultSlowQueryFetchInterval, "retrives slow queries that ran in last n seconds")
+	container = flag.String("container", defaultContainer, "container where the integration is installed")
+	binPath   = flag.String("bin", defaultBinPath, "Integration binary path")
+	user      = flag.String("user", defaultMysqlUser, "Mysql user name")
+	psw       = flag.String("psw", defaultMysqlPass, "Mysql user password")
+	port      = flag.Int("port", defaultMysqlPort, "Mysql port")
+	database  = flag.String("database", defaultMysqlDB, "Mysql database")
 )
 
 type MysqlConfig struct {
@@ -82,7 +80,7 @@ var (
 
 // Returns the standard output, or fails testing if the command returned an error
 func runIntegration(t *testing.T, targetContainer string, envVars ...string) string {
-	stdout, stderr, err := helpers.RunIntegrationAndGetStdout(t, binPath, user, psw, port, slowQueryFetchInterval, container, targetContainer, envVars)
+	stdout, stderr, err := helpers.RunIntegrationAndGetStdout(t, binPath, user, psw, port, nil, nil, container, targetContainer, envVars)
 	if stderr != "" {
 		log.Debug("Integration command Standard Error: ", stderr)
 	}
@@ -92,7 +90,7 @@ func runIntegration(t *testing.T, targetContainer string, envVars ...string) str
 }
 
 func runIntegrationAndGetStdoutWithError(t *testing.T, targetContainer string, envVars ...string) (string, string, error) {
-	return helpers.RunIntegrationAndGetStdout(t, binPath, user, psw, port, slowQueryFetchInterval, container, targetContainer, envVars)
+	return helpers.RunIntegrationAndGetStdout(t, binPath, user, psw, port, nil, nil, container, targetContainer, envVars)
 }
 
 func checkVersion(dbVersion string) bool {
