@@ -113,7 +113,6 @@ func TestValidatePreconditions_EssentialChecksFailed(t *testing.T) {
 			}
 		})
 	}
-
 }
 
 func TestIsPerformanceSchemaEnabled_NoRowsFound(t *testing.T) {
