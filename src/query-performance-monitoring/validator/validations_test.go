@@ -69,40 +69,51 @@ func TestValidatePreconditions_PerformanceSchemaDisabled(t *testing.T) {
 	assert.Equal(t, ErrPerformanceSchemaDisabled, err)
 }
 
-func TestValidatePreconditions_EssentialConsumersCheckFailed(t *testing.T) {
-	rows := sqlmock.NewRows([]string{"Variable_name", "Value"}).
-		AddRow("performance_schema", "ON")
-	db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
-	if err != nil {
-		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
+func TestValidatePreconditions_EssentialChecksFailed(t *testing.T) {
+	testCases := []struct {
+		name            string
+		expectQueryFunc func(mock sqlmock.Sqlmock)
+		assertError     bool
+	}{
+		{
+			name: "EssentialConsumersCheckFailed",
+			expectQueryFunc: func(mock sqlmock.Sqlmock) {
+				mock.ExpectQuery(buildConsumerStatusQuery()).WillReturnError(errQuery)
+			},
+			assertError: true,
+		},
+		{
+			name: "EssentialInstrumentsCheckFailed",
+			expectQueryFunc: func(mock sqlmock.Sqlmock) {
+				mock.ExpectQuery(buildInstrumentQuery()).WillReturnError(errQuery)
+			},
+			assertError: true,
+		},
 	}
-	defer db.Close()
 
-	sqlxDB := sqlx.NewDb(db, "sqlmock")
-	mockDataSource := &mockDataSource{db: sqlxDB}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			rows := sqlmock.NewRows([]string{"Variable_name", "Value"}).
+				AddRow("performance_schema", "ON")
+			db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
+			if err != nil {
+				t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
+			}
+			defer db.Close()
+			sqlxDB := sqlx.NewDb(db, "sqlmock")
+			mockDataSource := &mockDataSource{db: sqlxDB}
 
-	mock.ExpectQuery(performanceSchemaQuery).WillReturnRows(rows)
-	mock.ExpectQuery(buildConsumerStatusQuery()).WillReturnError(errQuery)
-	err = ValidatePreconditions(mockDataSource)
-	assert.Error(t, err)
-}
-
-func TestValidatePreconditions_EssentialInstrumentsCheckFailed(t *testing.T) {
-	rows := sqlmock.NewRows([]string{"Variable_name", "Value"}).
-		AddRow("performance_schema", "ON")
-	db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
-	if err != nil {
-		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
+			mock.ExpectQuery(performanceSchemaQuery).WillReturnRows(rows)
+			tc.expectQueryFunc(mock) // Dynamically call the query expectation function
+			err = ValidatePreconditions(mockDataSource)
+			if tc.assertError {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+			}
+		})
 	}
-	defer db.Close()
 
-	sqlxDB := sqlx.NewDb(db, "sqlmock")
-	mockDataSource := &mockDataSource{db: sqlxDB}
-
-	mock.ExpectQuery(performanceSchemaQuery).WillReturnRows(rows)
-	mock.ExpectQuery(buildInstrumentQuery()).WillReturnError(errQuery)
-	err = ValidatePreconditions(mockDataSource)
-	assert.Error(t, err)
 }
 
 func TestIsPerformanceSchemaEnabled_NoRowsFound(t *testing.T) {
