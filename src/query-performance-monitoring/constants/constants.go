@@ -3,8 +3,9 @@ package constants
 import "time"
 
 const (
-	IntegrationName = "com.newrelic.mysql"
-	NodeEntityType  = "node"
+	IntegrationName    = "com.newrelic.mysql"
+	NodeEntityType     = "node"
+	IntegrationVersion = "0.0.0"
 	/*
 		New Relic's Integration SDK imposes a limit of 1000 metrics per ingestion.
 		To handle metric sets exceeding this limit, we process and ingest metrics in smaller chunks
@@ -35,6 +36,9 @@ const (
 		This prevents long-running operations from causing the integration to hang and ensures timely data retrieval.
 	*/
 	TimeoutDuration = 5 * time.Second
+
+	// DefaultSlowQueryFetchInterval defines the default interval for fetching grouped slow query performance metrics. */
+	DefaultSlowQueryFetchInterval = 500
 
 	//  DefaultQueryFetchInterval defines the default interval for fetching individual query performance metrics. */
 	DefaultQueryResponseTimeThreshold = 500

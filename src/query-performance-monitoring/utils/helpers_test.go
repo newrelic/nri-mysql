@@ -1,7 +1,10 @@
 package utils
 
 import (
+	"encoding/json"
 	"errors"
+	"flag"
+	"os"
 	"strings"
 	"testing"
 
@@ -12,6 +15,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+var args arguments.ArgumentList
 var (
 	ErrCreateNodeEntity = errors.New("error creating node entity")
 	ErrProcessModel     = errors.New("error processing model")
@@ -246,42 +250,153 @@ func TestGetUniqueExcludedDatabases(t *testing.T) {
 }
 
 func TestGetExcludedDatabases(t *testing.T) {
-	tests := []struct {
-		name              string
-		excludedDBList    string
-		expectedDatabases []string
-	}{
-		{
-			name:              "Valid JSON with multiple databases",
-			excludedDBList:    `["db1","db2"]`,
-			expectedDatabases: append(constants.DefaultExcludedDatabases, "db1", "db2"),
-		},
-		{
-			name:              "Valid JSON with single database",
-			excludedDBList:    `["db1"]`,
-			expectedDatabases: append(constants.DefaultExcludedDatabases, "db1"),
-		},
-		{
-			name:              "Invalid JSON",
-			excludedDBList:    `["db1","db2"`,
-			expectedDatabases: constants.DefaultExcludedDatabases,
-		},
-		{
-			name:              "Empty JSON array",
-			excludedDBList:    `[]`,
-			expectedDatabases: constants.DefaultExcludedDatabases,
-		},
-		{
-			name:              "Empty string",
-			excludedDBList:    "",
-			expectedDatabases: constants.DefaultExcludedDatabases,
-		},
+	type testCase struct {
+		Name              string   `json:"name"`
+		ExcludedDBList    string   `json:"excludedDBList"`
+		ExpectedDatabases []string `json:"expectedDatabases"`
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			result := GetExcludedDatabases(tt.excludedDBList)
-			assert.ElementsMatch(t, tt.expectedDatabases, result)
+	jsonInput := `[
+        {
+            "name": "Valid JSON with multiple databases",
+            "excludedDBList": "[\"db1\",\"db2\"]",
+            "expectedDatabases": ["", "mysql", "information_schema", "performance_schema", "sys", "db1", "db2"]
+        },
+        {
+            "name": "Valid JSON with single database",
+            "excludedDBList": "[\"db1\"]",
+            "expectedDatabases": ["", "mysql", "information_schema", "performance_schema", "sys", "db1"]
+        },
+        {
+            "name": "Invalid JSON",
+            "excludedDBList": "[\"db1\",\"db2\"",
+            "expectedDatabases": ["", "mysql", "information_schema", "performance_schema", "sys"]
+        },
+        {
+            "name": "Empty JSON array",
+            "excludedDBList": "[]",
+            "expectedDatabases": ["", "mysql", "information_schema", "performance_schema", "sys"]
+        },
+        {
+            "name": "Empty string",
+            "excludedDBList": "",
+            "expectedDatabases": ["", "mysql", "information_schema", "performance_schema", "sys"]
+        }
+    ]`
+
+	var testCases []testCase
+	err := json.Unmarshal([]byte(jsonInput), &testCases)
+	if err != nil {
+		t.Fatalf("Failed to unmarshal JSON input: %v", err)
+	}
+
+	for _, tt := range testCases {
+		t.Run(tt.Name, func(t *testing.T) {
+			result := GetExcludedDatabases(tt.ExcludedDBList)
+			assert.ElementsMatch(t, tt.ExpectedDatabases, result)
 		})
 	}
+}
+
+func TestGenerateDSNPriorizesCliOverEnvArgs(t *testing.T) {
+	os.Setenv("USERNAME", "dbuser")
+	os.Setenv("HOSTNAME", "foo")
+
+	os.Args = []string{
+		"cmd",
+		"-hostname=bar",
+		"-port=1234",
+		"-password=dbpwd",
+	}
+	_, err := integration.New(constants.IntegrationName, constants.IntegrationVersion, integration.Args(&args))
+	FatalIfErr(err)
+
+	assert.Equal(t, "dbuser:dbpwd@tcp(bar:1234)/?", GenerateDSN(args, ""))
+
+	flag.CommandLine = flag.NewFlagSet("cmd", flag.ContinueOnError)
+}
+
+func TestGenerateDSNSupportsOldPasswords(t *testing.T) {
+	os.Args = []string{
+		"cmd",
+		"-hostname=dbhost",
+		"-username=dbuser",
+		"-password=dbpwd",
+		"-port=1234",
+		"-old_passwords",
+	}
+	_, err := integration.New(constants.IntegrationName, constants.IntegrationVersion, integration.Args(&args))
+	FatalIfErr(err)
+
+	assert.Equal(t, "dbuser:dbpwd@tcp(dbhost:1234)/?allowOldPasswords=true", GenerateDSN(args, ""))
+
+	flag.CommandLine = flag.NewFlagSet("cmd", flag.ContinueOnError)
+}
+
+func TestGenerateDSNSupportsEnableTLS(t *testing.T) {
+	os.Args = []string{
+		"cmd",
+		"-hostname=dbhost",
+		"-username=dbuser",
+		"-password=dbpwd",
+		"-port=1234",
+		"-enable_tls",
+	}
+	_, err := integration.New(constants.IntegrationName, constants.IntegrationVersion, integration.Args(&args))
+	FatalIfErr(err)
+
+	assert.Equal(t, "dbuser:dbpwd@tcp(dbhost:1234)/?tls=true", GenerateDSN(args, ""))
+
+	flag.CommandLine = flag.NewFlagSet("cmd", flag.ContinueOnError)
+}
+
+func TestGenerateDSNSupportsInsecureSkipVerify(t *testing.T) {
+	os.Args = []string{
+		"cmd",
+		"-hostname=dbhost",
+		"-username=dbuser",
+		"-password=dbpwd",
+		"-port=1234",
+		"-insecure_skip_verify",
+	}
+	_, err := integration.New(constants.IntegrationName, constants.IntegrationVersion, integration.Args(&args))
+	FatalIfErr(err)
+
+	assert.Equal(t, "dbuser:dbpwd@tcp(dbhost:1234)/?tls=skip-verify", GenerateDSN(args, ""))
+
+	flag.CommandLine = flag.NewFlagSet("cmd", flag.ContinueOnError)
+}
+
+func TestGenerateDSNSupportsExtraConnectionURLArgs(t *testing.T) {
+	os.Args = []string{
+		"cmd",
+		"-hostname=dbhost",
+		"-username=dbuser",
+		"-password=dbpwd",
+		"-port=1234",
+		"-extra_connection_url_args=readTimeout=1s&timeout=5s&tls=skip-verify",
+	}
+	_, err := integration.New(constants.IntegrationName, constants.IntegrationVersion, integration.Args(&args))
+	FatalIfErr(err)
+
+	assert.Equal(t, "dbuser:dbpwd@tcp(dbhost:1234)/?readTimeout=1s&timeout=5s&tls=skip-verify", GenerateDSN(args, ""))
+
+	flag.CommandLine = flag.NewFlagSet("cmd", flag.ContinueOnError)
+}
+
+func TestGenerateDSNSocketDiscardPort(t *testing.T) {
+	os.Args = []string{
+		"cmd",
+		"-hostname=dbhost",
+		"-username=dbuser",
+		"-password=dbpwd",
+		"-port=1234",
+		"-socket=/path/to/socket/file",
+	}
+	_, err := integration.New(constants.IntegrationName, constants.IntegrationVersion, integration.Args(&args))
+	FatalIfErr(err)
+
+	assert.Equal(t, "dbuser:dbpwd@unix(/path/to/socket/file)/?", GenerateDSN(args, ""))
+
+	flag.CommandLine = flag.NewFlagSet("cmd", flag.ContinueOnError)
 }

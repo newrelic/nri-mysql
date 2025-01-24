@@ -7,16 +7,19 @@ import (
 	"strings"
 
 	"github.com/newrelic/infra-integrations-sdk/v3/log"
-	arguments "github.com/newrelic/nri-mysql/src/args"
 	constants "github.com/newrelic/nri-mysql/src/query-performance-monitoring/constants"
 	utils "github.com/newrelic/nri-mysql/src/query-performance-monitoring/utils"
 )
 
+// Query to check if the Performance Schema is enabled
+const performanceSchemaQuery = "SHOW GLOBAL VARIABLES LIKE 'performance_schema';"
+
 // Dynamic error
 var (
-	ErrPerformanceSchemaDisabled = errors.New("performance schema is not enabled")
-	ErrNoRowsFound               = errors.New("no rows found")
-	ErrMysqlVersion              = errors.New("only version 8.0+ is supported")
+	ErrImproperlyFormattedVersion = errors.New("version string is improperly formatted")
+	ErrPerformanceSchemaDisabled  = errors.New("performance schema is not enabled")
+	ErrNoRowsFound                = errors.New("no rows found")
+	ErrMysqlVersion               = errors.New("only version 8.0+ is supported")
 )
 
 // ValidatePreconditions checks if the necessary preconditions are met for performance monitoring.
@@ -49,7 +52,7 @@ func ValidatePreconditions(db utils.DataSource) error {
 // isPerformanceSchemaEnabled checks if the Performance Schema is enabled in the MySQL database.
 func isPerformanceSchemaEnabled(db utils.DataSource) (bool, error) {
 	var variableName, performanceSchemaEnabled string
-	rows, err := db.QueryX("SHOW GLOBAL VARIABLES LIKE 'performance_schema';")
+	rows, err := db.QueryX(performanceSchemaQuery)
 	if err != nil {
 		return false, fmt.Errorf("failed to check performance schema status: %w", err)
 	}
@@ -153,24 +156,28 @@ func getMySQLVersion(db utils.DataSource) (string, error) {
 
 // isVersion8OrGreater checks if the MySQL version is 8.0 or greater.
 func isVersion8OrGreater(version string) bool {
-	majorVersion := parseVersion(version)
+	majorVersion, err := extractMajorFromVersion(version)
+	if err != nil {
+		log.Error("Failed to extract major version: %v", err)
+		return false
+	}
 	return (majorVersion >= 8)
 }
 
-// parseVersion extracts the major and minor version numbers from the version string
-func parseVersion(version string) int {
+// extractMajorFromVersion extracts the major version number from a version string.
+func extractMajorFromVersion(version string) (int, error) {
 	parts := strings.Split(version, ".")
 	if len(parts) < constants.MinVersionParts {
-		return 0 // Return 0 if the version string is improperly formatted
+		return 0, ErrImproperlyFormattedVersion
 	}
 
 	majorVersion, err := strconv.Atoi(parts[0])
 	if err != nil {
 		log.Error("Failed to parse major version '%s': %v", parts[0], err)
-		return 0
+		return 0, err
 	}
 
-	return majorVersion
+	return majorVersion, nil
 }
 
 // buildConsumerStatusQuery constructs a SQL query to check the status of essential consumers
@@ -184,8 +191,6 @@ func buildConsumerStatusQuery() string {
 		"events_statements_history",
 		"events_statements_current",
 		"events_statements_cpu",
-		"events_transactions_current",
-		"events_stages_current",
 	}
 
 	query := "SELECT NAME, ENABLED FROM performance_schema.setup_consumers WHERE NAME IN ("
@@ -218,19 +223,32 @@ func buildInstrumentQuery() string {
 	return query
 }
 
-// ValidateAndSetDefaults checks if fields are invalid and sets defaults
-func ValidateAndSetDefaults(args *arguments.ArgumentList) {
-	// Since EnableQueryMonitoring is a boolean, no need to reset as it can't be invalid in this context
-	if args.QueryResponseTimeThreshold < 0 {
-		args.QueryResponseTimeThreshold = constants.DefaultQueryResponseTimeThreshold
-		log.Warn("Query response time threshold is negative, setting to default value: %d", constants.DefaultQueryResponseTimeThreshold)
+// GetValidSlowQueryFetchIntervalThreshold validates and returns the appropriate value
+func GetValidSlowQueryFetchIntervalThreshold(threshold int) int {
+	if threshold < 0 {
+		log.Warn("Slow query fetch interval threshold is negative, setting to default value: %d", constants.DefaultSlowQueryFetchInterval)
+		return constants.DefaultSlowQueryFetchInterval
 	}
+	return threshold
+}
 
-	if args.QueryCountThreshold < 0 {
-		args.QueryCountThreshold = constants.DefaultQueryCountThreshold
-		log.Warn("Query count threshold is negative, setting to default value: %d", constants.DefaultQueryCountThreshold)
-	} else if args.QueryCountThreshold >= constants.MaxQueryCountThreshold {
-		args.QueryCountThreshold = constants.MaxQueryCountThreshold
-		log.Warn("Query count threshold is greater than max supported value, setting to max supported value: %d", constants.MaxQueryCountThreshold)
+// getValidQueryResponseTimeThreshold validates and returns the appropriate value
+func GetValidQueryResponseTimeThreshold(threshold int) int {
+	if threshold < 0 {
+		log.Warn("Query response time threshold is negative, setting to default value: %d", constants.DefaultQueryResponseTimeThreshold)
+		return constants.DefaultQueryResponseTimeThreshold
 	}
+	return threshold
+}
+
+// getValidQueryCountThreshold validates and returns the appropriate value
+func GetValidQueryCountThreshold(threshold int) int {
+	if threshold < 0 {
+		log.Warn("Query count threshold is negative, setting to default value: %d", constants.DefaultQueryCountThreshold)
+		return constants.DefaultQueryCountThreshold
+	} else if threshold >= constants.MaxQueryCountThreshold {
+		log.Warn("Query count threshold is greater than max supported value, setting to max supported value: %d", constants.MaxQueryCountThreshold)
+		return constants.MaxQueryCountThreshold
+	}
+	return threshold
 }

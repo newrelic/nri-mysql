@@ -3452,28 +3452,6 @@
                 ],
                 "type": "object"
               },
-              "performance_schema_events_stages_history_long_size": {
-                "properties": {
-                  "value": {
-                    "type": "number"
-                  }
-                },
-                "required": [
-                  "value"
-                ],
-                "type": "object"
-              },
-              "performance_schema_events_stages_history_size": {
-                "properties": {
-                  "value": {
-                    "type": "number"
-                  }
-                },
-                "required": [
-                  "value"
-                ],
-                "type": "object"
-              },
               "performance_schema_events_statements_history_long_size": {
                 "properties": {
                   "value": {

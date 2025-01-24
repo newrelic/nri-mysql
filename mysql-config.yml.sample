@@ -78,6 +78,7 @@ integrations:
     # Example:
     # EXCLUDED_PERFORMANCE_DATABASES: '["employees","azure_sys"]' 
     # Provide any necessary database exclusions as a JSON array
+    # Note: System databases (mysql, information_schema, performance_schema, sys) are always excluded.
     # EXCLUDED_PERFORMANCE_DATABASES: '[]'
   interval: 30s 
   labels:

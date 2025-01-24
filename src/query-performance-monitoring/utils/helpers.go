@@ -132,7 +132,7 @@ func GetExcludedDatabases(excludedDatabasesList string) []string {
 	// Parse the excluded databases list from JSON string
 	var excludedDatabasesSlice []string
 	if err := json.Unmarshal([]byte(excludedDatabasesList), &excludedDatabasesSlice); err != nil {
-		log.Warn("Error parsing excluded databases list: %v", err)
+		log.Warn("Failed to parse excluded databases list: %v. Using default list: %v", err, constants.DefaultExcludedDatabases)
 	}
 
 	// Get unique excluded databases

@@ -6,6 +6,11 @@ const (
 		This query provides insights into slow-performing queries by capturing metrics such as average CPU time,
 		average elapsed time, and disk reads/writes. It's beneficial for identifying resource-intensive queries
 		that may require optimization, such as indexing or query restructuring.
+
+		Arguments:
+		1. Interval in seconds (INT): The time period to look back for slow queries.
+		2. Excluded databases (STRING): A comma-separated list of database names to exclude from the results.
+		3. Limit (INT): The maximum number of results to return.
 	*/
 	SlowQueries = `
         SELECT
@@ -48,6 +53,11 @@ const (
 		CurrentRunningQueriesSearch: Fetches current running queries that match a specific digest.
 		Useful for real-time monitoring of active query execution, enabling the identification
 		of long-running queries that may need intervention to maintain system performance.
+
+		Arguments:
+		1. Digest (STRING): The digest of the query to search for.
+		2. Minimum execution time in seconds (INT): The minimum execution time to filter queries.
+		3. Limit (INT): The maximum number of results to return.
 	*/
 	CurrentRunningQueriesSearch = `
 		SELECT
@@ -74,6 +84,11 @@ const (
 		RecentQueriesSearch: Retrieves recent queries from history matching a specific digest.
 		This query helps in assessing recently executed queries, reviewing their performance,
 		and planning optimizations based on typical execution times and data handling patterns.
+
+		Arguments:
+		1. Digest (STRING): The digest of the query to search for.
+		2. Minimum execution time in seconds (INT): The minimum execution time to filter queries.
+		3. Limit (INT): The maximum number of results to return.
 	*/
 	RecentQueriesSearch = `
 		SELECT
@@ -100,6 +115,11 @@ const (
 		PastQueriesSearch: Fetches past long-running queries from the history long table based on a digest.
 		This is useful for diagnosing historical performance issues and understanding query behavior over time.
 		By examining past queries, you can discover inefficient patterns and possible optimization strategies.
+
+		Arguments:
+		1. Digest (STRING): The digest of the query to search for.
+		2. Minimum execution time in seconds (INT): The minimum execution time to filter queries.
+		3. Limit (INT): The maximum number of results to return.
 	*/
 	PastQueriesSearch = `
 		SELECT
@@ -127,6 +147,10 @@ const (
 		This query collects wait event data which is crucial to understanding bottlenecks such as IO, locks,
 		or synchronization issues. By categorizing wait events, it assists in diagnosing specific areas
 		impacting database performance.
+
+		Arguments:
+		1. Excluded databases (STRING): A comma-separated list of database names to exclude from the results.
+		2. Limit (INT): The maximum number of results to return.
 	*/
 	WaitEventsQuery = `
 		WITH wait_data AS (
@@ -213,6 +237,10 @@ const (
 		and queries involved. It is vital for detecting deadlocks or contention issues, helping in resolving
 		immediate blocking problems and planning long-term query and index optimizations to reduce this
 		occurrence.
+
+		Arguments:
+		1. Excluded databases (STRING): A comma-separated list of database names to exclude from the results.
+		2. Limit (INT): The maximum number of results to return.
 	*/
 	BlockingSessionsQuery = `
 		SELECT 

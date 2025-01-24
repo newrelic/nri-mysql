@@ -25,6 +25,6 @@ WHERE NAME IN ('events_statements_history', 'events_statements_current', 'events
 
 UPDATE performance_schema.setup_consumers
 SET ENABLED = 'YES'
-WHERE NAME LIKE 'events_waits_current%' OR NAME LIKE 'events_transactions_current%' OR NAME LIKE 'events_statements_current%' OR NAME LIKE 'events_stages_current%';
+WHERE NAME LIKE 'events_waits_current%' OR NAME LIKE 'events_statements_current%';
 
 SET GLOBAL innodb_lock_wait_timeout = 120; -- Increase to 2 minutes

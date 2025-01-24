@@ -23,5 +23,5 @@ type ArgumentList struct {
 	SlowQueryFetchInterval       int    `default:"30" help:"Fetch interval in seconds for grouped slow queries. Should match the interval in mysql-config.yml."`
 	QueryResponseTimeThreshold   int    `default:"500" help:"Threshold in milliseconds for query response time to fetch individual query performance metrics."`
 	QueryCountThreshold          int    `default:"20" help:"Query count limit for fetching grouped slow and individual query performance metrics."`
-	ExcludedPerformanceDatabases string `default:"[]" help:"A JSON array that lists databases to be excluded from performance metrics collection. System databases are excluded by default."`
+	ExcludedPerformanceDatabases string `default:"[]" help:"A JSON array that lists databases to be excluded from performance metrics collection. System databases are always excluded."`
 }

@@ -1,18 +1,12 @@
 package main
 
 import (
-	"flag"
-	"os"
 	"testing"
 
 	"github.com/newrelic/infra-integrations-sdk/v3/data/inventory"
 	"github.com/newrelic/infra-integrations-sdk/v3/data/metric"
-	"github.com/newrelic/infra-integrations-sdk/v3/integration"
-	utils "github.com/newrelic/nri-mysql/src/query-performance-monitoring/utils"
 	"github.com/stretchr/testify/assert"
 )
-
-var databaseName string
 
 func TestAsValue(t *testing.T) {
 	intValue, ok := asValue("10").(int)
@@ -177,107 +171,4 @@ func TestPopulateMetricsWithZeroValuesInData(t *testing.T) {
 			t.Errorf("For metric '%s', expected value: %f. Actual value: %f", metricName, expected, actual)
 		}
 	}
-}
-
-func TestGenerateDSNPriorizesCliOverEnvArgs(t *testing.T) {
-	os.Setenv("USERNAME", "dbuser")
-	os.Setenv("HOSTNAME", "foo")
-
-	os.Args = []string{
-		"cmd",
-		"-hostname=bar",
-		"-port=1234",
-		"-password=dbpwd",
-	}
-	_, err := integration.New(integrationName, integrationVersion, integration.Args(&args))
-	fatalIfErr(err)
-
-	assert.Equal(t, "dbuser:dbpwd@tcp(bar:1234)/?", utils.GenerateDSN(args, databaseName))
-
-	flag.CommandLine = flag.NewFlagSet("cmd", flag.ContinueOnError)
-}
-
-func TestGenerateDSNSupportsOldPasswords(t *testing.T) {
-	os.Args = []string{
-		"cmd",
-		"-hostname=dbhost",
-		"-username=dbuser",
-		"-password=dbpwd",
-		"-port=1234",
-		"-old_passwords",
-	}
-	_, err := integration.New(integrationName, integrationVersion, integration.Args(&args))
-	fatalIfErr(err)
-
-	assert.Equal(t, "dbuser:dbpwd@tcp(dbhost:1234)/?allowOldPasswords=true", utils.GenerateDSN(args, databaseName))
-
-	flag.CommandLine = flag.NewFlagSet("cmd", flag.ContinueOnError)
-}
-
-func TestGenerateDSNSupportsEnableTLS(t *testing.T) {
-	os.Args = []string{
-		"cmd",
-		"-hostname=dbhost",
-		"-username=dbuser",
-		"-password=dbpwd",
-		"-port=1234",
-		"-enable_tls",
-	}
-	_, err := integration.New(integrationName, integrationVersion, integration.Args(&args))
-	fatalIfErr(err)
-
-	assert.Equal(t, "dbuser:dbpwd@tcp(dbhost:1234)/?tls=true", utils.GenerateDSN(args, databaseName))
-
-	flag.CommandLine = flag.NewFlagSet("cmd", flag.ContinueOnError)
-}
-
-func TestGenerateDSNSupportsInsecureSkipVerify(t *testing.T) {
-	os.Args = []string{
-		"cmd",
-		"-hostname=dbhost",
-		"-username=dbuser",
-		"-password=dbpwd",
-		"-port=1234",
-		"-insecure_skip_verify",
-	}
-	_, err := integration.New(integrationName, integrationVersion, integration.Args(&args))
-	fatalIfErr(err)
-
-	assert.Equal(t, "dbuser:dbpwd@tcp(dbhost:1234)/?tls=skip-verify", utils.GenerateDSN(args, databaseName))
-
-	flag.CommandLine = flag.NewFlagSet("cmd", flag.ContinueOnError)
-}
-
-func TestGenerateDSNSupportsExtraConnectionURLArgs(t *testing.T) {
-	os.Args = []string{
-		"cmd",
-		"-hostname=dbhost",
-		"-username=dbuser",
-		"-password=dbpwd",
-		"-port=1234",
-		"-extra_connection_url_args=readTimeout=1s&timeout=5s&tls=skip-verify",
-	}
-	_, err := integration.New(integrationName, integrationVersion, integration.Args(&args))
-	fatalIfErr(err)
-
-	assert.Equal(t, "dbuser:dbpwd@tcp(dbhost:1234)/?readTimeout=1s&timeout=5s&tls=skip-verify", utils.GenerateDSN(args, databaseName))
-
-	flag.CommandLine = flag.NewFlagSet("cmd", flag.ContinueOnError)
-}
-
-func TestGenerateDSNSocketDiscardPort(t *testing.T) {
-	os.Args = []string{
-		"cmd",
-		"-hostname=dbhost",
-		"-username=dbuser",
-		"-password=dbpwd",
-		"-port=1234",
-		"-socket=/path/to/socket/file",
-	}
-	_, err := integration.New(integrationName, integrationVersion, integration.Args(&args))
-	fatalIfErr(err)
-
-	assert.Equal(t, "dbuser:dbpwd@unix(/path/to/socket/file)/?", utils.GenerateDSN(args, databaseName))
-
-	flag.CommandLine = flag.NewFlagSet("cmd", flag.ContinueOnError)
 }

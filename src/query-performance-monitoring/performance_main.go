@@ -12,12 +12,10 @@ import (
 	validator "github.com/newrelic/nri-mysql/src/query-performance-monitoring/validator"
 )
 
-// main
+// PopulateQueryPerformanceMetrics serves as the entry point for retrieving and populating query performance metrics, including slow queries, detailed query information, query execution plans, wait events, and blocking sessions.
 func PopulateQueryPerformanceMetrics(args arguments.ArgumentList, e *integration.Entity, i *integration.Integration) {
-	var database string
-
 	// Generate Data Source Name (DSN) for database connection
-	dsn := utils.GenerateDSN(args, database)
+	dsn := utils.GenerateDSN(args, "")
 
 	// Open database connection
 	db, err := utils.OpenSQLXDB(dsn)
@@ -32,9 +30,6 @@ func PopulateQueryPerformanceMetrics(args arguments.ArgumentList, e *integration
 
 	// Get the list of unique excluded databases
 	excludedDatabases := utils.GetExcludedDatabases(args.ExcludedPerformanceDatabases)
-
-	// Validate and set defaults for the arguments
-	validator.ValidateAndSetDefaults(&args)
 
 	// Populate metrics for slow queries
 	start := time.Now()
