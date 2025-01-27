@@ -15,6 +15,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+const integrationVersion = "0.0.0"
+
 var args arguments.ArgumentList
 var (
 	ErrCreateNodeEntity = errors.New("error creating node entity")
@@ -308,7 +310,7 @@ func TestGenerateDSNPriorizesCliOverEnvArgs(t *testing.T) {
 		"-port=1234",
 		"-password=dbpwd",
 	}
-	_, err := integration.New(constants.IntegrationName, constants.IntegrationVersion, integration.Args(&args))
+	_, err := integration.New(constants.IntegrationName, integrationVersion, integration.Args(&args))
 	FatalIfErr(err)
 
 	assert.Equal(t, "dbuser:dbpwd@tcp(bar:1234)/?", GenerateDSN(args, ""))
@@ -325,7 +327,7 @@ func TestGenerateDSNSupportsOldPasswords(t *testing.T) {
 		"-port=1234",
 		"-old_passwords",
 	}
-	_, err := integration.New(constants.IntegrationName, constants.IntegrationVersion, integration.Args(&args))
+	_, err := integration.New(constants.IntegrationName, integrationVersion, integration.Args(&args))
 	FatalIfErr(err)
 
 	assert.Equal(t, "dbuser:dbpwd@tcp(dbhost:1234)/?allowOldPasswords=true", GenerateDSN(args, ""))
@@ -342,7 +344,7 @@ func TestGenerateDSNSupportsEnableTLS(t *testing.T) {
 		"-port=1234",
 		"-enable_tls",
 	}
-	_, err := integration.New(constants.IntegrationName, constants.IntegrationVersion, integration.Args(&args))
+	_, err := integration.New(constants.IntegrationName, integrationVersion, integration.Args(&args))
 	FatalIfErr(err)
 
 	assert.Equal(t, "dbuser:dbpwd@tcp(dbhost:1234)/?tls=true", GenerateDSN(args, ""))
@@ -359,7 +361,7 @@ func TestGenerateDSNSupportsInsecureSkipVerify(t *testing.T) {
 		"-port=1234",
 		"-insecure_skip_verify",
 	}
-	_, err := integration.New(constants.IntegrationName, constants.IntegrationVersion, integration.Args(&args))
+	_, err := integration.New(constants.IntegrationName, integrationVersion, integration.Args(&args))
 	FatalIfErr(err)
 
 	assert.Equal(t, "dbuser:dbpwd@tcp(dbhost:1234)/?tls=skip-verify", GenerateDSN(args, ""))
@@ -376,7 +378,7 @@ func TestGenerateDSNSupportsExtraConnectionURLArgs(t *testing.T) {
 		"-port=1234",
 		"-extra_connection_url_args=readTimeout=1s&timeout=5s&tls=skip-verify",
 	}
-	_, err := integration.New(constants.IntegrationName, constants.IntegrationVersion, integration.Args(&args))
+	_, err := integration.New(constants.IntegrationName, integrationVersion, integration.Args(&args))
 	FatalIfErr(err)
 
 	assert.Equal(t, "dbuser:dbpwd@tcp(dbhost:1234)/?readTimeout=1s&timeout=5s&tls=skip-verify", GenerateDSN(args, ""))
@@ -393,7 +395,7 @@ func TestGenerateDSNSocketDiscardPort(t *testing.T) {
 		"-port=1234",
 		"-socket=/path/to/socket/file",
 	}
-	_, err := integration.New(constants.IntegrationName, constants.IntegrationVersion, integration.Args(&args))
+	_, err := integration.New(constants.IntegrationName, integrationVersion, integration.Args(&args))
 	FatalIfErr(err)
 
 	assert.Equal(t, "dbuser:dbpwd@unix(/path/to/socket/file)/?", GenerateDSN(args, ""))

@@ -21,20 +21,21 @@ import (
 )
 
 var (
-	args      arguments.ArgumentList
-	gitCommit = ""
-	buildDate = ""
+	args               arguments.ArgumentList
+	integrationVersion = "0.0.0"
+	gitCommit          = ""
+	buildDate          = ""
 )
 
 func main() {
-	i, err := integration.New(constants.IntegrationName, constants.IntegrationVersion, integration.Args(&args))
+	i, err := integration.New(constants.IntegrationName, integrationVersion, integration.Args(&args))
 	utils.FatalIfErr(err)
 
 	if args.ShowVersion {
 		fmt.Printf(
 			"New Relic %s integration Version: %s, Platform: %s, GoVersion: %s, GitCommit: %s, BuildDate: %s\n",
 			cases.Title(language.Und).String(strings.Replace(constants.IntegrationName, "com.newrelic.", "", 1)),
-			constants.IntegrationVersion,
+			integrationVersion,
 			fmt.Sprintf("%s/%s", runtime.GOOS, runtime.GOARCH),
 			runtime.Version(),
 			gitCommit,
