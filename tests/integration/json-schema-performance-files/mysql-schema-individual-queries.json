@@ -1,0 +1,135 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "properties": {
+        "name": {
+            "minLength": 1,
+            "pattern": "^com.newrelic.mysql$",
+            "type": "string"
+        },
+        "protocol_version": {
+            "minLength": 1,
+            "pattern": "^3$",
+            "type": "string"
+        },
+        "integration_version": {
+            "minLength": 1,
+            "pattern": "^[0-9]+.[0-9]+.[0-9]+$",
+            "type": "string"
+        },
+        "data": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "entity": {
+                        "type": "object",
+                        "properties": {
+                            "name": {
+                                "type": "string"
+                            },
+                            "type": {
+                                "type": "string"
+                            },
+                            "id_attributes": {
+                                "type": "array",
+                                "items": {}
+                            }
+                        },
+                        "required": [
+                            "name",
+                            "type",
+                            "id_attributes"
+                        ]
+                    },
+                    "metrics": {
+                        "type": "array",
+                        "minItems": 1,
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "database_name": {
+                                    "minLength": 1,
+                                    "type": "string"
+                                },
+                                "event_id": {
+                                    "type": "integer"
+                                },
+                                "event_type": {
+                                    "minLength": 1,
+                                    "pattern": "^MysqlIndividualQueriesSample$",
+                                    "type": "string"
+                                },
+                                "execution_time_ms": {
+                                    "type": "number"
+                                },
+                                "hostname": {
+                                    "minLength": 1,
+                                    "type": "string"
+                                },
+                                "port": {
+                                    "minLength": 1,
+                                    "type": "string"
+                                },
+                                "query_id": {
+                                    "minLength": 1,
+                                    "type": "string"
+                                },
+                                "query_text": {
+                                    "minLength": 1,
+                                    "type": "string"
+                                },
+                                "query_sample_text": {
+                                    "type": "string"
+                                },
+                                "rows_examined": {
+                                    "type": "integer"
+                                },
+                                "rows_sent": {
+                                    "type": "integer"
+                                },
+                                "thread_id": {
+                                    "type": "integer"
+                                }
+                            },
+                            "required": [
+                                "database_name",
+                                "event_id",
+                                "event_type",
+                                "execution_time_ms",
+                                "query_id",
+                                "query_text",
+                                "rows_examined",
+                                "rows_sent",
+                                "thread_id"
+                            ]
+                        }
+                    },
+                    "inventory": {
+                        "properties": {},
+                        "type": "object",
+                        "required": []
+                    },
+                    "events": {
+                        "items": {
+                            "properties": {},
+                            "required": []
+                        },
+                        "type": "array"
+                    }
+                },
+                "required": [
+                    "metrics",
+                    "inventory",
+                    "events"
+                ]
+            }
+        }
+    },
+    "required": [
+        "name",
+        "protocol_version",
+        "integration_version",
+        "data"
+    ]
+}

@@ -39,3 +39,49 @@ integrations:
     env: production
     role: write-replica
   inventory_source: config/mysql
+
+# Example configuration for enabling performance monitoring
+- name: nri-mysql
+  env:
+    HOSTNAME: localhost
+    PORT: 3306
+    # ENABLE_TLS: false
+    # INSECURE_SKIP_VERIFY: false
+    # Specify extra connection parameters as attr1=val1&attr2=val2.
+    # EXTRA_CONNECTION_URL_ARGS: ""
+
+    # If not empty `socket` parameter will discard `port` parameter
+    # SOCKET: <PATH_TO_LOCAL_SOCKET_FILE_NAME>
+
+    USERNAME: newrelic
+    PASSWORD: <YOUR_SELECTED_PASSWORD>
+    # Allow old password https://dev.mysql.com/doc/refman/5.6/en/server-system-variables.html#sysvar_old_passwords
+    # OLD_PASSWORDS: false
+
+    # New users should leave this property as `true`, to identify the
+    # monitored entities as `remote`. Setting this property to `false` (the
+    # default value) is deprecated and will be removed soon, disallowing
+    # entities that are identified as `local`.
+    # Please check the documentation to get more information about local
+    # versus remote entities:
+    # https://github.com/newrelic/infra-integrations-sdk/blob/master/docs/entity-definition.md
+    REMOTE_MONITORING: true
+
+    # Enable query performance monitoring
+    ENABLE_QUERY_MONITORING: true
+    # Fetch interval in seconds for grouped slow queries. Should match the interval in mysql-config.yml
+    # SLOW_QUERY_FETCH_INTERVAL: 30
+    # Threshold in milliseconds for query response time to fetch individual query performance metrics
+    # QUERY_RESPONSE_TIME_THRESHOLD: 500
+    # Query count limit for fetching grouped slow and individual query performance metrics
+    # QUERY_COUNT_THRESHOLD: 20
+    # Example:
+    # EXCLUDED_PERFORMANCE_DATABASES: '["employees","azure_sys"]' 
+    # Provide any necessary database exclusions as a JSON array
+    # Note: System databases (mysql, information_schema, performance_schema, sys) are always excluded.
+    # EXCLUDED_PERFORMANCE_DATABASES: '[]'
+  interval: 30s 
+  labels:
+    env: production
+    role: performance-monitoring
+  inventory_source: config/mysql-performance

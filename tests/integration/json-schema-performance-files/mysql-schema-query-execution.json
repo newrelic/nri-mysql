@@ -1,0 +1,163 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "properties": {
+        "name": {
+            "type": "string"
+        },
+        "protocol_version": {
+            "type": "string"
+        },
+        "integration_version": {
+            "type": "string"
+        },
+        "data": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "entity": {
+                        "type": "object",
+                        "properties": {
+                            "name": {
+                                "type": "string"
+                            },
+                            "type": {
+                                "type": "string"
+                            },
+                            "id_attributes": {
+                                "type": "array",
+                                "items": {}
+                            }
+                        },
+                        "required": [
+                            "name",
+                            "type",
+                            "id_attributes"
+                        ]
+                    },
+                    "metrics": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "access_type": {
+                                    "minLength": 1,
+                                    "type": "string"
+                                },
+                                "data_read_per_join": {
+                                    "type": "string"
+                                },
+                                "delete_operation": {
+                                    "type": "string"
+                                },
+                                "eval_cost": {
+                                    "type": "string"
+                                },
+                                "event_id": {
+                                    "minimum": 0,
+                                    "type": "integer"
+                                },
+                                "event_type": {
+                                    "minLength": 1,
+                                    "pattern": "^MysqlQueryExecutionSample$",
+                                    "type": "string"
+                                },
+                                "filtered": {
+                                    "type": "string"
+                                },
+                                "hostname": {
+                                    "minLength": 1,
+                                    "type": "string"
+                                },
+                                "insert_operation": {
+                                    "type": "string"
+                                },
+                                "key": {
+                                    "type": "string"
+                                },
+                                "key_length": {
+                                    "type": "string"
+                                },
+                                "port": {
+                                    "minLength": 1,
+                                    "type": "string"
+                                },
+                                "possible_keys": {
+                                    "type": "string"
+                                },
+                                "prefix_cost": {
+                                    "type": "string"
+                                },
+                                "query_cost": {
+                                    "type": "string"
+                                },
+                                "read_cost": {
+                                    "type": "string"
+                                },
+                                "ref": {
+                                    "type": "string"
+                                },
+                                "rows_examined_per_scan": {
+                                    "type": "integer"
+                                },
+                                "rows_produced_per_join": {
+                                    "type": "integer"
+                                },
+                                "step_id": {
+                                    "type": "integer"
+                                },
+                                "table_name": {
+                                    "minLength": 1,
+                                    "type": "string"
+                                },
+                                "thread_id": {
+                                    "minimum": 0,
+                                    "type": "integer"
+                                },
+                                "update_operation": {
+                                    "type": "string"
+                                },
+                                "used_key_parts": {
+                                    "type": "string"
+                                },
+                                "using_index": { "type": "string" }
+                            },
+                            "required": [
+                                "access_type",
+                                "event_id",
+                                "event_type",
+                                "step_id",
+                                "table_name",
+                                "thread_id"
+                            ]
+                        }
+                    },
+                    "inventory": {
+                        "properties": {},
+                        "type": "object",
+                        "required": []
+                    },
+                    "events": {
+                        "items": {
+                            "properties": {},
+                            "required": []
+                        },
+                        "type": "array"
+                    }
+                },
+                "required": [
+                    "metrics",
+                    "inventory",
+                    "events"
+                ]
+            }
+        }
+    },
+    "required": [
+        "name",
+        "protocol_version",
+        "integration_version",
+        "data"
+    ]
+}

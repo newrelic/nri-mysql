@@ -1,0 +1,165 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "properties": {
+        "name": {
+            "type": "string"
+        },
+        "protocol_version": {
+            "type": "string"
+        },
+        "integration_version": {
+            "type": "string"
+        },
+        "data": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "entity": {
+                        "type": "object",
+                        "properties": {
+                            "name": {
+                                "type": "string"
+                            },
+                            "type": {
+                                "type": "string"
+                            },
+                            "id_attributes": {
+                                "type": "array",
+                                "items": {}
+                            }
+                        },
+                        "required": [
+                            "name",
+                            "type",
+                            "id_attributes"
+                        ]
+                    },
+                    "metrics": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "blocked_host": {
+                                    "type": "string"
+                                },
+                                "blocked_pid": {
+                                    "type": "string"
+                                },
+                                "blocked_query": {
+                                    "type": "string"
+                                },
+                                "blocked_query_id": {
+                                    "type": "string"
+                                },
+                                "blocked_query_time_ms": {
+                                    "type": "number"
+                                },
+                                "blocked_status": {
+                                    "type": "string"
+                                },
+                                "blocked_thread_id": {
+                                    "type": "integer"
+                                },
+                                "blocked_txn_id": {
+                                    "type": "string"
+                                },
+                                "blocked_txn_start_time": {
+                                    "type": "string",
+                                    "format": "date-time"
+                                },
+                                "blocking_host": {
+                                    "type": "string"
+                                },
+                                "blocking_pid": {
+                                    "type": "string"
+                                },
+                                "blocking_query": {
+                                    "type": "string"
+                                },
+                                "blocking_query_id": {
+                                    "type": "string"
+                                },
+                                "blocking_query_time_ms": {
+                                    "type": "number"
+                                },
+                                "blocking_status": {
+                                    "type": "string"
+                                },
+                                "blocking_thread_id": {
+                                    "type": "integer"
+                                },
+                                "blocking_txn_id": {
+                                    "type": "string"
+                                },
+                                "blocking_txn_start_time": {
+                                    "type": "string",
+                                    "format": "date-time"
+                                },
+                                "collection_timestamp": {
+                                    "type": "string",
+                                    "format": "date-time"
+                                },
+                                "database_name": {
+                                    "type": "string"
+                                },
+                                "event_type": {
+                                    "minLength": 1,
+                                    "pattern": "^MysqlBlockingSessionSample$",
+                                    "type": "string"
+                                },
+                                "hostname": {
+                                    "type": "string"
+                                },
+                                "port": {
+                                    "type": "string"
+                                }
+                            },
+                            "required": [
+                                "blocked_host",
+                                "blocked_pid",
+                                "blocked_query",
+                                "blocked_query_id",
+                                "blocked_query_time_ms",
+                                "blocked_status",
+                                "blocked_thread_id",
+                                "blocked_txn_id",
+                                "blocked_txn_start_time",
+                                "blocking_host",
+                                "blocking_pid",
+                                "blocking_query",
+                                "blocking_query_id",
+                                "blocking_query_time_ms",
+                                "blocking_status",
+                                "blocking_thread_id",
+                                "blocking_txn_id",
+                                "blocking_txn_start_time",
+                                "collection_timestamp",
+                                "event_type"
+                            ]
+                        }
+                    },
+                    "inventory": {
+                        "type": "object"
+                    },
+                    "events": {
+                        "type": "array",
+                        "items": {}
+                    }
+                },
+                "required": [
+                    "metrics",
+                    "inventory",
+                    "events"
+                ]
+            }
+        }
+    },
+    "required": [
+        "name",
+        "protocol_version",
+        "integration_version",
+        "data"
+    ]
+}

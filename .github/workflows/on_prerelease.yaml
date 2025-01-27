@@ -12,4 +12,5 @@ jobs:
     with:
       tag: ${{ github.event.release.tag_name }}
       integration: mysql
+      dest_prefix: query-performance-monitoring-testing/
     secrets: inherit

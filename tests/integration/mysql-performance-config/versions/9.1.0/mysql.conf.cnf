@@ -1,0 +1,18 @@
+[mysqld]
+
+host_cache_size = 0
+skip-name-resolve
+
+server-id = 1
+log-bin = /var/log/mysql/mysql-bin.log
+binlog_format = ROW
+binlog-do-db = database
+
+
+performance_schema=ON
+performance-schema-events-waits-history-long-size=10000
+performance-schema-events-statements-history-long-size=10000
+performance_schema_events_waits_history_size = 1024
+performance_schema_max_thread_instances = 1000
+# Specify an initialization file
+init-file = /etc/mysql/init.sql
