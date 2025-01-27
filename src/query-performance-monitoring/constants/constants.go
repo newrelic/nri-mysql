@@ -3,9 +3,8 @@ package constants
 import "time"
 
 const (
-	IntegrationName    = "com.newrelic.mysql"
-	NodeEntityType     = "node"
-	IntegrationVersion = "0.0.0"
+	IntegrationName = "com.newrelic.mysql"
+	NodeEntityType  = "node"
 	/*
 		New Relic's Integration SDK imposes a limit of 1000 metrics per ingestion.
 		To handle metric sets exceeding this limit, we process and ingest metrics in smaller chunks
