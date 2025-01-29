@@ -21,6 +21,9 @@ var (
 	ErrMySQLVersion                  = errors.New("failed to determine MySQL version")
 	ErrModelIsNotValid               = errors.New("model is not a valid struct")
 	ErrNoRowsReturned                = errors.New("no rows returned from EXPLAIN")
+	ErrQueryTextNil                  = errors.New("query text is nil")
+	ErrQueryTextEmpty                = errors.New("query text is empty")
+	ErrQueryIDNil                    = errors.New("query ID is nil")
 )
 
 func CreateMetricSet(e *integration.Entity, sampleName string, args arguments.ArgumentList) *metric.Set {
