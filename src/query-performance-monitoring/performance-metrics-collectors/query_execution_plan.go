@@ -54,72 +54,90 @@ func PopulateExecutionPlans(db utils.DataSource, queryGroups map[string][]utils.
 
 // processExecutionPlanMetrics processes the execution plan metrics for a given query.
 func processExecutionPlanMetrics(db utils.DataSource, query utils.IndividualQueryMetrics) ([]utils.QueryPlanMetrics, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), constants.QueryPlanTimeoutDuration)
-	defer cancel()
+    ctx, cancel := context.WithTimeout(context.Background(), constants.QueryPlanTimeoutDuration)
+    defer cancel()
 
-	// Extract the query ID, defaulting to "unknown" if it is nil
-	queryID := "unknown"
-	if id := query.QueryID; id != nil {
-		queryID = *id
-	}
+    queryID := getQueryID(query)
+    queryText, err := getQueryText(query, queryID)
+    if err != nil {
+        return []utils.QueryPlanMetrics{}, err
+    }
 
-	if query.QueryText == nil {
-		log.Warn("Query text is nil, skipping. Query ID: %s", queryID)
-		return []utils.QueryPlanMetrics{}, nil
-	}
-	queryText := strings.TrimSpace(*query.QueryText)
-	if queryText == "" {
-		log.Warn("Query text is empty, skipping. Query ID: %s", queryID)
-		return []utils.QueryPlanMetrics{}, nil
-	}
-	upperQueryText := strings.ToUpper(queryText)
+    if !isSupportedStatement(queryText) {
+        log.Warn("Skipping unsupported query for EXPLAIN: %s. Query ID: %s", queryText, queryID)
+        return []utils.QueryPlanMetrics{}, nil
+    }
 
-	// Check if the query is a supported statement
-	if !isSupportedStatement(upperQueryText) {
-		log.Warn("Skipping unsupported query for EXPLAIN: %s. Query ID: %s", queryText, queryID)
-		return []utils.QueryPlanMetrics{}, nil
-	}
+    if strings.Contains(queryText, "?") {
+        log.Warn("Skipping query with placeholders for EXPLAIN: %s. Query ID: %s", queryText, queryID)
+        return []utils.QueryPlanMetrics{}, nil
+    }
 
-	// Skip queries with placeholders
-	if strings.Contains(queryText, "?") {
-		log.Warn("Skipping query with placeholders for EXPLAIN: %s. Query ID: %s", queryText, queryID)
-		return []utils.QueryPlanMetrics{}, nil
-	}
+    execPlanJSON, err := executeExplainQuery(ctx, db, queryText)
+    if err != nil {
+        return []utils.QueryPlanMetrics{}, err
+    }
 
-	// Execute the EXPLAIN query
-	execPlanQuery := fmt.Sprintf(constants.ExplainQueryFormat, queryText)
-	rows, err := db.QueryxContext(ctx, execPlanQuery)
-	if err != nil {
-		return []utils.QueryPlanMetrics{}, err
-	}
-	defer rows.Close()
+    escapedJSON, err := escapeAllStringsInJSON(execPlanJSON)
+    if err != nil {
+        log.Error("Error escaping strings in JSON for query '%s': %v", queryText, err)
+        return []utils.QueryPlanMetrics{}, err
+    }
 
-	var execPlanJSON string
-	if rows.Next() {
-		err := rows.Scan(&execPlanJSON)
-		if err != nil {
-			return []utils.QueryPlanMetrics{}, err
-		}
-	} else {
-		err := fmt.Errorf("%w for query '%s'", utils.ErrNoRowsReturned, queryText)
-		log.Error(err.Error())
-		return []utils.QueryPlanMetrics{}, err
-	}
+    dbPerformanceEvents, err := extractMetricsFromJSONString(escapedJSON, *query.EventID, *query.ThreadID)
+    if err != nil {
+        return []utils.QueryPlanMetrics{}, err
+    }
 
-	// Escape backticks in the JSON string
-	escapedJSON, err := escapeAllStringsInJSON(execPlanJSON)
-	if err != nil {
-		log.Error("Error escaping strings in JSON for query '%s': %v", queryText, err)
-		return []utils.QueryPlanMetrics{}, err
-	}
+    return dbPerformanceEvents, nil
+}
 
-	// Extract metrics from the JSON string
-	dbPerformanceEvents, err := extractMetricsFromJSONString(escapedJSON, *query.EventID, *query.ThreadID)
-	if err != nil {
-		return []utils.QueryPlanMetrics{}, err
-	}
+// getQueryID extracts the query ID, defaulting to "unknown" if it is nil.
+func getQueryID(query utils.IndividualQueryMetrics) string {
+    if query.QueryID != nil {
+        return *query.QueryID
+    }
+    return "unknown"
+}
 
-	return dbPerformanceEvents, nil
+// getQueryText extracts and validates the query text.
+func getQueryText(query utils.IndividualQueryMetrics, queryID string) (string, error) {
+    if query.QueryText == nil {
+        log.Warn("Query text is nil, skipping. Query ID: %s", queryID)
+        return "", fmt.Errorf("query text is nil")
+    }
+
+    queryText := strings.TrimSpace(*query.QueryText)
+    if queryText == "" {
+        log.Warn("Query text is empty, skipping. Query ID: %s", queryID)
+        return "", fmt.Errorf("query text is empty")
+    }
+
+    return queryText, nil
+}
+
+// executeExplainQuery executes the EXPLAIN query and returns the result as a JSON string.
+func executeExplainQuery(ctx context.Context, db utils.DataSource, queryText string) (string, error) {
+    execPlanQuery := fmt.Sprintf(constants.ExplainQueryFormat, queryText)
+    rows, err := db.QueryxContext(ctx, execPlanQuery)
+    if err != nil {
+        return "", err
+    }
+    defer rows.Close()
+
+    var execPlanJSON string
+    if rows.Next() {
+        err := rows.Scan(&execPlanJSON)
+        if err != nil {
+            return "", err
+        }
+    } else {
+        err := fmt.Errorf("%w for query '%s'", utils.ErrNoRowsReturned, queryText)
+        log.Error(err.Error())
+        return "", err
+    }
+
+    return execPlanJSON, nil
 }
 
 // escapeAllStringsInJSON recursively escapes all string values in the JSON.
