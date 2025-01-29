@@ -3875,6 +3875,22 @@
                 ],
                 "type": "object"
               },
+              "performance_schema_events_transactions_history_long_size": {
+                "properties": {
+                  "value": {
+                    "type": "number"
+                  }
+                },
+                "type": "object"
+              },
+              "performance_schema_events_transactions_history_size": {
+                "properties": {
+                  "value": {
+                    "type": "number"
+                  }
+                },
+                "type": "object"
+              },
               "performance_schema_events_waits_history_long_size": {
                 "properties": {
                   "value": {

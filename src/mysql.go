@@ -15,9 +15,10 @@ import (
 	"golang.org/x/text/language"
 
 	arguments "github.com/newrelic/nri-mysql/src/args"
+	dbutils "github.com/newrelic/nri-mysql/src/dbutils"
+	infrautils "github.com/newrelic/nri-mysql/src/infrautils"
 	queryperformancemonitoring "github.com/newrelic/nri-mysql/src/query-performance-monitoring"
 	constants "github.com/newrelic/nri-mysql/src/query-performance-monitoring/constants"
-	utils "github.com/newrelic/nri-mysql/src/query-performance-monitoring/utils"
 )
 
 var (
@@ -29,7 +30,7 @@ var (
 
 func main() {
 	i, err := integration.New(constants.IntegrationName, integrationVersion, integration.Args(&args))
-	utils.FatalIfErr(err)
+	infrautils.FatalIfErr(err)
 
 	if args.ShowVersion {
 		fmt.Printf(
@@ -45,22 +46,22 @@ func main() {
 
 	log.SetupLogging(args.Verbose)
 
-	e, err := utils.CreateNodeEntity(i, args.RemoteMonitoring, args.Hostname, args.Port)
-	utils.FatalIfErr(err)
+	e, err := infrautils.CreateNodeEntity(i, args.RemoteMonitoring, args.Hostname, args.Port)
+	infrautils.FatalIfErr(err)
 
-	db, err := openSQLDB(utils.GenerateDSN(args, ""))
-	utils.FatalIfErr(err)
+	db, err := openSQLDB(dbutils.GenerateDSN(args, ""))
+	infrautils.FatalIfErr(err)
 	defer db.close()
 
 	rawInventory, rawMetrics, dbVersion, err := getRawData(db)
-	utils.FatalIfErr(err)
+	infrautils.FatalIfErr(err)
 
 	if args.HasInventory() {
 		populateInventory(e.Inventory, rawInventory)
 	}
 
 	if args.HasMetrics() {
-		ms := utils.MetricSet(
+		ms := infrautils.MetricSet(
 			e,
 			"MysqlSample",
 			args.Hostname,
@@ -69,7 +70,7 @@ func main() {
 		)
 		populateMetrics(ms, rawMetrics, dbVersion)
 	}
-	utils.FatalIfErr(i.Publish())
+	infrautils.FatalIfErr(i.Publish())
 
 	if args.EnableQueryMonitoring && args.HasMetrics() {
 		queryperformancemonitoring.PopulateQueryPerformanceMetrics(args, e, i)

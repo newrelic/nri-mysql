@@ -3,18 +3,14 @@ package utils
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
-	"net"
-	"net/url"
 	"reflect"
-	"strconv"
 	"strings"
 
-	"github.com/newrelic/infra-integrations-sdk/v3/data/attribute"
 	"github.com/newrelic/infra-integrations-sdk/v3/data/metric"
 	"github.com/newrelic/infra-integrations-sdk/v3/integration"
 	"github.com/newrelic/infra-integrations-sdk/v3/log"
 	arguments "github.com/newrelic/nri-mysql/src/args"
+	infrautils "github.com/newrelic/nri-mysql/src/infrautils"
 	constants "github.com/newrelic/nri-mysql/src/query-performance-monitoring/constants"
 )
 
@@ -24,80 +20,16 @@ var (
 	ErrEssentialInstrumentNotEnabled = errors.New("essential instrument is not fully enabled")
 	ErrMySQLVersion                  = errors.New("failed to determine MySQL version")
 	ErrModelIsNotValid               = errors.New("model is not a valid struct")
+	ErrNoRowsReturned                = errors.New("no rows returned from EXPLAIN")
 )
 
-func GenerateDSN(args arguments.ArgumentList, database string) string {
-	query := url.Values{}
-	if args.OldPasswords {
-		query.Add("allowOldPasswords", "true")
-	}
-	if args.EnableTLS {
-		query.Add("tls", "true")
-	}
-	if args.InsecureSkipVerify {
-		query.Add("tls", "skip-verify")
-	}
-	extraArgsMap, err := url.ParseQuery(args.ExtraConnectionURLArgs)
-	if err == nil {
-		for k, v := range extraArgsMap {
-			query.Add(k, v[0])
-		}
-	} else {
-		log.Warn("Could not successfully parse ExtraConnectionURLArgs.", err.Error())
-	}
-	if args.Socket != "" {
-		log.Debug("Socket parameter is defined, ignoring host and port parameters")
-		return fmt.Sprintf("%s:%s@unix(%s)/%s?%s", args.Username, args.Password, args.Socket, determineDatabase(args, database), query.Encode())
-	}
-
-	// Convert hostname and port to DSN address format
-	mysqlURL := net.JoinHostPort(args.Hostname, strconv.Itoa(args.Port))
-
-	return fmt.Sprintf("%s:%s@tcp(%s)/%s?%s", args.Username, args.Password, mysqlURL, determineDatabase(args, database), query.Encode())
-}
-
-// determineDatabase determines which database name to use for the DSN.
-func determineDatabase(args arguments.ArgumentList, database string) string {
-	if database != "" {
-		return database
-	}
-	return args.Database
-}
-
-func CreateNodeEntity(
-	i *integration.Integration,
-	remoteMonitoring bool,
-	hostname string,
-	port int,
-) (*integration.Entity, error) {
-	if remoteMonitoring {
-		return i.Entity(fmt.Sprint(hostname, ":", port), constants.NodeEntityType)
-	}
-	return i.LocalEntity(), nil
-}
-
 func CreateMetricSet(e *integration.Entity, sampleName string, args arguments.ArgumentList) *metric.Set {
-	return MetricSet(
+	return infrautils.MetricSet(
 		e,
 		sampleName,
 		args.Hostname,
 		args.Port,
 		args.RemoteMonitoring,
-	)
-}
-
-func MetricSet(e *integration.Entity, eventType, hostname string, port int, remoteMonitoring bool) *metric.Set {
-	if remoteMonitoring {
-		return e.NewMetricSet(
-			eventType,
-			attribute.Attr("hostname", hostname),
-			attribute.Attr("port", strconv.Itoa(port)),
-		)
-	}
-
-	return e.NewMetricSet(
-		eventType,
-		attribute.Attr("port", strconv.Itoa(port)),
 	)
 }
 
@@ -173,7 +105,7 @@ func SetMetric(metricSet *metric.Set, name string, value interface{}, sourceType
 
 // IngestMetric ingests a list of metrics into the integration.
 func IngestMetric(metricList []interface{}, eventName string, i *integration.Integration, args arguments.ArgumentList) error {
-	instanceEntity, err := CreateNodeEntity(i, args.RemoteMonitoring, args.Hostname, args.Port)
+	instanceEntity, err := infrautils.CreateNodeEntity(i, args.RemoteMonitoring, args.Hostname, args.Port)
 	if err != nil {
 		log.Error("Error creating entity: %v", err)
 		return err
@@ -195,7 +127,7 @@ func IngestMetric(metricList []interface{}, eventName string, i *integration.Int
 			if err = publishMetrics(i); err != nil {
 				return err
 			}
-			instanceEntity, err = CreateNodeEntity(i, args.RemoteMonitoring, args.Hostname, args.Port)
+			instanceEntity, err = infrautils.CreateNodeEntity(i, args.RemoteMonitoring, args.Hostname, args.Port)
 			if err != nil {
 				log.Error("Error creating entity: %v", err)
 				return err

@@ -18,9 +18,11 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func (m *MockIntegration) IngestMetric(metricList []interface{}, eventType string, i *integration.Integration, args args.ArgumentList) error {
-	argsMock := m.Called(metricList, eventType, i, args)
-	return argsMock.Error(0)
+func convertNullString(ns sql.NullString) *string {
+	if ns.Valid {
+		return &ns.String
+	}
+	return nil
 }
 
 func convertToDriverValue(args []interface{}) []driver.Value {
@@ -29,6 +31,11 @@ func convertToDriverValue(args []interface{}) []driver.Value {
 		values[i] = driver.Value(v)
 	}
 	return values
+}
+
+func (m *MockIntegration) IngestMetric(metricList []interface{}, eventType string, i *integration.Integration, args args.ArgumentList) error {
+	argsMock := m.Called(metricList, eventType, i, args)
+	return argsMock.Error(0)
 }
 
 type DataSource struct {

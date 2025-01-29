@@ -11,16 +11,17 @@ import (
 	"github.com/newrelic/infra-integrations-sdk/v3/integration"
 	"github.com/newrelic/infra-integrations-sdk/v3/log"
 	arguments "github.com/newrelic/nri-mysql/src/args"
+	dbutils "github.com/newrelic/nri-mysql/src/dbutils"
 	"github.com/newrelic/nri-mysql/src/query-performance-monitoring/constants"
 	utils "github.com/newrelic/nri-mysql/src/query-performance-monitoring/utils"
 )
 
 // PopulateExecutionPlans populates execution plans for the given queries.
-func PopulateExecutionPlans(db utils.DataSource, queryGroups []utils.QueryGroup, i *integration.Integration, args arguments.ArgumentList) {
+func PopulateExecutionPlans(db utils.DataSource, queryGroups map[string][]utils.IndividualQueryMetrics, i *integration.Integration, args arguments.ArgumentList) {
 	var events []utils.QueryPlanMetrics
 
-	for _, group := range queryGroups {
-		dsn := utils.GenerateDSN(args, group.Database)
+	for dbName, queries := range queryGroups {
+		dsn := dbutils.GenerateDSN(args, dbName)
 		// Open the DB connection
 		db, err := utils.OpenSQLXDB(dsn)
 		if err != nil {
@@ -29,7 +30,7 @@ func PopulateExecutionPlans(db utils.DataSource, queryGroups []utils.QueryGroup,
 		}
 		defer db.Close()
 
-		for _, query := range group.Queries {
+		for _, query := range queries {
 			tableIngestionDataList, err := processExecutionPlanMetrics(db, query)
 			if err != nil {
 				log.Error("Error processing execution plan metrics: %v", err)
@@ -56,22 +57,32 @@ func processExecutionPlanMetrics(db utils.DataSource, query utils.IndividualQuer
 	ctx, cancel := context.WithTimeout(context.Background(), constants.QueryPlanTimeoutDuration)
 	defer cancel()
 
-	if query.QueryText == nil || strings.TrimSpace(*query.QueryText) == "" {
-		log.Warn("Query text is empty or nil, skipping.")
+	// Extract the query ID, defaulting to "unknown" if it is nil
+	queryID := "unknown"
+	if id := query.QueryID; id != nil {
+		queryID = *id
+	}
+
+	if query.QueryText == nil {
+		log.Warn("Query text is nil, skipping. Query ID: %s", queryID)
 		return []utils.QueryPlanMetrics{}, nil
 	}
 	queryText := strings.TrimSpace(*query.QueryText)
+	if queryText == "" {
+		log.Warn("Query text is empty, skipping. Query ID: %s", queryID)
+		return []utils.QueryPlanMetrics{}, nil
+	}
 	upperQueryText := strings.ToUpper(queryText)
 
 	// Check if the query is a supported statement
 	if !isSupportedStatement(upperQueryText) {
-		log.Warn("Skipping unsupported query for EXPLAIN: %s", queryText)
+		log.Warn("Skipping unsupported query for EXPLAIN: %s. Query ID: %s", queryText, queryID)
 		return []utils.QueryPlanMetrics{}, nil
 	}
 
 	// Skip queries with placeholders
 	if strings.Contains(queryText, "?") {
-		log.Warn("Skipping query with placeholders for EXPLAIN: %s", queryText)
+		log.Warn("Skipping query with placeholders for EXPLAIN: %s. Query ID: %s", queryText, queryID)
 		return []utils.QueryPlanMetrics{}, nil
 	}
 
@@ -90,8 +101,9 @@ func processExecutionPlanMetrics(db utils.DataSource, query utils.IndividualQuer
 			return []utils.QueryPlanMetrics{}, err
 		}
 	} else {
-		log.Error("No rows returned from EXPLAIN for query '%s'", queryText)
-		return []utils.QueryPlanMetrics{}, nil
+		err := fmt.Errorf("%w for query '%s'", utils.ErrNoRowsReturned, queryText)
+		log.Error(err.Error())
+		return []utils.QueryPlanMetrics{}, err
 	}
 
 	// Escape backticks in the JSON string

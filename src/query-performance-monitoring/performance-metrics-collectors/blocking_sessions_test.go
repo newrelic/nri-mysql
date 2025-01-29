@@ -2,11 +2,9 @@ package performancemetricscollectors
 
 import (
 	"context"
-	"database/sql"
 	"database/sql/driver"
 	"errors"
 	"regexp"
-	"strings"
 	"testing"
 
 	"github.com/DATA-DOG/go-sqlmock"
@@ -14,29 +12,18 @@ import (
 	"github.com/newrelic/infra-integrations-sdk/v3/integration"
 
 	arguments "github.com/newrelic/nri-mysql/src/args"
-	constants "github.com/newrelic/nri-mysql/src/query-performance-monitoring/constants"
 	utils "github.com/newrelic/nri-mysql/src/query-performance-monitoring/utils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
 
 var (
-	errMock  = errors.New("mock error")
 	errQuery = errors.New("query error")
 )
 
-func convertNullString(ns sql.NullString) *string {
-	if ns.Valid {
-		return &ns.String
-	}
-	return nil
-}
-
-func convertNullInt64(ni sql.NullInt64) *int64 {
-	if ni.Valid {
-		return &ni.Int64
-	}
-	return nil
+// ptr returns a pointer to the value passed in.
+func ptr[T any](v T) *T {
+	return &v
 }
 
 // Mocking utils.IngestMetric function
@@ -47,10 +34,6 @@ type MockUtilsIngest struct {
 func (m *MockUtilsIngest) IngestMetric(metricList []interface{}, sampleName string, i *integration.Integration, args arguments.ArgumentList) error {
 	callArgs := m.Called(metricList, sampleName, i, args)
 	return callArgs.Error(0)
-}
-
-func Float64Ptr(f float64) *float64 {
-	return &f
 }
 
 type dbWrapper struct {
@@ -69,13 +52,6 @@ func (d *dbWrapper) QueryX(query string) (*sqlx.Rows, error) {
 	return d.DB.Queryx(query)
 }
 
-func min(a, b int) int {
-	if a < b {
-		return a
-	}
-	return b
-}
-
 func TestPopulateBlockingSessionMetrics(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	assert.NoError(t, err)
@@ -85,10 +61,6 @@ func TestPopulateBlockingSessionMetrics(t *testing.T) {
 
 	excludedDatabases := []string{"mysql", "information_schema", "performance_schema", "sys"}
 	queryCountThreshold := 10
-
-	t.Run("ErrorPreparingQuery", func(t *testing.T) {
-		testErrorPreparingQuery(t, excludedDatabases, queryCountThreshold)
-	})
 
 	t.Run("ErrorCollectingMetrics", func(t *testing.T) {
 		testErrorCollectingMetrics(t, sqlxDB, mock, excludedDatabases, queryCountThreshold)
@@ -107,19 +79,8 @@ func TestPopulateBlockingSessionMetrics(t *testing.T) {
 	})
 }
 
-func testErrorPreparingQuery(t *testing.T, excludedDatabases []string, queryCountThreshold int) {
-	mockSqlxIn := func(_ string, _ ...interface{}) (string, []interface{}, error) {
-		return "", nil, errMock
-	}
-
-	_, _, err := mockSqlxIn(utils.BlockingSessionsQuery, strings.Join(excludedDatabases, ","), min(queryCountThreshold, constants.MaxQueryCountThreshold))
-	if err == nil {
-		t.Fatal("Expected error preparing query, got nil")
-	}
-}
-
 func testErrorCollectingMetrics(t *testing.T, sqlxDB *sqlx.DB, mock sqlmock.Sqlmock, excludedDatabases []string, queryCountThreshold int) {
-	query, inputArgs, err := sqlx.In(utils.BlockingSessionsQuery, excludedDatabases, min(queryCountThreshold, constants.MaxQueryCountThreshold))
+	query, inputArgs, err := sqlx.In(utils.BlockingSessionsQuery, excludedDatabases, queryCountThreshold)
 	assert.NoError(t, err)
 
 	query = sqlxDB.Rebind(query)
@@ -132,13 +93,11 @@ func testErrorCollectingMetrics(t *testing.T, sqlxDB *sqlx.DB, mock sqlmock.Sqlm
 
 	dataSource := &dbWrapper{DB: sqlxDB}
 	_, err = utils.CollectMetrics[utils.BlockingSessionMetrics](dataSource, query, inputArgs...)
-	if err == nil {
-		t.Fatal("Expected error collecting metrics, got nil")
-	}
+	assert.Error(t, err, "Expected error collecting metrics, got nil")
 }
 
 func testNoMetricsCollected(t *testing.T, sqlxDB *sqlx.DB, mock sqlmock.Sqlmock, excludedDatabases []string, queryCountThreshold int) {
-	query, inputArgs, err := sqlx.In(utils.BlockingSessionsQuery, excludedDatabases, min(queryCountThreshold, constants.MaxQueryCountThreshold))
+	query, inputArgs, err := sqlx.In(utils.BlockingSessionsQuery, excludedDatabases, queryCountThreshold)
 	assert.NoError(t, err)
 
 	query = sqlxDB.Rebind(query)
@@ -155,7 +114,7 @@ func testNoMetricsCollected(t *testing.T, sqlxDB *sqlx.DB, mock sqlmock.Sqlmock,
 }
 
 func testSuccessfulMetricsCollection(t *testing.T, sqlxDB *sqlx.DB, mock sqlmock.Sqlmock, excludedDatabases []string, queryCountThreshold int) {
-	query, inputArgs, err := sqlx.In(utils.BlockingSessionsQuery, excludedDatabases, min(queryCountThreshold, constants.MaxQueryCountThreshold))
+	query, inputArgs, err := sqlx.In(utils.BlockingSessionsQuery, excludedDatabases, queryCountThreshold)
 	assert.NoError(t, err)
 
 	query = sqlxDB.Rebind(query)
@@ -179,7 +138,7 @@ func testSuccessfulMetricsCollection(t *testing.T, sqlxDB *sqlx.DB, mock sqlmock
 }
 
 func testPopulateBlockingSessionMetrics(t *testing.T, sqlxDB *sqlx.DB, mock sqlmock.Sqlmock, excludedDatabases []string, queryCountThreshold int) {
-	query, inputArgs, err := sqlx.In(utils.BlockingSessionsQuery, excludedDatabases, min(queryCountThreshold, constants.MaxQueryCountThreshold))
+	query, inputArgs, err := sqlx.In(utils.BlockingSessionsQuery, excludedDatabases, queryCountThreshold)
 	assert.NoError(t, err)
 
 	query = sqlxDB.Rebind(query)
@@ -218,21 +177,21 @@ func TestSetBlockingQueryMetrics(t *testing.T) {
 	args := arguments.ArgumentList{}
 	metrics := []utils.BlockingSessionMetrics{
 		{
-			BlockedTxnID:     convertNullString(sql.NullString{String: "blocked_txn_id", Valid: true}),
-			BlockedPID:       convertNullString(sql.NullString{String: "blocked_pid", Valid: true}),
-			BlockedThreadID:  convertNullInt64(sql.NullInt64{Int64: 123, Valid: true}),
-			BlockedQueryID:   convertNullString(sql.NullString{String: "blocked_query_id", Valid: true}),
-			BlockedQuery:     convertNullString(sql.NullString{String: "blocked_query", Valid: true}),
-			BlockedStatus:    convertNullString(sql.NullString{String: "blocked_status", Valid: true}),
-			BlockedHost:      convertNullString(sql.NullString{String: "blocked_host", Valid: true}),
-			BlockedDB:        convertNullString(sql.NullString{String: "blocked_db", Valid: true}),
-			BlockingTxnID:    convertNullString(sql.NullString{String: "blocking_txn_id", Valid: true}),
-			BlockingPID:      convertNullString(sql.NullString{String: "blocking_pid", Valid: true}),
-			BlockingThreadID: convertNullInt64(sql.NullInt64{Int64: 456, Valid: true}),
-			BlockingStatus:   convertNullString(sql.NullString{String: "blocking_status", Valid: true}),
-			BlockingHost:     convertNullString(sql.NullString{String: "blocking_host", Valid: true}),
-			BlockingQueryID:  convertNullString(sql.NullString{String: "blocking_query_id", Valid: true}),
-			BlockingQuery:    convertNullString(sql.NullString{String: "blocking_query", Valid: true}),
+			BlockedTxnID:     ptr("blocked_txn_id"),
+			BlockedPID:       ptr("blocked_pid"),
+			BlockedThreadID:  ptr(int64(123)),
+			BlockedQueryID:   ptr("blocked_query_id"),
+			BlockedQuery:     ptr("blocked_query"),
+			BlockedStatus:    ptr("blocked_status"),
+			BlockedHost:      ptr("blocked_host"),
+			BlockedDB:        ptr("blocked_db"),
+			BlockingTxnID:    ptr("blocking_txn_id"),
+			BlockingPID:      ptr("blocking_pid"),
+			BlockingThreadID: ptr(int64(456)),
+			BlockingStatus:   ptr("blocking_status"),
+			BlockingHost:     ptr("blocking_host"),
+			BlockingQueryID:  ptr("blocking_query_id"),
+			BlockingQuery:    ptr("blocking_query"),
 		},
 	}
 	err = setBlockingQueryMetrics(metrics, i, args)

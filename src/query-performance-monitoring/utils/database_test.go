@@ -10,6 +10,7 @@ import (
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/jmoiron/sqlx"
 	arguments "github.com/newrelic/nri-mysql/src/args"
+	dbutils "github.com/newrelic/nri-mysql/src/dbutils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
@@ -119,7 +120,7 @@ func TestGenerateDSN(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			dsn := GenerateDSN(tt.args, tt.database)
+			dsn := dbutils.GenerateDSN(tt.args, tt.database)
 			parsedDSN, err := url.Parse(dsn)
 			assert.NoError(t, err)
 			assert.Equal(t, tt.expected, parsedDSN.String())
