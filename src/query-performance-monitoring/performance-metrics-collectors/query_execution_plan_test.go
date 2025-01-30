@@ -130,6 +130,22 @@ func getTestCases() []struct {
 	eventID              uint64
 	threadID             uint64
 } {
+	return append(
+		getSelectQueryTestCases(),
+		getWithClauseTestCases()...,
+	)
+}
+
+func getSelectQueryTestCases() []struct {
+	name                 string
+	jsonString           string
+	expectedTableName    string
+	expectedQueryCost    string
+	expectedAccessType   string
+	expectedRowsExamined int64
+	eventID              uint64
+	threadID             uint64
+} {
 	return []struct {
 		name                 string
 		jsonString           string
@@ -212,6 +228,29 @@ func getTestCases() []struct {
 			eventID:              6,
 			threadID:             6,
 		},
+	}
+}
+
+func getWithClauseTestCases() []struct {
+	name                 string
+	jsonString           string
+	expectedTableName    string
+	expectedQueryCost    string
+	expectedAccessType   string
+	expectedRowsExamined int64
+	eventID              uint64
+	threadID             uint64
+} {
+	return []struct {
+		name                 string
+		jsonString           string
+		expectedTableName    string
+		expectedQueryCost    string
+		expectedAccessType   string
+		expectedRowsExamined int64
+		eventID              uint64
+		threadID             uint64
+	}{
 		{
 			name: "WithClause_Materialized",
 			jsonString: `{
