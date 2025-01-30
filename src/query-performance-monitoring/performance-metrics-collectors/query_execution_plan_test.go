@@ -8,6 +8,7 @@ import (
 	"github.com/newrelic/infra-integrations-sdk/v3/integration"
 	arguments "github.com/newrelic/nri-mysql/src/args"
 
+	"github.com/bitly/go-simplejson"
 	"github.com/newrelic/nri-mysql/src/query-performance-monitoring/utils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -117,6 +118,146 @@ func TestExtractMetricsFromJSONString(t *testing.T) {
 		assert.Error(t, err)
 		assert.Empty(t, metrics)
 	})
+}
+
+func TestExtractMetrics_SelectAndWithClause(t *testing.T) {
+	testCases := []struct {
+		name                 string
+		jsonString           string
+		expectedTableName    string
+		expectedQueryCost    string
+		expectedAccessType   string
+		expectedRowsExamined int64
+		eventID              uint64
+		threadID             uint64
+	}{
+		{
+			name: "SelectQuery_PrimaryKey",
+			jsonString: `{
+				"table_name": "user_table",
+				"cost_info": {
+					"query_cost": "5.0"
+				},
+				"access_type": "CONST",
+				"key": "PRIMARY",
+				"rows_examined_per_scan": 1
+			}`,
+			expectedTableName:    "user_table",
+			expectedQueryCost:    "5.0",
+			expectedAccessType:   "CONST",
+			expectedRowsExamined: 1,
+			eventID:              1,
+			threadID:             1,
+		},
+		{
+			name: "SelectQuery_Index",
+			jsonString: `{
+				"table_name": "orders",
+				"cost_info": {
+					"query_cost": "12.5"
+				},
+				"access_type": "ref",
+				"key": "idx_order_date",
+				"rows_examined_per_scan": 10
+			}`,
+			expectedTableName:    "orders",
+			expectedQueryCost:    "12.5",
+			expectedAccessType:   "ref",
+			expectedRowsExamined: 10,
+			eventID:              2,
+			threadID:             2,
+		},
+		{
+			name: "SelectQuery_FullTableScan",
+			jsonString: `{
+				"table_name": "products",
+				"cost_info": {
+					"query_cost": "50.0"
+				},
+				"access_type": "ALL",
+				"rows_examined_per_scan": 1000
+			}`,
+			expectedTableName:    "products",
+			expectedQueryCost:    "50.0",
+			expectedAccessType:   "ALL",
+			expectedRowsExamined: 1000,
+			eventID:              3,
+			threadID:             3,
+		},
+		{
+			name: "SelectQuery_WhereClause_IndexRange",
+			jsonString: `{
+				"table_name": "products",
+				"cost_info": {
+					"query_cost": "25.5"
+				},
+				"access_type": "range",
+				"key": "idx_price",
+				"rows_examined_per_scan": 200,
+				"attached_condition": "price > 100 AND price < 500"
+			}`,
+			expectedTableName:    "products",
+			expectedQueryCost:    "25.5",
+			expectedAccessType:   "range",
+			expectedRowsExamined: 200,
+			eventID:              6,
+			threadID:             6,
+		},
+		{
+			name: "WithClause_Materialized",
+			jsonString: `{
+				"table_name": "temp_table",
+				"cost_info": {
+					"query_cost": "2.0"
+				},
+				"access_type": "ALL", 
+				"rows_examined_per_scan": 50
+			}`,
+			expectedTableName:    "temp_table",
+			expectedQueryCost:    "2.0",
+			expectedAccessType:   "ALL",
+			expectedRowsExamined: 50,
+			eventID:              4,
+			threadID:             4,
+		},
+		{
+			name: "WithClause_Merged",
+			jsonString: `{
+				"table_name": "parent_table",
+				"cost_info": {
+					"query_cost": "8.5"
+				},
+				"access_type": "ref",
+				"key": "fk_parent_id",
+				"rows_examined_per_scan": 5
+			}`,
+			expectedTableName:    "parent_table",
+			expectedQueryCost:    "8.5",
+			expectedAccessType:   "ref",
+			expectedRowsExamined: 5,
+			eventID:              5,
+			threadID:             5,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			js, err := simplejson.NewJson([]byte(tc.jsonString))
+			assert.NoError(t, err)
+
+			memo := utils.Memo{QueryCost: ""}
+			stepID := 0
+			dbPerformanceEvents := make([]utils.QueryPlanMetrics, 0)
+
+			dbPerformanceEvents = extractMetrics(js, dbPerformanceEvents, tc.eventID, tc.threadID, memo, &stepID)
+
+			assert.Equal(t, 1, len(dbPerformanceEvents))
+			assert.Equal(t, tc.expectedTableName, dbPerformanceEvents[0].TableName)
+			assert.Equal(t, tc.expectedQueryCost, dbPerformanceEvents[0].QueryCost)
+			assert.Equal(t, tc.expectedAccessType, dbPerformanceEvents[0].AccessType)
+			assert.Equal(t, tc.expectedRowsExamined, dbPerformanceEvents[0].RowsExaminedPerScan)
+		})
+	}
 }
 
 func TestSetExecutionPlanMetrics(t *testing.T) {

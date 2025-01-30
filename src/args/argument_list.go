@@ -19,7 +19,7 @@ type ArgumentList struct {
 	ExtendedMyIsamMetrics        bool   `default:"false" help:"Enable collection of extended MyISAM metrics."`
 	OldPasswords                 bool   `default:"false" help:"Allow the use of old passwords: https://dev.mysql.com/doc/refman/5.6/en/server-system-variables.html#sysvar_old_passwords"`
 	ShowVersion                  bool   `default:"false" help:"Display build information and exit."`
-	EnableQueryMonitoring        bool   `default:"false" help:"Enable query performance monitoring."`
+	EnableQueryMonitoring        bool   `default:"false" help:"Enable collection of detailed query performance metrics."`
 	SlowQueryFetchInterval       int    `default:"30" help:"Fetch interval in seconds for grouped slow queries. Should match the interval in mysql-config.yml."`
 	QueryResponseTimeThreshold   int    `default:"500" help:"Threshold in milliseconds for query response time to fetch individual query performance metrics."`
 	QueryCountThreshold          int    `default:"20" help:"Query count limit for fetching grouped slow and individual query performance metrics."`

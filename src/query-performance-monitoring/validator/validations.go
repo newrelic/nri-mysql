@@ -20,10 +20,24 @@ var (
 	ErrPerformanceSchemaDisabled  = errors.New("performance schema is not enabled")
 	ErrNoRowsFound                = errors.New("no rows found")
 	ErrMysqlVersion               = errors.New("only version 8.0+ is supported")
+	ErrUnsupportedMySQLVersion    = errors.New("MySQL version is not supported")
 )
 
 // ValidatePreconditions checks if the necessary preconditions are met for performance monitoring.
 func ValidatePreconditions(db utils.DataSource) error {
+	// Get the MySQL version
+	version, err := getMySQLVersion(db)
+	if err != nil {
+		log.Error("Failed to get MySQL version: %v", err)
+		return err
+	}
+
+	// Check if the MySQL version is supported
+	if !isVersion8OrGreater(version) {
+		log.Error("MySQL version %s is not supported. Only version 8.0+ is supported.", version)
+		return fmt.Errorf("%w: MySQL version %s is not supported. Only version 8.0+ is supported.", ErrUnsupportedMySQLVersion, version)
+	}
+
 	// Check if Performance Schema is enabled
 	performanceSchemaEnabled, errPerformanceEnabled := isPerformanceSchemaEnabled(db)
 	if errPerformanceEnabled != nil {
@@ -31,7 +45,7 @@ func ValidatePreconditions(db utils.DataSource) error {
 	}
 
 	if !performanceSchemaEnabled {
-		logEnablePerformanceSchemaInstructions(db)
+		logEnablePerformanceSchemaInstructions(version)
 		return ErrPerformanceSchemaDisabled
 	}
 
@@ -117,12 +131,7 @@ func checkEssentialInstruments(db utils.DataSource) error {
 }
 
 // logEnablePerformanceSchemaInstructions logs instructions to enable the Performance Schema.
-func logEnablePerformanceSchemaInstructions(db utils.DataSource) {
-	version, err := getMySQLVersion(db)
-	if err != nil {
-		log.Error("Failed to get MySQL version: %v", err)
-	}
-
+func logEnablePerformanceSchemaInstructions(version string) {
 	if isVersion8OrGreater(version) {
 		log.Debug("To enable the Performance Schema, add the following lines to your MySQL configuration file (my.cnf or my.ini) in the [mysqld] section and restart the MySQL server:")
 		log.Debug("performance_schema=ON")
