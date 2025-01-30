@@ -163,7 +163,7 @@ func testPopulateBlockingSessionMetrics(t *testing.T, sqlxDB *sqlx.DB, mock sqlm
 
 	dataSource := &dbWrapper{DB: sqlxDB}
 	i, _ := integration.New("test", "1.0.0")
-	argList := arguments.ArgumentList{QueryCountThreshold: queryCountThreshold}
+	argList := arguments.ArgumentList{QueryMonitoringCountThreshold: queryCountThreshold}
 
 	PopulateBlockingSessionMetrics(dataSource, i, argList, excludedDatabases)
 

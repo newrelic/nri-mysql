@@ -49,27 +49,27 @@ func TestCheckEssentialInstruments_AllEnabled(t *testing.T) {
 }
 
 func TestValidatePreconditions_PerformanceSchemaDisabled(t *testing.T) {
-    rows := sqlmock.NewRows([]string{"Variable_name", "Value"}).
-        AddRow("performance_schema", "OFF")
-    versionRows := sqlmock.NewRows([]string{"VERSION()"}).
-        AddRow("8.0.23")
-    db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
-    assert.NoError(t, err)
-    defer db.Close()
+	rows := sqlmock.NewRows([]string{"Variable_name", "Value"}).
+		AddRow("performance_schema", "OFF")
+	versionRows := sqlmock.NewRows([]string{"VERSION()"}).
+		AddRow("8.0.23")
+	db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
+	assert.NoError(t, err)
+	defer db.Close()
 
-    sqlxDB := sqlx.NewDb(db, "sqlmock")
-    mockDataSource := &mockDataSource{db: sqlxDB}
+	sqlxDB := sqlx.NewDb(db, "sqlmock")
+	mockDataSource := &mockDataSource{db: sqlxDB}
 
-    // Set the correct order of mock expectations
-    mock.ExpectQuery("SELECT VERSION();").WillReturnRows(versionRows)
-    mock.ExpectQuery("SHOW GLOBAL VARIABLES LIKE 'performance_schema';").WillReturnRows(rows)
+	// Set the correct order of mock expectations
+	mock.ExpectQuery("SELECT VERSION();").WillReturnRows(versionRows)
+	mock.ExpectQuery("SHOW GLOBAL VARIABLES LIKE 'performance_schema';").WillReturnRows(rows)
 
-    err = ValidatePreconditions(mockDataSource)
-    assert.Error(t, err)
-    assert.Contains(t, err.Error(), "performance schema is not enabled")
+	err = ValidatePreconditions(mockDataSource)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "performance schema is not enabled")
 
-    // Ensure all expectations were met
-    assert.NoError(t, mock.ExpectationsWereMet())
+	// Ensure all expectations were met
+	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
 func TestValidatePreconditions_EssentialChecksFailed(t *testing.T) {

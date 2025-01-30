@@ -120,8 +120,17 @@ func TestExtractMetricsFromJSONString(t *testing.T) {
 	})
 }
 
-func TestExtractMetrics_SelectAndWithClause(t *testing.T) {
-	testCases := []struct {
+func getTestCases() []struct {
+	name                 string
+	jsonString           string
+	expectedTableName    string
+	expectedQueryCost    string
+	expectedAccessType   string
+	expectedRowsExamined int64
+	eventID              uint64
+	threadID             uint64
+} {
+	return []struct {
 		name                 string
 		jsonString           string
 		expectedTableName    string
@@ -134,14 +143,14 @@ func TestExtractMetrics_SelectAndWithClause(t *testing.T) {
 		{
 			name: "SelectQuery_PrimaryKey",
 			jsonString: `{
-				"table_name": "user_table",
-				"cost_info": {
-					"query_cost": "5.0"
-				},
-				"access_type": "CONST",
-				"key": "PRIMARY",
-				"rows_examined_per_scan": 1
-			}`,
+                "table_name": "user_table",
+                "cost_info": {
+                    "query_cost": "5.0"
+                },
+                "access_type": "CONST",
+                "key": "PRIMARY",
+                "rows_examined_per_scan": 1
+            }`,
 			expectedTableName:    "user_table",
 			expectedQueryCost:    "5.0",
 			expectedAccessType:   "CONST",
@@ -152,14 +161,14 @@ func TestExtractMetrics_SelectAndWithClause(t *testing.T) {
 		{
 			name: "SelectQuery_Index",
 			jsonString: `{
-				"table_name": "orders",
-				"cost_info": {
-					"query_cost": "12.5"
-				},
-				"access_type": "ref",
-				"key": "idx_order_date",
-				"rows_examined_per_scan": 10
-			}`,
+                "table_name": "orders",
+                "cost_info": {
+                    "query_cost": "12.5"
+                },
+                "access_type": "ref",
+                "key": "idx_order_date",
+                "rows_examined_per_scan": 10
+            }`,
 			expectedTableName:    "orders",
 			expectedQueryCost:    "12.5",
 			expectedAccessType:   "ref",
@@ -170,13 +179,13 @@ func TestExtractMetrics_SelectAndWithClause(t *testing.T) {
 		{
 			name: "SelectQuery_FullTableScan",
 			jsonString: `{
-				"table_name": "products",
-				"cost_info": {
-					"query_cost": "50.0"
-				},
-				"access_type": "ALL",
-				"rows_examined_per_scan": 1000
-			}`,
+                "table_name": "products",
+                "cost_info": {
+                    "query_cost": "50.0"
+                },
+                "access_type": "ALL",
+                "rows_examined_per_scan": 1000
+            }`,
 			expectedTableName:    "products",
 			expectedQueryCost:    "50.0",
 			expectedAccessType:   "ALL",
@@ -187,15 +196,15 @@ func TestExtractMetrics_SelectAndWithClause(t *testing.T) {
 		{
 			name: "SelectQuery_WhereClause_IndexRange",
 			jsonString: `{
-				"table_name": "products",
-				"cost_info": {
-					"query_cost": "25.5"
-				},
-				"access_type": "range",
-				"key": "idx_price",
-				"rows_examined_per_scan": 200,
-				"attached_condition": "price > 100 AND price < 500"
-			}`,
+                "table_name": "products",
+                "cost_info": {
+                    "query_cost": "25.5"
+                },
+                "access_type": "range",
+                "key": "idx_price",
+                "rows_examined_per_scan": 200,
+                "attached_condition": "price > 100 AND price < 500"
+            }`,
 			expectedTableName:    "products",
 			expectedQueryCost:    "25.5",
 			expectedAccessType:   "range",
@@ -206,13 +215,13 @@ func TestExtractMetrics_SelectAndWithClause(t *testing.T) {
 		{
 			name: "WithClause_Materialized",
 			jsonString: `{
-				"table_name": "temp_table",
-				"cost_info": {
-					"query_cost": "2.0"
-				},
-				"access_type": "ALL", 
-				"rows_examined_per_scan": 50
-			}`,
+                "table_name": "temp_table",
+                "cost_info": {
+                    "query_cost": "2.0"
+                },
+                "access_type": "ALL", 
+                "rows_examined_per_scan": 50
+            }`,
 			expectedTableName:    "temp_table",
 			expectedQueryCost:    "2.0",
 			expectedAccessType:   "ALL",
@@ -223,14 +232,14 @@ func TestExtractMetrics_SelectAndWithClause(t *testing.T) {
 		{
 			name: "WithClause_Merged",
 			jsonString: `{
-				"table_name": "parent_table",
-				"cost_info": {
-					"query_cost": "8.5"
-				},
-				"access_type": "ref",
-				"key": "fk_parent_id",
-				"rows_examined_per_scan": 5
-			}`,
+                "table_name": "parent_table",
+                "cost_info": {
+                    "query_cost": "8.5"
+                },
+                "access_type": "ref",
+                "key": "fk_parent_id",
+                "rows_examined_per_scan": 5
+            }`,
 			expectedTableName:    "parent_table",
 			expectedQueryCost:    "8.5",
 			expectedAccessType:   "ref",
@@ -239,23 +248,40 @@ func TestExtractMetrics_SelectAndWithClause(t *testing.T) {
 			threadID:             5,
 		},
 	}
+}
+
+func runTestCase(t *testing.T, tc struct {
+	name                 string
+	jsonString           string
+	expectedTableName    string
+	expectedQueryCost    string
+	expectedAccessType   string
+	expectedRowsExamined int64
+	eventID              uint64
+	threadID             uint64
+}) {
+	js, err := simplejson.NewJson([]byte(tc.jsonString))
+	assert.NoError(t, err)
+
+	memo := utils.Memo{QueryCost: ""}
+	stepID := 0
+	dbPerformanceEvents := make([]utils.QueryPlanMetrics, 0)
+
+	dbPerformanceEvents = extractMetrics(js, dbPerformanceEvents, tc.eventID, tc.threadID, memo, &stepID)
+
+	assert.Equal(t, 1, len(dbPerformanceEvents))
+	assert.Equal(t, tc.expectedTableName, dbPerformanceEvents[0].TableName)
+	assert.Equal(t, tc.expectedQueryCost, dbPerformanceEvents[0].QueryCost)
+	assert.Equal(t, tc.expectedAccessType, dbPerformanceEvents[0].AccessType)
+	assert.Equal(t, tc.expectedRowsExamined, dbPerformanceEvents[0].RowsExaminedPerScan)
+}
+
+func TestExtractMetrics_SelectAndWithClause(t *testing.T) {
+	testCases := getTestCases()
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			js, err := simplejson.NewJson([]byte(tc.jsonString))
-			assert.NoError(t, err)
-
-			memo := utils.Memo{QueryCost: ""}
-			stepID := 0
-			dbPerformanceEvents := make([]utils.QueryPlanMetrics, 0)
-
-			dbPerformanceEvents = extractMetrics(js, dbPerformanceEvents, tc.eventID, tc.threadID, memo, &stepID)
-
-			assert.Equal(t, 1, len(dbPerformanceEvents))
-			assert.Equal(t, tc.expectedTableName, dbPerformanceEvents[0].TableName)
-			assert.Equal(t, tc.expectedQueryCost, dbPerformanceEvents[0].QueryCost)
-			assert.Equal(t, tc.expectedAccessType, dbPerformanceEvents[0].AccessType)
-			assert.Equal(t, tc.expectedRowsExamined, dbPerformanceEvents[0].RowsExaminedPerScan)
+			runTestCase(t, tc)
 		})
 	}
 }

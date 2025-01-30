@@ -233,7 +233,7 @@ func AssertReceivedErrors(t *testing.T, msg string, errLog ...string) {
 	assert.Failf(t, fmt.Sprintf("Expected to find the following error message: %s", msg), "but got %s", errLog)
 }
 
-func RunIntegrationAndGetStdout(t *testing.T, binPath *string, user *string, psw *string, port *int, slowQueryFetchInterval *int, queryResponseTimeThreshold *int, container *string, targetContainer string, envVars []string) (string, string, error) {
+func RunIntegrationAndGetStdout(t *testing.T, binPath *string, user *string, psw *string, port *int, slowQueryFetchInterval *int, queryMonitoringResponseTimeThreshold *int, container *string, targetContainer string, envVars []string) (string, string, error) {
 	t.Helper()
 
 	command := make([]string, 0)
@@ -253,8 +253,8 @@ func RunIntegrationAndGetStdout(t *testing.T, binPath *string, user *string, psw
 	if slowQueryFetchInterval != nil {
 		command = append(command, "-slow_query_fetch_interval="+strconv.Itoa(*slowQueryFetchInterval))
 	}
-	if queryResponseTimeThreshold != nil {
-		command = append(command, "-query_response_time_threshold="+strconv.Itoa(*queryResponseTimeThreshold))
+	if queryMonitoringResponseTimeThreshold != nil {
+		command = append(command, "-query_monitoring_response_time_threshold="+strconv.Itoa(*queryMonitoringResponseTimeThreshold))
 	}
 	stdout, stderr, err := ExecInContainer(*container, command, envVars...)
 

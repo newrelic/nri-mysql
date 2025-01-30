@@ -70,11 +70,11 @@ func TestPopulateWaitEventMetrics(t *testing.T) {
 	dataSource := &DataSource{DB: sqlxDB}
 	i, err := integration.New("test-integration", "1.0.0")
 	require.NoError(t, err)
-	args := args.ArgumentList{QueryCountThreshold: 10, QueryResponseTimeThreshold: 10}
+	args := args.ArgumentList{QueryMonitoringCountThreshold: 10, QueryMonitoringResponseTimeThreshold: 10}
 	excludedDatabases := []string{"mysql", "information_schema"}
 
 	// Prepare the arguments for the query
-	excludedDatabasesArgs := []interface{}{excludedDatabases, excludedDatabases, min(args.QueryCountThreshold, constants.MaxQueryCountThreshold)}
+	excludedDatabasesArgs := []interface{}{excludedDatabases, excludedDatabases, min(args.QueryMonitoringCountThreshold, constants.MaxQueryCountThreshold)}
 
 	// Prepare the SQL query with the provided parameters
 	preparedQuery, preparedArgs, err := sqlx.In(utils.WaitEventsQuery, excludedDatabasesArgs...)

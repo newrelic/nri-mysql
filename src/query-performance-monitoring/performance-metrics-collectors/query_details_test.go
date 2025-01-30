@@ -131,8 +131,8 @@ func assertQueryMetrics(t *testing.T, actualMetrics []utils.IndividualQueryMetri
 func TestCollectIndividualQueryMetrics(t *testing.T) {
 	mockDB := new(MockDataSource)
 	args := arguments.ArgumentList{
-		QueryResponseTimeThreshold: 1,
-		QueryCountThreshold:        10,
+		QueryMonitoringResponseTimeThreshold: 1,
+		QueryMonitoringCountThreshold:        10,
 	}
 
 	tests := []struct {
@@ -182,8 +182,8 @@ func TestPopulateSlowQueryMetrics(t *testing.T) {
 		t.Fatalf("Failed to create integration: %v", err)
 	}
 	args := arguments.ArgumentList{
-		SlowQueryFetchInterval: 60,
-		QueryCountThreshold:    10,
+		SlowQueryFetchInterval:        60,
+		QueryMonitoringCountThreshold: 10,
 	}
 	excludedDatabases := []string{}
 

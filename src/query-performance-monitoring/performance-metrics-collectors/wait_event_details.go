@@ -12,7 +12,7 @@ import (
 // PopulateWaitEventMetrics retrieves wait event metrics from the database and sets them in the integration.
 func PopulateWaitEventMetrics(db utils.DataSource, i *integration.Integration, args arguments.ArgumentList, excludedDatabases []string) {
 	// Get the query count threshold
-	queryCountThreshold := validator.GetValidQueryCountThreshold(args.QueryCountThreshold)
+	queryCountThreshold := validator.GetValidQueryCountThreshold(args.QueryMonitoringCountThreshold)
 
 	// Prepare the arguments for the query
 	excludedDatabasesArgs := []interface{}{excludedDatabases, excludedDatabases, queryCountThreshold}

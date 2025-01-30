@@ -19,7 +19,7 @@ func PopulateSlowQueryMetrics(i *integration.Integration, db utils.DataSource, a
 	slowQueryFetchInterval := validator.GetValidSlowQueryFetchIntervalThreshold(args.SlowQueryFetchInterval)
 
 	// Get the query count threshold
-	queryCountThreshold := validator.GetValidQueryCountThreshold(args.QueryCountThreshold)
+	queryCountThreshold := validator.GetValidQueryCountThreshold(args.QueryMonitoringCountThreshold)
 
 	rawMetrics, queryIDList, err := collectGroupedSlowQueryMetrics(db, slowQueryFetchInterval, queryCountThreshold, excludedDatabases)
 	if err != nil {
@@ -212,10 +212,10 @@ func collectIndividualQueryMetrics(db utils.DataSource, queryIDList []string, qu
 	}
 
 	// Get the query count threshold
-	queryCountThreshold := validator.GetValidQueryCountThreshold(args.QueryCountThreshold)
+	queryCountThreshold := validator.GetValidQueryCountThreshold(args.QueryMonitoringCountThreshold)
 
 	// Get the query response time threshold
-	queryResponseTimeThreshold := validator.GetValidQueryResponseTimeThreshold(args.QueryResponseTimeThreshold)
+	queryResponseTimeThreshold := validator.GetValidQueryResponseTimeThreshold(args.QueryMonitoringResponseTimeThreshold)
 
 	var metricsList []utils.IndividualQueryMetrics
 

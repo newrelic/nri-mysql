@@ -12,7 +12,7 @@ import (
 // PopulateBlockingSessionMetrics retrieves blocking session metrics from the database and populates them into the integration entity.
 func PopulateBlockingSessionMetrics(db utils.DataSource, i *integration.Integration, args arguments.ArgumentList, excludedDatabases []string) {
 	// Get the query count threshold
-	queryCountThreshold := validator.GetValidQueryCountThreshold(args.QueryCountThreshold)
+	queryCountThreshold := validator.GetValidQueryCountThreshold(args.QueryMonitoringCountThreshold)
 
 	// Prepare the SQL query with the provided parameters
 	query, inputArgs, err := sqlx.In(utils.BlockingSessionsQuery, excludedDatabases, queryCountThreshold)

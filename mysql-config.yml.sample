@@ -72,9 +72,9 @@ integrations:
     # Fetch interval in seconds for grouped slow queries. Should match the interval in mysql-config.yml
     # SLOW_QUERY_FETCH_INTERVAL: 30
     # Threshold in milliseconds for query response time to fetch individual query performance metrics
-    # QUERY_RESPONSE_TIME_THRESHOLD: 500
+    # QUERY_MONITORING_RESPONSE_TIME_THRESHOLD: 500
     # Query count limit for fetching grouped slow and individual query performance metrics
-    # QUERY_COUNT_THRESHOLD: 20
+    # QUERY_MONITORING_COUNT_THRESHOLD: 20
     # Example:
     # EXCLUDED_PERFORMANCE_DATABASES: '["employees","azure_sys"]' 
     # Provide any necessary database exclusions as a JSON array

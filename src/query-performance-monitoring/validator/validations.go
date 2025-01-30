@@ -35,7 +35,7 @@ func ValidatePreconditions(db utils.DataSource) error {
 	// Check if the MySQL version is supported
 	if !isVersion8OrGreater(version) {
 		log.Error("MySQL version %s is not supported. Only version 8.0+ is supported.", version)
-		return fmt.Errorf("%w: MySQL version %s is not supported. Only version 8.0+ is supported.", ErrUnsupportedMySQLVersion, version)
+		return fmt.Errorf("%w: MySQL version %s is not supported. Only version 8.0+ is supported", ErrUnsupportedMySQLVersion, version)
 	}
 
 	// Check if Performance Schema is enabled
