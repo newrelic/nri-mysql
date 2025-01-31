@@ -40,9 +40,7 @@ func TestSetSlowQueryMetrics(t *testing.T) {
 	updateQuery := "UPDATE users SET name = 'test' WHERE id = 1"
 	queryID := "1"
 	i, err := integration.New("test-integration", "1.0.0")
-	if err != nil {
-		t.Fatalf("Failed to create integration: %v", err)
-	}
+	assert.NoError(t, err, "Failed to create integration")
 
 	metrics := []utils.SlowQueryMetrics{
 		{QueryText: &selectQuery, QueryID: &queryID},
@@ -178,12 +176,10 @@ func TestPopulateSlowQueryMetrics(t *testing.T) {
 
 	mockDB := NewMockDataSource(db)
 	i, err := integration.New("test-integration", "1.0.0")
-	if err != nil {
-		t.Fatalf("Failed to create integration: %v", err)
-	}
+	assert.NoError(t, err, "Failed to create integration")
 	args := arguments.ArgumentList{
-		SlowQueryFetchInterval:        60,
-		QueryMonitoringCountThreshold: 10,
+		SlowQueryMonitoringFetchInterval: 60,
+		QueryMonitoringCountThreshold:    10,
 	}
 	excludedDatabases := []string{}
 

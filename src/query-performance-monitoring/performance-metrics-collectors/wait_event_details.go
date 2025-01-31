@@ -35,7 +35,8 @@ func PopulateWaitEventMetrics(db utils.DataSource, i *integration.Integration, a
 	if len(metrics) == 0 {
 		return
 	}
-	// Set the retrieved metrics in the integration
+
+	// Set the wait event metrics in the integration entity and ingest them
 	err = setWaitEventMetrics(i, args, metrics)
 	if err != nil {
 		log.Error("Error setting wait event metrics: %v", err)

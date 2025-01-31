@@ -29,7 +29,7 @@ var (
 	defaultMysqlPass                            = ""
 	defaultMysqlPort                            = 3306
 	defaultEnableQueryMonitoring                = false
-	defaultSlowQueryFetchInterval               = 3000
+	defaultSlowQueryMonitoringFetchInterval     = 3000
 	defaultQueryMonitoringResponseTimeThreshold = 0 // The value is zero so that we get all the queries that ran in ./mysql-performance-config/custom-entrypoint.sh
 
 	// cli flags
@@ -39,7 +39,7 @@ var (
 	psw                                  = flag.String("psw", defaultMysqlPass, "Mysql user password")
 	port                                 = flag.Int("port", defaultMysqlPort, "Mysql port")
 	enableQueryMonitoring                = flag.Bool("enable_query_monitoring", defaultEnableQueryMonitoring, "flag to enable and disable collecting query metrics")
-	slowQueryFetchInterval               = flag.Int("slow_query_fetch_interval", defaultSlowQueryFetchInterval, "retrives slow queries that ran in last n seconds")
+	slowQueryMonitoringFetchInterval     = flag.Int("slow_query_monitoring_fetch_interval", defaultSlowQueryMonitoringFetchInterval, "retrives slow queries that ran in last n seconds")
 	queryMonitoringResponseTimeThreshold = flag.Int("query_monitoring_response_time_threshold", defaultQueryMonitoringResponseTimeThreshold, "retrives queries that have taken more time than queryResponseTimeThreshold in milli seconds")
 )
 
@@ -66,7 +66,7 @@ var (
 )
 
 func runIntegrationAndGetStdoutWithError(t *testing.T, targetContainer string, envVars ...string) (string, string, error) {
-	return helpers.RunIntegrationAndGetStdout(t, binPath, user, psw, port, slowQueryFetchInterval, queryMonitoringResponseTimeThreshold, perfContainer, targetContainer, envVars)
+	return helpers.RunIntegrationAndGetStdout(t, binPath, user, psw, port, slowQueryMonitoringFetchInterval, queryMonitoringResponseTimeThreshold, perfContainer, targetContainer, envVars)
 }
 
 func executeBlockingSessionQuery(mysqlPerfConfig MysqlPerformanceConfig) error {

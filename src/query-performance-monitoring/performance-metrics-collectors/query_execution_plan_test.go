@@ -326,24 +326,27 @@ func TestExtractMetrics_SelectAndWithClause(t *testing.T) {
 }
 
 func TestSetExecutionPlanMetrics(t *testing.T) {
-	mockIntegration := new(MockIntegration)
-	mockIntegration.Integration, _ = integration.New("test", "1.0.0") // Properly initialize the Integration field
+	i, err := integration.New("test-integration", "1.0.0")
+	assert.NoError(t, err, "Failed to create integration")
 	mockArgs := arguments.ArgumentList{}
 
 	t.Run("Successful Ingestion", func(t *testing.T) {
 		metrics := []utils.QueryPlanMetrics{
 			{EventID: 1, QueryCost: "10", TableName: "test"},
 		}
-		mockIntegration.On("IngestMetric", mock.Anything, "MysqlQueryExecutionSample", mockIntegration, mockArgs).Return(nil)
 
-		err := SetExecutionPlanMetrics(mockIntegration.Integration, mockArgs, metrics)
+		err := SetExecutionPlanMetrics(i, mockArgs, metrics)
 		assert.NoError(t, err)
 	})
 
 	t.Run("Empty Metrics", func(t *testing.T) {
 		metrics := []utils.QueryPlanMetrics{}
-		err := SetExecutionPlanMetrics(mockIntegration.Integration, mockArgs, metrics)
+		err := SetExecutionPlanMetrics(i, mockArgs, metrics)
 		assert.NoError(t, err)
+
+		// Verify that no metrics were ingested
+		ingestedMetrics := i.Entities[0].Metrics
+		assert.Len(t, ingestedMetrics, 0)
 	})
 }
 
@@ -459,7 +462,7 @@ func TestProcessSliceValue(t *testing.T) {
 			stepID := 0
 			metrics := processSliceValue(tt.value, []utils.QueryPlanMetrics{}, 0, 0, utils.Memo{}, &stepID)
 			if len(metrics) != tt.expectedMetricsLen {
-				t.Errorf("expected %d, got %d", tt.expectedMetricsLen, len(metrics))
+				assert.Equal(t, tt.expectedMetricsLen, len(metrics), "unexpected metrics length")
 			}
 		})
 	}
@@ -470,20 +473,14 @@ func TestEscapeAllStringsInJSON_Success(t *testing.T) {
 	expectedOutput := `{"key1":"value1","key2":"value with \\\"quotes\\\" and \\\\backslashes\\\\","key3":["array","with","strings"]}`
 
 	output, err := escapeAllStringsInJSON(input)
-	if err != nil {
-		t.Fatalf("Expected no error, got %v", err)
-	}
+	assert.NoError(t, err, "Expected no error")
 
-	if output != expectedOutput {
-		t.Errorf("Expected %v, got %v", expectedOutput, output)
-	}
+	assert.Equal(t, expectedOutput, output, "Output did not match expected output")
 }
 
 func TestEscapeAllStringsInJSON_Error(t *testing.T) {
 	input := `{"key1": "value1", "key2": "value with "unterminated quote}`
 
 	_, err := escapeAllStringsInJSON(input)
-	if err == nil {
-		t.Fatalf("Expected an error, got nil")
-	}
+	assert.Error(t, err, "Expected an error")
 }

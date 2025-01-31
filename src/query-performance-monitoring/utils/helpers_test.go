@@ -2,21 +2,13 @@ package utils
 
 import (
 	"encoding/json"
-	"errors"
-	"strings"
 	"testing"
 
 	"github.com/newrelic/infra-integrations-sdk/v3/integration"
 	arguments "github.com/newrelic/nri-mysql/src/args"
-	infrautils "github.com/newrelic/nri-mysql/src/infrautils"
 	constants "github.com/newrelic/nri-mysql/src/query-performance-monitoring/constants"
 
 	"github.com/stretchr/testify/assert"
-)
-
-var (
-	ErrCreateNodeEntity = errors.New("error creating node entity")
-	ErrProcessModel     = errors.New("error processing model")
 )
 
 func TestSetMetric(t *testing.T) {
@@ -41,53 +33,6 @@ func TestSetMetric(t *testing.T) {
 			metricValue, ok := metricSet.Metrics[tt.metricName]
 			assert.True(t, ok)
 			assert.Equal(t, tt.value, metricValue)
-		})
-	}
-}
-
-func TestMetricSet(t *testing.T) {
-	i, _ := integration.New("test", "1.0.0")
-	entity := i.LocalEntity()
-
-	tests := []struct {
-		name             string
-		eventType        string
-		hostname         string
-		port             int
-		remoteMonitoring bool
-		expectedMetrics  map[string]interface{}
-	}{
-		{
-			name:             "RemoteMonitoring",
-			eventType:        "testEvent",
-			hostname:         "remotehost",
-			port:             3306,
-			remoteMonitoring: true,
-			expectedMetrics: map[string]interface{}{
-				"hostname": "remotehost",
-				"port":     "3306",
-			},
-		},
-		{
-			name:             "LocalMonitoring",
-			eventType:        "testEvent",
-			hostname:         "",
-			port:             3306,
-			remoteMonitoring: false,
-			expectedMetrics: map[string]interface{}{
-				"port": "3306",
-			},
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			metricSet := infrautils.MetricSet(entity, tt.eventType, tt.hostname, tt.port, tt.remoteMonitoring)
-			for key, expectedValue := range tt.expectedMetrics {
-				actualValue, ok := metricSet.Metrics[key]
-				assert.True(t, ok)
-				assert.Equal(t, expectedValue, actualValue)
-			}
 		})
 	}
 }
@@ -202,51 +147,6 @@ func TestIngestMetric(t *testing.T) {
 	})
 }
 
-func TestGetUniqueExcludedDatabases(t *testing.T) {
-	tests := []struct {
-		name              string
-		excludedDBList    string
-		expectedDatabases []string
-	}{
-		{
-			name:              "Empty excludedDBList",
-			excludedDBList:    "",
-			expectedDatabases: constants.DefaultExcludedDatabases,
-		},
-		{
-			name:              "Single database in excludedDBList",
-			excludedDBList:    "db1",
-			expectedDatabases: append(constants.DefaultExcludedDatabases, "db1"),
-		},
-		{
-			name:              "Multiple databases in excludedDBList",
-			excludedDBList:    "db1,db2",
-			expectedDatabases: append(constants.DefaultExcludedDatabases, "db1", "db2"),
-		},
-		{
-			name:              "Duplicate databases in excludedDBList",
-			excludedDBList:    "db1,db1",
-			expectedDatabases: append(constants.DefaultExcludedDatabases, "db1"),
-		},
-		{
-			name:              "Databases with leading/trailing spaces",
-			excludedDBList:    " db1 , db2 ",
-			expectedDatabases: append(constants.DefaultExcludedDatabases, "db1", "db2"),
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			excludedDBList := strings.Split(tt.excludedDBList, ",")
-			for i := range excludedDBList {
-				excludedDBList[i] = strings.TrimSpace(excludedDBList[i])
-			}
-			result := getUniqueExcludedDatabases(excludedDBList)
-			assert.ElementsMatch(t, tt.expectedDatabases, result)
-		})
-	}
-}
-
 func TestGetExcludedDatabases(t *testing.T) {
 	type testCase struct {
 		Name              string   `json:"name"`
@@ -284,9 +184,7 @@ func TestGetExcludedDatabases(t *testing.T) {
 
 	var testCases []testCase
 	err := json.Unmarshal([]byte(jsonInput), &testCases)
-	if err != nil {
-		t.Fatalf("Failed to unmarshal JSON input: %v", err)
-	}
+	assert.NoError(t, err, "Failed to unmarshal JSON input")
 
 	for _, tt := range testCases {
 		t.Run(tt.Name, func(t *testing.T) {

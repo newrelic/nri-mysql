@@ -33,7 +33,7 @@ func PopulateBlockingSessionMetrics(db utils.DataSource, i *integration.Integrat
 		return
 	}
 
-	// Set the blocking query metrics in the integration entity
+	// Set the blocking query metrics in the integration entity and ingest them
 	err = setBlockingQueryMetrics(metrics, i, args)
 	if err != nil {
 		log.Error("Error setting blocking session metrics: %v", err)

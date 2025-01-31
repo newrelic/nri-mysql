@@ -3888,6 +3888,9 @@
                     "type": "number"
                   }
                 },
+                "required": [
+                  "value"
+                ],
                 "type": "object"
               },
               "performance_schema_events_transactions_history_size": {
@@ -3896,6 +3899,9 @@
                     "type": "number"
                   }
                 },
+                "required": [
+                  "value"
+                ],
                 "type": "object"
               },
               "performance_schema_events_waits_history_long_size": {

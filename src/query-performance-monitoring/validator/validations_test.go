@@ -35,9 +35,7 @@ func TestCheckEssentialInstruments_AllEnabled(t *testing.T) {
 		AddRow("statement/sql/select", "YES").
 		AddRow("wait/io/file/sql/FILE", "YES")
 	db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
-	if err != nil {
-		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
-	}
+	assert.NoError(t, err, "an error was not expected when opening a stub database connection")
 	defer db.Close()
 
 	sqlxDB := sqlx.NewDb(db, "sqlmock")
@@ -62,7 +60,7 @@ func TestValidatePreconditions_PerformanceSchemaDisabled(t *testing.T) {
 
 	// Set the correct order of mock expectations
 	mock.ExpectQuery("SELECT VERSION();").WillReturnRows(versionRows)
-	mock.ExpectQuery("SHOW GLOBAL VARIABLES LIKE 'performance_schema';").WillReturnRows(rows)
+	mock.ExpectQuery(performanceSchemaQuery).WillReturnRows(rows)
 
 	err = ValidatePreconditions(mockDataSource)
 	assert.Error(t, err)
@@ -99,9 +97,7 @@ func TestValidatePreconditions_EssentialChecksFailed(t *testing.T) {
 			rows := sqlmock.NewRows([]string{"Variable_name", "Value"}).
 				AddRow("performance_schema", "ON")
 			db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
-			if err != nil {
-				t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
-			}
+			assert.NoError(t, err, "an error was not expected when opening a stub database connection")
 			defer db.Close()
 			sqlxDB := sqlx.NewDb(db, "sqlmock")
 			mockDataSource := &mockDataSource{db: sqlxDB}
@@ -120,9 +116,7 @@ func TestValidatePreconditions_EssentialChecksFailed(t *testing.T) {
 
 func TestIsPerformanceSchemaEnabled_NoRowsFound(t *testing.T) {
 	db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
-	if err != nil {
-		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
-	}
+	assert.NoError(t, err, "an error was not expected when opening a stub database connection")
 	defer db.Close()
 
 	sqlxDB := sqlx.NewDb(db, "sqlmock")
@@ -139,9 +133,7 @@ func TestCheckEssentialConsumers_ConsumerNotEnabled(t *testing.T) {
 	rows := sqlmock.NewRows([]string{"NAME", "ENABLED"}).
 		AddRow("events_waits_current", "NO")
 	db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
-	if err != nil {
-		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
-	}
+	assert.NoError(t, err, "an error was not expected when opening a stub database connection")
 	defer db.Close()
 
 	sqlxDB := sqlx.NewDb(db, "sqlmock")
@@ -156,9 +148,7 @@ func TestCheckEssentialInstruments_InstrumentNotEnabled(t *testing.T) {
 	rows := sqlmock.NewRows([]string{"NAME", "ENABLED", "TIMED"}).
 		AddRow("wait/synch/mutex/sql/LOCK_plugin", "NO", "YES")
 	db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
-	if err != nil {
-		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
-	}
+	assert.NoError(t, err, "an error was not expected when opening a stub database connection")
 	defer db.Close()
 
 	sqlxDB := sqlx.NewDb(db, "sqlmock")
@@ -173,9 +163,7 @@ func TestGetMySQLVersion(t *testing.T) {
 	rows := sqlmock.NewRows([]string{"VERSION()"}).
 		AddRow("8.0.23")
 	db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
-	if err != nil {
-		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
-	}
+	assert.NoError(t, err, "an error was not expected when opening a stub database connection")
 	defer db.Close()
 
 	sqlxDB := sqlx.NewDb(db, "sqlmock")

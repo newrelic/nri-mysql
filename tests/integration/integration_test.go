@@ -26,13 +26,11 @@ var (
 
 	defaultContainer = "integration_nri-mysql_1"
 	// mysql config
-	defaultBinPath                = "/nri-mysql"
-	defaultMysqlUser              = "root"
-	defaultMysqlPass              = "DBpwd1234"
-	defaultMysqlPort              = 3306
-	defaultMysqlDB                = "database"
-	defaultEnableQueryMonitoring  = false
-	defaultSlowQueryFetchInterval = 3000
+	defaultBinPath   = "/nri-mysql"
+	defaultMysqlUser = "root"
+	defaultMysqlPass = "DBpwd1234"
+	defaultMysqlPort = 3306
+	defaultMysqlDB   = "database"
 
 	// cli flags
 	container = flag.String("container", defaultContainer, "container where the integration is installed")
