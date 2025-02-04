@@ -3,6 +3,8 @@ package main
 import (
 	"reflect"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestMergeMaps(t *testing.T) {
@@ -53,7 +55,7 @@ func TestMergeMaps(t *testing.T) {
 		t.Run("", func(t *testing.T) {
 			result := mergeMaps(test.map1, test.map2)
 			if !reflect.DeepEqual(result, test.expected) {
-				t.Errorf("mergeMaps(%v, %v) = %v; want %v", test.map1, test.map2, result, test.expected)
+				assert.Equal(t, test.expected, result, "mergeMaps(%v, %v) = %v; want %v", test.map1, test.map2, result, test.expected)
 			}
 		})
 	}
