@@ -158,7 +158,6 @@ const (
 			SELECT
 				w.THREAD_ID,
 				w.EVENT_NAME AS wait_event_name,
-				MAX(w.OBJECT_INSTANCE_BEGIN) AS instance_id,
 				SUM(w.TIMER_WAIT) AS total_wait_time,
 				COUNT(*) AS wait_event_count
 			FROM
@@ -170,7 +169,6 @@ const (
 			SELECT
 				w.THREAD_ID,
 				w.EVENT_NAME AS wait_event_name,
-				MAX(w.OBJECT_INSTANCE_BEGIN) AS instance_id,
 				SUM(w.TIMER_WAIT) AS total_wait_time,
 				COUNT(*) AS wait_event_count
 			FROM
@@ -205,7 +203,6 @@ const (
 		joined_data AS (
 			SELECT
 				wda.wait_event_name,
-				wda.instance_id,
 				wda.total_wait_time,
 				wda.wait_event_count,
 				sd.query_id,
@@ -220,7 +217,6 @@ const (
 			jd.query_id,
 			jd.database_name,
 			jd.wait_event_name,
-			jd.instance_id,
 			CASE
 				WHEN jd.wait_event_name LIKE 'wait/io/file/innodb/%' THEN 'InnoDB File IO'
 				WHEN jd.wait_event_name LIKE 'wait/io/file/sql/%' THEN 'SQL File IO'
