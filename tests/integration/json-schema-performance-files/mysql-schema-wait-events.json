@@ -59,9 +59,6 @@
                                 "hostname": {
                                     "type": "string"
                                 },
-                                "instance_id": {
-                                    "type": "string"
-                                },
                                 "port": {
                                     "type": "string"
                                 },
@@ -89,7 +86,6 @@
                                 "collection_timestamp",
                                 "database_name",
                                 "event_type",
-                                "instance_id",
                                 "query_id",
                                 "query_text",
                                 "total_wait_time_ms",

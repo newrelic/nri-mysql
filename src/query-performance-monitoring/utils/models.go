@@ -67,7 +67,6 @@ type WaitEventQueryMetrics struct {
 	DatabaseName        *string  `json:"database_name" db:"database_name" metric_name:"database_name" source_type:"attribute"`
 	WaitCategory        *string  `json:"wait_category" db:"wait_category" metric_name:"wait_category" source_type:"attribute"`
 	CollectionTimestamp *string  `json:"collection_timestamp" db:"collection_timestamp" metric_name:"collection_timestamp" source_type:"attribute"`
-	InstanceID          *string  `json:"instance_id" db:"instance_id" metric_name:"instance_id" source_type:"attribute"`
 	WaitEventName       *string  `json:"wait_event_name" db:"wait_event_name" metric_name:"wait_event_name" source_type:"attribute"`
 	WaitEventCount      *uint64  `json:"wait_event_count" db:"wait_event_count" metric_name:"wait_event_count" source_type:"gauge"`
 	AvgWaitTimeMs       *string  `json:"avg_wait_time_ms" db:"avg_wait_time_ms" metric_name:"avg_wait_time_ms" source_type:"attribute"`
