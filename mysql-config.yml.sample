@@ -75,11 +75,9 @@ integrations:
     # QUERY_MONITORING_RESPONSE_TIME_THRESHOLD: 500
     # Query count limit for fetching grouped slow and individual query performance metrics
     # QUERY_MONITORING_COUNT_THRESHOLD: 20
-    # Example:
-    # EXCLUDED_PERFORMANCE_DATABASES: '["employees","azure_sys"]' 
     # Provide any necessary database exclusions as a JSON array
+    # EXCLUDED_PERFORMANCE_DATABASES: '["employees","azure_sys"]' 
     # Note: System databases (mysql, information_schema, performance_schema, sys) are always excluded.
-    # EXCLUDED_PERFORMANCE_DATABASES: '[]'
   interval: 30s 
   labels:
     env: production

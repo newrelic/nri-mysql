@@ -45,6 +45,7 @@ func PopulateExecutionPlans(db utils.DataSource, queryGroups map[string][]utils.
 		return
 	}
 
+	// Set the execution plan metrics in the integration entity and ingest them
 	err := SetExecutionPlanMetrics(i, args, events)
 	if err != nil {
 		log.Error("Error publishing execution plan metrics: %v", err)

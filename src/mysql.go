@@ -72,7 +72,7 @@ func main() {
 	}
 	infrautils.FatalIfErr(i.Publish())
 
-	if args.EnableQueryMonitoring && args.HasMetrics() {
+	if args.EnableQueryMonitoring {
 		queryperformancemonitoring.PopulateQueryPerformanceMetrics(args, e, i)
 	}
 }
