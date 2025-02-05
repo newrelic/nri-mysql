@@ -9,7 +9,9 @@ Unreleased section should follow [Release Toolkit](https://github.com/newrelic/r
 
 ## Unreleased
 
-### enhancements
+## v1.13.0 - 2025-02-05
+
+### 🚀 Enhancements
 - Add FIPS compliant packages
 - Introduced Query Performance Monitoring
 - Enabled reporting for Grouped Slow Running Queries
