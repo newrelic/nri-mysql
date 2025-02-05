@@ -11,6 +11,12 @@ Unreleased section should follow [Release Toolkit](https://github.com/newrelic/r
 
 ### enhancements
 - Add FIPS compliant packages
+- Introduced Query Performance Monitoring
+- Enabled reporting for Grouped Slow Running Queries
+- Added detailed reporting for Individual Queries
+- Added detailed Query Execution Plan analysis
+- Added Reporting for Wait Events
+- Added Reporting for Blocking Sessions
 
 ## v1.12.0 - 2025-01-20
 
