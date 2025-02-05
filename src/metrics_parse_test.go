@@ -23,7 +23,7 @@ func TestIsDBVersionLessThan8(t *testing.T) {
 			actual := isDBVersionLessThan8(test.dbVersion)
 			assert.Equal(t, test.expected, actual)
 			if actual != test.expected {
-				t.Errorf("For version %s, expected %v, but got %v", test.dbVersion, test.expected, actual)
+				assert.Equal(t, test.expected, actual, "For version %s, expected %v, but got %v", test.dbVersion, test.expected, actual)
 			}
 		})
 	}
@@ -47,7 +47,7 @@ func TestGetReplicaQuery(t *testing.T) {
 			actual := getReplicaQuery(test.dbVersion)
 			assert.Equal(t, test.expected, actual)
 			if actual != test.expected {
-				t.Errorf("For version %s, expected %v, but got %v", test.dbVersion, test.expected, actual)
+				assert.Equal(t, test.expected, actual, "For version %s, expected %v, but got %v", test.dbVersion, test.expected, actual)
 			}
 		})
 	}
@@ -73,7 +73,7 @@ func TestExtractSanitizedVersion(t *testing.T) {
 			if (err == nil) && (!test.shouldFail) {
 				assert.Equal(t, test.expected, actual)
 			} else if actual != test.expected {
-				t.Errorf("extractSanitizedVersion(%q) = %s, want %s", test.version, actual, test.expected)
+				assert.Equal(t, test.expected, actual, "extractSanitizedVersion(%q) = %s, want %s", test.version, actual, test.expected)
 			}
 		})
 	}

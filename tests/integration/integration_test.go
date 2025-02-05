@@ -78,32 +78,17 @@ var (
 
 // Returns the standard output, or fails testing if the command returned an error
 func runIntegration(t *testing.T, targetContainer string, envVars ...string) string {
-	t.Helper()
-
-	command := make([]string, 0)
-	command = append(command, *binPath)
-	if user != nil {
-		command = append(command, "--username", *user)
-	}
-	if psw != nil {
-		command = append(command, "--password", *psw)
-	}
-	if targetContainer != "" {
-		command = append(command, "--hostname", targetContainer)
-	}
-	if port != nil {
-		command = append(command, "--port", strconv.Itoa(*port))
-	}
-	if database != nil {
-		command = append(command, "--database", *database)
-	}
-	stdout, stderr, err := helpers.ExecInContainer(*container, command, envVars...)
+	stdout, stderr, err := helpers.RunIntegrationAndGetStdout(t, binPath, user, psw, port, nil, nil, container, targetContainer, envVars)
 	if stderr != "" {
 		log.Debug("Integration command Standard Error: ", stderr)
 	}
 	require.NoError(t, err)
 
 	return stdout
+}
+
+func runIntegrationAndGetStdoutWithError(t *testing.T, targetContainer string, envVars ...string) (string, string, error) {
+	return helpers.RunIntegrationAndGetStdout(t, binPath, user, psw, port, nil, nil, container, targetContainer, envVars)
 }
 
 func checkVersion(dbVersion string) bool {
@@ -304,5 +289,78 @@ func testMySQLIntegrationOnlySlaveMetrics(t *testing.T, mysqlConfig MysqlConfig)
 func TestMySQLIntegrationOnlySlaveMetrics(t *testing.T) {
 	for _, mysqlConfig := range MysqlConfigs {
 		testMySQLIntegrationOnlySlaveMetrics(t, mysqlConfig)
+	}
+}
+
+func runUnconfiguredMysqlPerfConfigTest(t *testing.T, args []string, outputMetricsFile string, expectedError string, testName string) {
+	for _, mysqlUnconfiguredPerfConfig := range MysqlConfigs {
+		if isDBVersionLessThan8(mysqlUnconfiguredPerfConfig.Version) {
+			// performance metrics are supported for mysql version 8 and above
+			// so, skipping if the mysql version is less than 8
+			continue
+		}
+		t.Run(testName+mysqlUnconfiguredPerfConfig.Version, func(t *testing.T) {
+			args = append(args, fmt.Sprintf("NRIA_CACHE_PATH=/tmp/%v.json", testName))
+			stdout, stderr, err := runIntegrationAndGetStdoutWithError(t, mysqlUnconfiguredPerfConfig.MasterHostname, args...)
+			outputMetricsList := strings.Split(stdout, "\n")
+			assert.Empty(t, outputMetricsList[1], "Unexpected stdout content")
+			helpers.AssertReceivedErrors(t, expectedError, strings.Split(stderr, "\n")...)
+			schemaPath := filepath.Join("json-schema-performance-files", outputMetricsFile)
+			err = jsonschema.Validate(schemaPath, outputMetricsList[0])
+			require.NoError(t, err, "The output of MySQL integration doesn't have expected format")
+		})
+	}
+}
+
+// Run integration with ENABLE_QUERY_MONITORING flag enabled for mysql servers which don't have performance flags/extensions enabled
+func TestUnconfiguredPerfMySQLIntegration(t *testing.T) {
+	testCases := []struct {
+		name              string
+		args              []string
+		outputMetricsFile string
+		expectedError     string
+	}{
+		{
+			name: "RemoteEntity_EnableQueryMonitoring",
+			args: []string{
+				"REMOTE_MONITORING=true",
+				"ENABLE_QUERY_MONITORING=true",
+			},
+			outputMetricsFile: "mysql-schema-master.json",
+			expectedError:     "essential consumer is not enabled: events_statements_cpu",
+		},
+		{
+			name: "LocalEntity_EnableQueryMonitoring",
+			args: []string{
+				"ENABLE_QUERY_MONITORING=true",
+			},
+			outputMetricsFile: "mysql-schema-master-localentity.json",
+			expectedError:     "essential consumer is not enabled: events_statements_cpu",
+		},
+		{
+			name: "OnlyMetrics_EnableQueryMonitoring",
+			args: []string{
+				"METRICS=true",
+				"ENABLE_QUERY_MONITORING=true",
+			},
+			outputMetricsFile: "mysql-schema-metrics-master.json",
+			expectedError:     "essential consumer is not enabled: events_statements_cpu",
+		},
+		{
+			name: "OnlyInventory_EnableQueryMonitoring",
+			args: []string{
+				"INVENTORY=true",
+				"ENABLE_QUERY_MONITORING=true",
+			},
+			outputMetricsFile: "mysql-schema-inventory-master.json",
+			/*
+				 	Note: Expected error is empty as integration will report query performance monitoring data when both metrics and enable_query_monitoring are enabled.
+					Refer args.HasMetrics() implementation here https://github.com/newrelic/infra-integrations-sdk/blob/12ee4e8a20a479f2b3d9ba328d2f80c9dc663c79/args/args.go#L33
+			*/
+			expectedError: "",
+		},
+	}
+	for _, testCase := range testCases {
+		runUnconfiguredMysqlPerfConfigTest(t, testCase.args, testCase.outputMetricsFile, testCase.expectedError, testCase.name)
 	}
 }
