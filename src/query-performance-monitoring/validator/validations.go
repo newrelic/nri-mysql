@@ -199,7 +199,6 @@ func buildConsumerStatusQuery() string {
 		"events_statements_history_long",
 		"events_statements_history",
 		"events_statements_current",
-		"events_statements_cpu",
 	}
 
 	query := "SELECT NAME, ENABLED FROM performance_schema.setup_consumers WHERE NAME IN ("

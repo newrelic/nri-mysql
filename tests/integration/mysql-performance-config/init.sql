@@ -21,7 +21,7 @@ WHERE NAME IN ('events_waits_current', 'events_waits_history_long', 'events_wait
 -- Enable required Performance Schema consumers for CPU metrics
 UPDATE performance_schema.setup_consumers
 SET ENABLED = 'YES'
-WHERE NAME IN ('events_statements_history', 'events_statements_current', 'events_statements_cpu');
+WHERE NAME IN ('events_statements_history', 'events_statements_current');
 
 UPDATE performance_schema.setup_consumers
 SET ENABLED = 'YES'
