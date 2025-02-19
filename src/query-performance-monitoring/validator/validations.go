@@ -97,8 +97,6 @@ func checkEssentialStatus(db utils.DataSource, query string, updateSQLTemplate s
 		}
 	}()
 
-	var errors []error
-	
 	// Check if each essential item is enabled
 	for rows.Next() {
 		var name, enabled string
@@ -107,12 +105,8 @@ func checkEssentialStatus(db utils.DataSource, query string, updateSQLTemplate s
 		}
 		if enabled != "YES" {
 			log.Warn(updateSQLTemplate, name, name)
-			errors = append(errors, fmt.Errorf("%w: %s", errMsgTemplate, name))
+			return fmt.Errorf("%w: %s", errMsgTemplate, name)
 		}
-	}
-
-	if len(errors) > 0 {
-		return fmt.Errorf("encountered errors: %v", errors)
 	}
 
 	if err := rows.Err(); err != nil {
