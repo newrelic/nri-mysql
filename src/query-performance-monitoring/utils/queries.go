@@ -43,8 +43,6 @@ const (
 		WHERE LAST_SEEN >= UTC_TIMESTAMP() - INTERVAL ? SECOND
 			AND SCHEMA_NAME IS NOT NULL
 			AND SCHEMA_NAME NOT IN (?)
-			AND DIGEST_TEXT RLIKE '^(SELECT|INSERT|UPDATE|DELETE|WITH)'
-			AND DIGEST_TEXT NOT LIKE '%DIGEST_TEXT%'
 		ORDER BY avg_elapsed_time_ms DESC
 		LIMIT ?;
     `
@@ -187,7 +185,6 @@ const (
 				performance_schema.events_statements_current s
 			WHERE
 				s.CURRENT_SCHEMA NOT IN (?)
-				AND s.SQL_TEXT NOT LIKE '%DIGEST_TEXT%'
 			UNION ALL
 			SELECT
 				s.THREAD_ID,
@@ -198,7 +195,6 @@ const (
 				performance_schema.events_statements_history s
 			WHERE
 				s.CURRENT_SCHEMA NOT IN (?)
-				AND s.SQL_TEXT NOT LIKE '%DIGEST_TEXT%'
 		),
 		joined_data AS (
 			SELECT
