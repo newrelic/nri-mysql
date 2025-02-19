@@ -104,7 +104,7 @@ func checkEssentialStatus(db utils.DataSource, query string, updateSQLTemplate s
 			return fmt.Errorf("failed to scan row: %w", err)
 		}
 		if enabled != "YES" {
-			log.Error(updateSQLTemplate, name, name)
+			log.Warn(updateSQLTemplate, name, name)
 			return fmt.Errorf("%w: %s", errMsgTemplate, name)
 		}
 	}
