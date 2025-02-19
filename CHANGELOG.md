@@ -10,7 +10,7 @@ Unreleased section should follow [Release Toolkit](https://github.com/newrelic/r
 ## Unreleased
 
 ### enhancements
-- Added support for Aurora Mysql
+- Added Query Performance Monitoring support for Aurora Mysql
 
 ## v1.13.0 - 2025-02-05
 
