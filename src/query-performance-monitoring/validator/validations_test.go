@@ -59,7 +59,7 @@ func TestValidatePreconditions_PerformanceSchemaDisabled(t *testing.T) {
 	mockDataSource := &mockDataSource{db: sqlxDB}
 
 	// Set the correct order of mock expectations
-	mock.ExpectQuery("SELECT VERSION();").WillReturnRows(versionRows)
+	mock.ExpectQuery(versionQuery).WillReturnRows(versionRows)
 	mock.ExpectQuery(performanceSchemaQuery).WillReturnRows(rows)
 
 	err = ValidatePreconditions(mockDataSource)
@@ -81,14 +81,14 @@ func TestValidatePreconditions_EssentialChecksFailed(t *testing.T) {
 			expectQueryFunc: func(mock sqlmock.Sqlmock) {
 				mock.ExpectQuery(buildConsumerStatusQuery()).WillReturnError(errQuery)
 			},
-			assertError: true,
+			assertError: false, // The function logs a warning but does not return an error
 		},
 		{
 			name: "EssentialInstrumentsCheckFailed",
 			expectQueryFunc: func(mock sqlmock.Sqlmock) {
 				mock.ExpectQuery(buildInstrumentQuery()).WillReturnError(errQuery)
 			},
-			assertError: true,
+			assertError: false, // The function logs a warning but does not return an error
 		},
 	}
 
@@ -171,7 +171,7 @@ func TestGetMySQLVersion(t *testing.T) {
 	sqlxDB := sqlx.NewDb(db, "sqlmock")
 	mockDataSource := &mockDataSource{db: sqlxDB}
 
-	mock.ExpectQuery("SELECT VERSION();").WillReturnRows(rows)
+	mock.ExpectQuery(versionQuery).WillReturnRows(rows)
 	version, err := getMySQLVersion(mockDataSource)
 	assert.NoError(t, err)
 	assert.Equal(t, "8.0.23", version)

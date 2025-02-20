@@ -14,6 +14,9 @@ import (
 // Query to check if the Performance Schema is enabled
 const performanceSchemaQuery = "SHOW GLOBAL VARIABLES LIKE 'performance_schema';"
 
+// Query to get the MySQL version
+const versionQuery = "SELECT VERSION();"
+
 // Dynamic error
 var (
 	ErrImproperlyFormattedVersion = errors.New("version string is improperly formatted")
@@ -142,8 +145,7 @@ func logEnablePerformanceSchemaInstructions(version string) {
 
 // getMySQLVersion retrieves the MySQL version from the database.
 func getMySQLVersion(db utils.DataSource) (string, error) {
-	query := "SELECT VERSION();"
-	rows, err := db.QueryX(query)
+	rows, err := db.QueryX(versionQuery)
 	if err != nil {
 		return "", fmt.Errorf("failed to execute version query: %w", err)
 	}
