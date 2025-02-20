@@ -14,6 +14,9 @@ import (
 // Query to check if the Performance Schema is enabled
 const performanceSchemaQuery = "SHOW GLOBAL VARIABLES LIKE 'performance_schema';"
 
+// Query to get the MySQL version
+const versionQuery = "SELECT VERSION();"
+
 // Dynamic error
 var (
 	ErrImproperlyFormattedVersion = errors.New("version string is improperly formatted")
@@ -52,13 +55,13 @@ func ValidatePreconditions(db utils.DataSource) error {
 	// Check if essential consumers are enabled
 	errEssentialConsumers := checkEssentialConsumers(db)
 	if errEssentialConsumers != nil {
-		return fmt.Errorf("essential consumer check failed: %w", errEssentialConsumers)
+		log.Warn("Essential consumer check failed: %v", errEssentialConsumers)
 	}
 
 	// Check if essential instruments are enabled
 	errEssentialInstruments := checkEssentialInstruments(db)
 	if errEssentialInstruments != nil {
-		return fmt.Errorf("essential instruments check failed: %w", errEssentialInstruments)
+		log.Warn("Essential instruments check failed: %v", errEssentialInstruments)
 	}
 	return nil
 }
@@ -104,7 +107,7 @@ func checkEssentialStatus(db utils.DataSource, query string, updateSQLTemplate s
 			return fmt.Errorf("failed to scan row: %w", err)
 		}
 		if enabled != "YES" {
-			log.Error(updateSQLTemplate, name, name)
+			log.Warn(updateSQLTemplate, name, name)
 			return fmt.Errorf("%w: %s", errMsgTemplate, name)
 		}
 	}
@@ -142,8 +145,7 @@ func logEnablePerformanceSchemaInstructions(version string) {
 
 // getMySQLVersion retrieves the MySQL version from the database.
 func getMySQLVersion(db utils.DataSource) (string, error) {
-	query := "SELECT VERSION();"
-	rows, err := db.QueryX(query)
+	rows, err := db.QueryX(versionQuery)
 	if err != nil {
 		return "", fmt.Errorf("failed to execute version query: %w", err)
 	}
