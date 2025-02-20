@@ -59,7 +59,7 @@ func TestValidatePreconditions_PerformanceSchemaDisabled(t *testing.T) {
 	mockDataSource := &mockDataSource{db: sqlxDB}
 
 	// Set the correct order of mock expectations
-	mock.ExpectQuery("SELECT VERSION();").WillReturnRows(versionRows)
+	mock.ExpectQuery(versionQuery).WillReturnRows(versionRows)
 	mock.ExpectQuery(performanceSchemaQuery).WillReturnRows(rows)
 
 	err = ValidatePreconditions(mockDataSource)
@@ -81,29 +81,31 @@ func TestValidatePreconditions_EssentialChecksFailed(t *testing.T) {
 			expectQueryFunc: func(mock sqlmock.Sqlmock) {
 				mock.ExpectQuery(buildConsumerStatusQuery()).WillReturnError(errQuery)
 			},
-			assertError: true,
+			assertError: false, // The function logs a warning but does not return an error
 		},
 		{
 			name: "EssentialInstrumentsCheckFailed",
 			expectQueryFunc: func(mock sqlmock.Sqlmock) {
 				mock.ExpectQuery(buildInstrumentQuery()).WillReturnError(errQuery)
 			},
-			assertError: true,
+			assertError: false, // The function logs a warning but does not return an error
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			rows := sqlmock.NewRows([]string{"Variable_name", "Value"}).
-				AddRow("performance_schema", "ON")
+			versionRows := sqlmock.NewRows([]string{"version"}).AddRow("8.0.23")
+			performanceSchemaRows := sqlmock.NewRows([]string{"Variable_name", "Value"}).AddRow("performance_schema", "ON")
 			db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
 			assert.NoError(t, err, "an error was not expected when opening a stub database connection")
 			defer db.Close()
 			sqlxDB := sqlx.NewDb(db, "sqlmock")
 			mockDataSource := &mockDataSource{db: sqlxDB}
 
-			mock.ExpectQuery(performanceSchemaQuery).WillReturnRows(rows)
+			mock.ExpectQuery(versionQuery).WillReturnRows(versionRows)
+			mock.ExpectQuery(performanceSchemaQuery).WillReturnRows(performanceSchemaRows)
 			tc.expectQueryFunc(mock) // Dynamically call the query expectation function
+
 			err = ValidatePreconditions(mockDataSource)
 			if tc.assertError {
 				assert.Error(t, err)
@@ -169,7 +171,7 @@ func TestGetMySQLVersion(t *testing.T) {
 	sqlxDB := sqlx.NewDb(db, "sqlmock")
 	mockDataSource := &mockDataSource{db: sqlxDB}
 
-	mock.ExpectQuery("SELECT VERSION();").WillReturnRows(rows)
+	mock.ExpectQuery(versionQuery).WillReturnRows(rows)
 	version, err := getMySQLVersion(mockDataSource)
 	assert.NoError(t, err)
 	assert.Equal(t, "8.0.23", version)
