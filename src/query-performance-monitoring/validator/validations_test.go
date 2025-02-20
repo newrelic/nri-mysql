@@ -102,7 +102,7 @@ func TestValidatePreconditions_EssentialChecksFailed(t *testing.T) {
 			sqlxDB := sqlx.NewDb(db, "sqlmock")
 			mockDataSource := &mockDataSource{db: sqlxDB}
 
-			mock.ExpectQuery("SELECT VERSION()").WillReturnRows(versionRows)
+			mock.ExpectQuery(versionQuery).WillReturnRows(versionRows)
 			mock.ExpectQuery(performanceSchemaQuery).WillReturnRows(performanceSchemaRows)
 			tc.expectQueryFunc(mock) // Dynamically call the query expectation function
 
