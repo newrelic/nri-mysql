@@ -71,49 +71,49 @@ func TestValidatePreconditions_PerformanceSchemaDisabled(t *testing.T) {
 }
 
 func TestValidatePreconditions_EssentialChecksFailed(t *testing.T) {
-    testCases := []struct {
-        name            string
-        expectQueryFunc func(mock sqlmock.Sqlmock)
-        assertError     bool
-    }{
-        {
-            name: "EssentialConsumersCheckFailed",
-            expectQueryFunc: func(mock sqlmock.Sqlmock) {
-                mock.ExpectQuery(buildConsumerStatusQuery()).WillReturnError(errQuery)
-            },
-            assertError: true,
-        },
-        {
-            name: "EssentialInstrumentsCheckFailed",
-            expectQueryFunc: func(mock sqlmock.Sqlmock) {
-                mock.ExpectQuery(buildInstrumentQuery()).WillReturnError(errQuery)
-            },
-            assertError: true,
-        },
-    }
+	testCases := []struct {
+		name            string
+		expectQueryFunc func(mock sqlmock.Sqlmock)
+		assertError     bool
+	}{
+		{
+			name: "EssentialConsumersCheckFailed",
+			expectQueryFunc: func(mock sqlmock.Sqlmock) {
+				mock.ExpectQuery(buildConsumerStatusQuery()).WillReturnError(errQuery)
+			},
+			assertError: true,
+		},
+		{
+			name: "EssentialInstrumentsCheckFailed",
+			expectQueryFunc: func(mock sqlmock.Sqlmock) {
+				mock.ExpectQuery(buildInstrumentQuery()).WillReturnError(errQuery)
+			},
+			assertError: true,
+		},
+	}
 
-    for _, tc := range testCases {
-        t.Run(tc.name, func(t *testing.T) {
-            versionRows := sqlmock.NewRows([]string{"version"}).AddRow("8.0.23")
-            performanceSchemaRows := sqlmock.NewRows([]string{"Variable_name", "Value"}).AddRow("performance_schema", "ON")
-            db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
-            assert.NoError(t, err, "an error was not expected when opening a stub database connection")
-            defer db.Close()
-            sqlxDB := sqlx.NewDb(db, "sqlmock")
-            mockDataSource := &mockDataSource{db: sqlxDB}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			versionRows := sqlmock.NewRows([]string{"version"}).AddRow("8.0.23")
+			performanceSchemaRows := sqlmock.NewRows([]string{"Variable_name", "Value"}).AddRow("performance_schema", "ON")
+			db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
+			assert.NoError(t, err, "an error was not expected when opening a stub database connection")
+			defer db.Close()
+			sqlxDB := sqlx.NewDb(db, "sqlmock")
+			mockDataSource := &mockDataSource{db: sqlxDB}
 
-            mock.ExpectQuery("SELECT VERSION()").WillReturnRows(versionRows)
-            mock.ExpectQuery(performanceSchemaQuery).WillReturnRows(performanceSchemaRows)
-            tc.expectQueryFunc(mock) // Dynamically call the query expectation function
+			mock.ExpectQuery("SELECT VERSION()").WillReturnRows(versionRows)
+			mock.ExpectQuery(performanceSchemaQuery).WillReturnRows(performanceSchemaRows)
+			tc.expectQueryFunc(mock) // Dynamically call the query expectation function
 
-            err = ValidatePreconditions(mockDataSource)
-            if tc.assertError {
-                assert.Error(t, err)
-            } else {
-                assert.NoError(t, err)
-            }
-        })
-    }
+			err = ValidatePreconditions(mockDataSource)
+			if tc.assertError {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
 }
 
 func TestIsPerformanceSchemaEnabled_NoRowsFound(t *testing.T) {
