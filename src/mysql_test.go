@@ -1,10 +1,15 @@
 package main
 
 import (
+	"fmt"
 	"testing"
+	"time"
 
 	"github.com/newrelic/infra-integrations-sdk/v3/data/inventory"
 	"github.com/newrelic/infra-integrations-sdk/v3/data/metric"
+	"github.com/newrelic/infra-integrations-sdk/v3/integration"
+	infrautils "github.com/newrelic/nri-mysql/src/infrautils"
+	constants "github.com/newrelic/nri-mysql/src/query-performance-monitoring/constants"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -171,4 +176,57 @@ func TestPopulateMetricsWithZeroValuesInData(t *testing.T) {
 			assert.Equal(t, expected, actual, "For metric '%s', expected value: %f. Actual value: %f", metricName, expected, actual)
 		}
 	}
+}
+
+func TestPopulateMetricsOfTypeRate(t *testing.T) {
+	i, err := integration.New(constants.IntegrationName, integrationVersion, integration.Args(&args))
+	infrautils.FatalIfErr(err)
+
+	e, err := infrautils.CreateNodeEntity(i, args.RemoteMonitoring, args.Hostname, args.Port)
+	infrautils.FatalIfErr(err)
+
+	ms := infrautils.MetricSet(
+		e,
+		"MysqlSample",
+		args.Hostname,
+		args.Port,
+		args.RemoteMonitoring,
+	)
+
+	rawMetrics := map[string]interface{}{
+		"Created_tmp_files": 4500,
+	}
+	dbVersion := "5.6.0"
+	populatePartialMetrics(ms, rawMetrics, getExtendedMetrics(dbVersion), dbVersion)
+	fmt.Println("metrics", ms.Metrics)
+	assert.Equal(t, float64(0), ms.Metrics["db.createdTmpFilesPerSecond"])
+
+	// Added sleep here because while calulating the diff b/w metrics newvalue and oldvalue
+	// the infra-integrations-sdk/v3 sdks metric.Set.SetMetric() throws error if there is no time difference b/w the metric samples reported.
+	time.Sleep(2 * time.Second)
+
+	rawMetrics2 := map[string]interface{}{
+		"Created_tmp_files": 4600,
+	}
+	populatePartialMetrics(ms, rawMetrics2, getExtendedMetrics(dbVersion), dbVersion)
+	fmt.Println("metrics", ms.Metrics)
+	assert.Equal(t, float64(50), ms.Metrics["db.createdTmpFilesPerSecond"])
+
+	time.Sleep(2 * time.Second)
+
+	rawMetrics3 := map[string]interface{}{
+		"Created_tmp_files": 4000,
+	}
+	populatePartialMetrics(ms, rawMetrics3, getExtendedMetrics(dbVersion), dbVersion)
+	fmt.Println("metrics", ms.Metrics)
+	assert.Equal(t, float64(50), ms.Metrics["db.createdTmpFilesPerSecond"])
+
+	time.Sleep(2 * time.Second)
+
+	rawMetrics4 := map[string]interface{}{
+		"Created_tmp_files": 4200,
+	}
+	populatePartialMetrics(ms, rawMetrics4, getExtendedMetrics(dbVersion), dbVersion)
+	fmt.Println("metrics", ms.Metrics)
+	assert.Equal(t, float64(100), ms.Metrics["db.createdTmpFilesPerSecond"])
 }

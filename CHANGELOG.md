@@ -9,6 +9,9 @@ Unreleased section should follow [Release Toolkit](https://github.com/newrelic/r
 
 ## Unreleased
 
+### bugfix
+- fix reporting negative values for RATE metricTypes
+
 ### enhancements
 - Added Query Performance Monitoring support for Aurora Mysql
 
