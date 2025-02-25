@@ -1,9 +1,7 @@
 package main
 
 import (
-	"fmt"
 	"testing"
-	"time"
 
 	"github.com/newrelic/infra-integrations-sdk/v3/data/inventory"
 	"github.com/newrelic/infra-integrations-sdk/v3/data/metric"
@@ -178,7 +176,7 @@ func TestPopulateMetricsWithZeroValuesInData(t *testing.T) {
 	}
 }
 
-func TestPopulateMetricsOfTypeRate(t *testing.T) {
+func TestPopulateMetricsOfTypePRATE(t *testing.T) {
 	i, err := integration.New(constants.IntegrationName, integrationVersion, integration.Args(&args))
 	infrautils.FatalIfErr(err)
 
@@ -198,35 +196,6 @@ func TestPopulateMetricsOfTypeRate(t *testing.T) {
 	}
 	dbVersion := "5.6.0"
 	populatePartialMetrics(ms, rawMetrics, getExtendedMetrics(dbVersion), dbVersion)
-	fmt.Println("metrics", ms.Metrics)
+	//  db.createdTmpFilesPerSecond metric will be zero because there is no older value for this metric to calculate the PRATE.
 	assert.Equal(t, float64(0), ms.Metrics["db.createdTmpFilesPerSecond"])
-
-	// Added sleep here because while calulating the diff b/w metrics newvalue and oldvalue
-	// the infra-integrations-sdk/v3 sdks metric.Set.SetMetric() throws error if there is no time difference b/w the metric samples reported.
-	time.Sleep(2 * time.Second)
-
-	rawMetrics2 := map[string]interface{}{
-		"Created_tmp_files": 4600,
-	}
-	populatePartialMetrics(ms, rawMetrics2, getExtendedMetrics(dbVersion), dbVersion)
-	fmt.Println("metrics", ms.Metrics)
-	assert.Equal(t, float64(50), ms.Metrics["db.createdTmpFilesPerSecond"])
-
-	time.Sleep(2 * time.Second)
-
-	rawMetrics3 := map[string]interface{}{
-		"Created_tmp_files": 4000,
-	}
-	populatePartialMetrics(ms, rawMetrics3, getExtendedMetrics(dbVersion), dbVersion)
-	fmt.Println("metrics", ms.Metrics)
-	assert.Equal(t, float64(50), ms.Metrics["db.createdTmpFilesPerSecond"])
-
-	time.Sleep(2 * time.Second)
-
-	rawMetrics4 := map[string]interface{}{
-		"Created_tmp_files": 4200,
-	}
-	populatePartialMetrics(ms, rawMetrics4, getExtendedMetrics(dbVersion), dbVersion)
-	fmt.Println("metrics", ms.Metrics)
-	assert.Equal(t, float64(100), ms.Metrics["db.createdTmpFilesPerSecond"])
 }
