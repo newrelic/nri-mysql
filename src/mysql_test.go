@@ -5,6 +5,9 @@ import (
 
 	"github.com/newrelic/infra-integrations-sdk/v3/data/inventory"
 	"github.com/newrelic/infra-integrations-sdk/v3/data/metric"
+	"github.com/newrelic/infra-integrations-sdk/v3/integration"
+	infrautils "github.com/newrelic/nri-mysql/src/infrautils"
+	constants "github.com/newrelic/nri-mysql/src/query-performance-monitoring/constants"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -171,4 +174,28 @@ func TestPopulateMetricsWithZeroValuesInData(t *testing.T) {
 			assert.Equal(t, expected, actual, "For metric '%s', expected value: %f. Actual value: %f", metricName, expected, actual)
 		}
 	}
+}
+
+func TestPopulateMetricsOfTypePRATE(t *testing.T) {
+	i, err := integration.New(constants.IntegrationName, integrationVersion, integration.Args(&args))
+	infrautils.FatalIfErr(err)
+
+	e, err := infrautils.CreateNodeEntity(i, args.RemoteMonitoring, args.Hostname, args.Port)
+	infrautils.FatalIfErr(err)
+
+	ms := infrautils.MetricSet(
+		e,
+		"MysqlSample",
+		args.Hostname,
+		args.Port,
+		args.RemoteMonitoring,
+	)
+
+	rawMetrics := map[string]interface{}{
+		"Created_tmp_files": 4500,
+	}
+	dbVersion := "5.6.0"
+	populatePartialMetrics(ms, rawMetrics, getExtendedMetrics(dbVersion), dbVersion)
+	//  db.createdTmpFilesPerSecond metric will be zero because there is no older value for this metric to calculate the PRATE.
+	assert.Equal(t, float64(0), ms.Metrics["db.createdTmpFilesPerSecond"])
 }
