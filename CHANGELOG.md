@@ -9,11 +9,17 @@ Unreleased section should follow [Release Toolkit](https://github.com/newrelic/r
 
 ## Unreleased
 
-### bugfix
+## v1.14.0 - 2025-03-10
+
+### 🚀 Enhancements
+- Added Query Performance Monitoring support for Aurora Mysql
+
+### 🐞 Bug fixes
 - fix reporting negative values for RATE metricTypes
 
-### enhancements
-- Added Query Performance Monitoring support for Aurora Mysql
+### ⛓️ Dependencies
+- Updated golang patch version to v1.23.6
+- Updated github.com/go-sql-driver/mysql to v1.9.0 - [Changelog 🔗](https://github.com/go-sql-driver/mysql/releases/tag/v1.9.0)
 
 ## v1.13.0 - 2025-02-05
 
