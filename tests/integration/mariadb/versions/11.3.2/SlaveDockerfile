@@ -1,0 +1,5 @@
+FROM mariadb:11.3.2
+# Create and set permissions for log directory
+RUN mkdir -p /var/log/mysql && \
+    chown -R mysql:mysql /var/log/mysql
+COPY tests/integration/mariadb/versions/11.3.2/slave.conf.cnf /etc/mysql/conf.d
