@@ -9,6 +9,9 @@ Unreleased section should follow [Release Toolkit](https://github.com/newrelic/r
 
 ## Unreleased
 
+### bugfix
+- revert to use old replicaQuery for mariadb server
+
 ## v1.14.1 - 2025-03-24
 
 ### ⛓️ Dependencies

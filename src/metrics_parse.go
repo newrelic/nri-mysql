@@ -35,7 +35,7 @@ func isDBVersionLessThan8(dbVersion string) bool {
 
 	majorVersion, err := strconv.Atoi(parts[0])
 	if err != nil {
-		log.Warn("Could not convert major version from str to int. Assuming to be less than version 8.4 and returning")
+		log.Warn("Could not convert major version from str to int. Assuming to be less than version 8.4")
 		return true
 	}
 
@@ -47,13 +47,13 @@ func isDBVersionLessThan8Point4(dbVersion string) bool {
 
 	majorVersion, err := strconv.Atoi(parts[0])
 	if err != nil {
-		log.Warn("Could not convert major version from str to int. Assuming to be less than version 8.4 and returning")
+		log.Warn("Could not convert major version from str to int. Assuming to be less than version 8.4")
 		return true
 	}
 
 	minorVersion, err := strconv.Atoi(parts[1])
 	if err != nil {
-		log.Warn("Could not convert minor version from str to int. Assuming to be less than version 8.4 and returning")
+		log.Warn("Could not convert minor version from str to int. Assuming to be less than version 8.4")
 		return true
 	}
 	return majorVersion < dbMajorVersionThreshold || (majorVersion == dbMajorVersionThreshold && minorVersion < dbMinorVersionThreshold)
@@ -83,12 +83,8 @@ func asValue(value string) interface{} {
 }
 
 func getRawData(db dataSource) (map[string]interface{}, map[string]interface{}, string, error) {
-	dbVersion, err := collectDBVersion(db)
-	if err != nil {
-		log.Warn(err.Error())
-		log.Warn("Assuming the mysql version to be less than 8.4 and proceeding further")
-		dbVersion = "5.7.0"
-	}
+
+	dbVersion := checkDBServerAndGetDBVersion(db)
 
 	inventory, err := db.query(inventoryQuery)
 	if err != nil {
@@ -188,7 +184,11 @@ func populatePartialMetrics(ms *metric.Set, metrics map[string]interface{}, metr
 	}
 }
 
-func collectDBVersion(db dataSource) (string, error) {
+func isMariaDBServer(version string) bool {
+	return strings.Contains(strings.ToLower(version), "maria")
+}
+
+func getRawDBVersion(db dataSource) (string, error) {
 	versionQueryResult, err := db.query(dbVersionQuery)
 	if err != nil {
 		return "", fmt.Errorf("error fetching dbVersion: %w", err)
@@ -197,21 +197,46 @@ func collectDBVersion(db dataSource) (string, error) {
 	if versionStr, exists := versionQueryResult["version"]; exists {
 		version := versionStr.(string)
 		log.Debug("Original MySQL Server version string: %s", version)
-
-		sanitizedVersion, err := extractSanitizedVersion(version)
-		if err != nil {
-			return "", fmt.Errorf("error extracting version: %w", err)
-		}
-
-		log.Debug("sanitized version: %v", sanitizedVersion)
-		return sanitizedVersion, nil
+		return version, nil
 	} else {
 		return "", fmt.Errorf("%w", errVersionNotFound)
 	}
 }
 
-// extractSanitizedVersion uses a regular expression to extract a version string up to major.minor.patch
-func extractSanitizedVersion(version string) (string, error) {
+// The func checks if the DB server is MariaDB
+// If true it returns DBVersion as 5.7.0
+// otherwise it returns the DB version by querying `SELECT VERSION()`
+func checkDBServerAndGetDBVersion(db dataSource) string {
+	/*
+		Note: The default DB version is 5.7.0 as the earlier codebase was using
+			  replicaQueryBelowVersion8Point4 to populate the metrics irrespective of the version
+	*/
+	defaultDBVersion := "5.7.0"
+	rawDBversion, err := getRawDBVersion(db)
+	if err != nil {
+		log.Warn(err.Error())
+		log.Warn("Assuming the mysql version to be less than 8.4")
+		return defaultDBVersion
+	}
+
+	if isMariaDBServer(rawDBversion) {
+		log.Warn("Detected the db server is MariaDB - %s.", rawDBversion)
+		// returning dbVersion as 5.7.0 because the replicaQuery for MariaDB should be `SHOW SLAVE STATUS`
+		return defaultDBVersion
+	}
+
+	sanitizedDBVersion, err := extractSanitizedDBVersion(rawDBversion)
+	log.Debug("sanitized version: %v", sanitizedDBVersion)
+	if err != nil {
+		log.Warn(err.Error())
+		log.Warn("Assuming the mysql version to be less than 8.4")
+		return defaultDBVersion
+	}
+	return sanitizedDBVersion
+}
+
+// extractSanitizedDBVersion uses a regular expression to extract a version string up to major.minor.patch
+func extractSanitizedDBVersion(version string) (string, error) {
 	reg := regexp.MustCompile(`^(?P<major>\d+)(?:\.(?P<minor>\d+))?(?:\.(?P<patch>\d+))?`)
 	matches := reg.FindStringSubmatch(version)
 
