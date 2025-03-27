@@ -81,6 +81,12 @@ const (
 		This ensures version strings are formatted correctly and allows for proper version comparison.
 	*/
 	MinVersionParts = 2
+
+	/*
+		EssentialConsumersCount defines the number of essential consumers that must be enabled
+		in the performance schema to ensure that the necessary performance data is available.
+	*/
+	EssentialConsumersCount = 3
 )
 
 /*
