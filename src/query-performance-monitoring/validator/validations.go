@@ -123,11 +123,14 @@ func checkEssentialStatus(db utils.DataSource, query string, updateSQLTemplate s
 	return enabledCount, nil
 }
 
-// callEnableConsumersProcedure calls a stored procedure to enable the consumers.
-func callEnableConsumersProcedure(db utils.DataSource) error {
-	_, err := db.QueryX("CALL newrelic.enable_events_statements_consumers()")
+/*
+enableEssentialConsumersAndInstrumentsProcedure calls a stored procedure to enable essential consumers and instruments.
+This procedure ensures that the required consumers and instruments in the Performance Schema are enabled.
+*/
+func enableEssentialConsumersAndInstrumentsProcedure(db utils.DataSource) error {
+	_, err := db.QueryX("CALL newrelic.enable_essential_consumers_and_instruments()")
 	if err != nil {
-		return fmt.Errorf("failed to execute stored procedure: %w", err)
+		return fmt.Errorf("failed to execute stored procedure to enable essential consumers and instruments: %w", err)
 	}
 	return nil
 }
@@ -139,8 +142,8 @@ func checkEssentialConsumers(db utils.DataSource) error {
 	count, consumerErr := checkEssentialStatus(db, query, updateSQLTemplate, utils.ErrEssentialConsumerNotEnabled, true)
 	// If the count of enabled items is less than 3, call the stored procedure
 	if count < constants.EssentialConsumersCount {
-		if err := callEnableConsumersProcedure(db); err != nil {
-			return fmt.Errorf("failed to call stored procedure to enable consumers: %w", err)
+		if err := enableEssentialConsumersAndInstrumentsProcedure(db); err != nil {
+			return fmt.Errorf("failed to enable essential consumers and instruments via stored procedure: %w", err)
 		}
 	}
 	return consumerErr
