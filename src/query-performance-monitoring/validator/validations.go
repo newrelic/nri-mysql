@@ -88,11 +88,13 @@ func isPerformanceSchemaEnabled(db utils.DataSource) (bool, error) {
 }
 
 // checkEssentialStatus executes a query to check if essential items are enabled.
-func checkEssentialStatus(db utils.DataSource, query string, updateSQLTemplate string, errMsgTemplate error) error {
+func checkEssentialStatus(db utils.DataSource, query string, updateSQLTemplate string, errMsgTemplate error, consumerCheck bool) (count int, essentialError error) {
+	enabledCount := 0
+
 	// Execute the query
 	rows, err := db.QueryX(query)
 	if err != nil {
-		return fmt.Errorf("failed to check essential status: %w", err)
+		return enabledCount, fmt.Errorf("failed to check essential status: %w", err)
 	}
 	defer func() {
 		if err := rows.Close(); err != nil {
@@ -100,22 +102,36 @@ func checkEssentialStatus(db utils.DataSource, query string, updateSQLTemplate s
 		}
 	}()
 
-	// Check if each essential item is enabled
 	for rows.Next() {
 		var name, enabled string
 		if err := rows.Scan(&name, &enabled); err != nil {
-			return fmt.Errorf("failed to scan row: %w", err)
+			return enabledCount, fmt.Errorf("failed to scan row: %w", err)
 		}
-		if enabled != "YES" {
+		if consumerCheck && enabled == "YES" {
+			enabledCount++
+		}
+		if !consumerCheck && enabled != "YES" {
 			log.Warn(updateSQLTemplate, name, name)
-			return fmt.Errorf("%w: %s", errMsgTemplate, name)
+			return enabledCount, fmt.Errorf("%w: %s", errMsgTemplate, name)
 		}
 	}
 
 	if err := rows.Err(); err != nil {
-		return fmt.Errorf("query to check essential status failed: %w", err)
+		return enabledCount, fmt.Errorf("query to check essential status failed: %w", err)
 	}
 
+	return enabledCount, nil
+}
+
+/*
+enableEssentialConsumersAndInstrumentsProcedure calls a stored procedure to enable essential consumers and instruments.
+This procedure ensures that the required consumers and instruments in the Performance Schema are enabled.
+*/
+func enableEssentialConsumersAndInstrumentsProcedure(db utils.DataSource) error {
+	_, err := db.QueryX("CALL newrelic.enable_essential_consumers_and_instruments()")
+	if err != nil {
+		return fmt.Errorf("failed to execute stored procedure to enable essential consumers and instruments: %w", err)
+	}
 	return nil
 }
 
@@ -123,14 +139,22 @@ func checkEssentialStatus(db utils.DataSource, query string, updateSQLTemplate s
 func checkEssentialConsumers(db utils.DataSource) error {
 	query := buildConsumerStatusQuery()
 	updateSQLTemplate := "Essential consumer %s is not enabled. To enable it, run: UPDATE performance_schema.setup_consumers SET ENABLED = 'YES' WHERE NAME = '%s';"
-	return checkEssentialStatus(db, query, updateSQLTemplate, utils.ErrEssentialConsumerNotEnabled)
+	count, consumerErr := checkEssentialStatus(db, query, updateSQLTemplate, utils.ErrEssentialConsumerNotEnabled, true)
+	// If the count of enabled items is less than 3, call the stored procedure
+	if count < constants.EssentialConsumersCount {
+		if err := enableEssentialConsumersAndInstrumentsProcedure(db); err != nil {
+			return fmt.Errorf("failed to enable essential consumers and instruments via stored procedure: %w", err)
+		}
+	}
+	return consumerErr
 }
 
 // checkEssentialInstruments checks if the essential instruments are enabled in the Performance Schema.
 func checkEssentialInstruments(db utils.DataSource) error {
 	query := buildInstrumentQuery()
 	updateSQLTemplate := "Essential instrument %s is not fully enabled. To enable it, run: UPDATE performance_schema.setup_instruments SET ENABLED = 'YES', TIMED = 'YES' WHERE NAME = '%s';"
-	return checkEssentialStatus(db, query, updateSQLTemplate, utils.ErrEssentialInstrumentNotEnabled)
+	_, instrumentsErr := checkEssentialStatus(db, query, updateSQLTemplate, utils.ErrEssentialInstrumentNotEnabled, false)
+	return instrumentsErr
 }
 
 // logEnablePerformanceSchemaInstructions logs instructions to enable the Performance Schema.

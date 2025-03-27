@@ -9,6 +9,9 @@ Unreleased section should follow [Release Toolkit](https://github.com/newrelic/r
 
 ## Unreleased
 
+### 🚀 Enhancements
+- Updated isSupportedStatement to normalize case of both query and SupportedStatements
+
 ### bugfix
 - revert to use old replicaQuery for mariadb server
 
