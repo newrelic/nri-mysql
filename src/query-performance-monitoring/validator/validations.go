@@ -123,7 +123,7 @@ func checkEssentialStatus(db utils.DataSource, query string, updateSQLTemplate s
 
 // callEnableConsumersProcedure calls a stored procedure to enable the consumers.
 func callEnableConsumersProcedure(db utils.DataSource) error {
-	_, err := db.QueryX("CALL enable_essential_consumers_procedure()")
+	_, err := db.QueryX("CALL newrelic.enable_events_statements_consumers()")
 	if err != nil {
 		return fmt.Errorf("failed to execute stored procedure: %w", err)
 	}
