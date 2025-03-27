@@ -88,7 +88,7 @@ func isPerformanceSchemaEnabled(db utils.DataSource) (bool, error) {
 }
 
 // checkEssentialStatus executes a query to check if essential items are enabled.
-func checkEssentialStatus(db utils.DataSource, query string, updateSQLTemplate string) (count int, essentialError error) {
+func checkEssentialStatus(db utils.DataSource, query string, updateSQLTemplate string, errMsgTemplate error, consumerCheck bool) (count int, essentialError error) {
 	enabledCount := 0
 
 	// Execute the query
@@ -107,10 +107,12 @@ func checkEssentialStatus(db utils.DataSource, query string, updateSQLTemplate s
 		if err := rows.Scan(&name, &enabled); err != nil {
 			return enabledCount, fmt.Errorf("failed to scan row: %w", err)
 		}
-		if enabled == "YES" {
+		if consumerCheck && enabled == "YES" {
 			enabledCount++
-		} else {
+		}
+		if !consumerCheck && enabled != "YES" {
 			log.Warn(updateSQLTemplate, name, name)
+			return enabledCount, fmt.Errorf("%w: %s", errMsgTemplate, name)
 		}
 	}
 
@@ -134,7 +136,7 @@ func callEnableConsumersProcedure(db utils.DataSource) error {
 func checkEssentialConsumers(db utils.DataSource) error {
 	query := buildConsumerStatusQuery()
 	updateSQLTemplate := "Essential consumer %s is not enabled. To enable it, run: UPDATE performance_schema.setup_consumers SET ENABLED = 'YES' WHERE NAME = '%s';"
-	count, consumerErr := checkEssentialStatus(db, query, updateSQLTemplate)
+	count, consumerErr := checkEssentialStatus(db, query, updateSQLTemplate, utils.ErrEssentialConsumerNotEnabled, true)
 	// If the count of enabled items is less than 3, call the stored procedure
 	if count < constants.EssentialConsumersCount {
 		if err := callEnableConsumersProcedure(db); err != nil {
@@ -148,7 +150,7 @@ func checkEssentialConsumers(db utils.DataSource) error {
 func checkEssentialInstruments(db utils.DataSource) error {
 	query := buildInstrumentQuery()
 	updateSQLTemplate := "Essential instrument %s is not fully enabled. To enable it, run: UPDATE performance_schema.setup_instruments SET ENABLED = 'YES', TIMED = 'YES' WHERE NAME = '%s';"
-	_, instrumentsErr := checkEssentialStatus(db, query, updateSQLTemplate)
+	_, instrumentsErr := checkEssentialStatus(db, query, updateSQLTemplate, utils.ErrEssentialInstrumentNotEnabled, false)
 	return instrumentsErr
 }
 
