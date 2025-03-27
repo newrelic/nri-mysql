@@ -16,8 +16,6 @@ import (
 
 // Dynamic error
 var (
-	ErrEssentialConsumerNotEnabled   = errors.New("essential consumer is not enabled")
-	ErrEssentialInstrumentNotEnabled = errors.New("essential instrument is not fully enabled")
 	ErrMySQLVersion                  = errors.New("failed to determine MySQL version")
 	ErrModelIsNotValid               = errors.New("model is not a valid struct")
 	ErrNoRowsReturned                = errors.New("no rows returned from EXPLAIN")
