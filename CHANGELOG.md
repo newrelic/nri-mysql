@@ -11,8 +11,11 @@ Unreleased section should follow [Release Toolkit](https://github.com/newrelic/r
 
 ### 🚀 Enhancements
 - Updated isSupportedStatement to normalize case of both query and SupportedStatements
+- Added Query Performance Monitoring support for RDS
 
-### bugfix
+## v1.14.2 - 2025-03-31
+
+### 🐞 Bug fixes
 - revert to use old replicaQuery for mariadb server
 
 ## v1.14.1 - 2025-03-24
