@@ -17,6 +17,9 @@ const performanceSchemaQuery = "SHOW GLOBAL VARIABLES LIKE 'performance_schema';
 // Query to get the MySQL version
 const versionQuery = "SELECT VERSION();"
 
+// Stored procedure to enable essential consumers and instruments in the Performance Schema
+const enableEssentialConsumersAndInstrumentsProcedureQuery = "CALL newrelic.enable_essential_consumers_and_instruments();"
+
 // Dynamic error
 var (
 	ErrImproperlyFormattedVersion = errors.New("version string is improperly formatted")
@@ -57,12 +60,6 @@ func ValidatePreconditions(db utils.DataSource) error {
 	if errEssentialConsumers != nil {
 		log.Warn("Essential consumer check failed: %v", errEssentialConsumers)
 	}
-
-	// Check if essential instruments are enabled
-	errEssentialInstruments := checkEssentialInstruments(db)
-	if errEssentialInstruments != nil {
-		log.Warn("Essential instruments check failed: %v", errEssentialInstruments)
-	}
 	return nil
 }
 
@@ -88,7 +85,7 @@ func isPerformanceSchemaEnabled(db utils.DataSource) (bool, error) {
 }
 
 // checkEssentialStatus executes a query to check if essential items are enabled.
-func checkEssentialStatus(db utils.DataSource, query string, updateSQLTemplate string, errMsgTemplate error, consumerCheck bool) (count int, essentialError error) {
+func checkEssentialStatus(db utils.DataSource, query string, updateSQLTemplate string) (count int, essentialError error) {
 	enabledCount := 0
 
 	// Execute the query
@@ -107,12 +104,10 @@ func checkEssentialStatus(db utils.DataSource, query string, updateSQLTemplate s
 		if err := rows.Scan(&name, &enabled); err != nil {
 			return enabledCount, fmt.Errorf("failed to scan row: %w", err)
 		}
-		if consumerCheck && enabled == "YES" {
+		if enabled == "YES" {
 			enabledCount++
-		}
-		if !consumerCheck && enabled != "YES" {
+		} else {
 			log.Warn(updateSQLTemplate, name, name)
-			return enabledCount, fmt.Errorf("%w: %s", errMsgTemplate, name)
 		}
 	}
 
@@ -128,7 +123,7 @@ enableEssentialConsumersAndInstrumentsProcedure calls a stored procedure to enab
 This procedure ensures that the required consumers and instruments in the Performance Schema are enabled.
 */
 func enableEssentialConsumersAndInstrumentsProcedure(db utils.DataSource) error {
-	_, err := db.QueryX("CALL newrelic.enable_essential_consumers_and_instruments()")
+	_, err := db.QueryX(enableEssentialConsumersAndInstrumentsProcedureQuery)
 	if err != nil {
 		return fmt.Errorf("failed to execute stored procedure to enable essential consumers and instruments: %w", err)
 	}
@@ -139,7 +134,7 @@ func enableEssentialConsumersAndInstrumentsProcedure(db utils.DataSource) error 
 func checkEssentialConsumers(db utils.DataSource) error {
 	query := buildConsumerStatusQuery()
 	updateSQLTemplate := "Essential consumer %s is not enabled. To enable it, run: UPDATE performance_schema.setup_consumers SET ENABLED = 'YES' WHERE NAME = '%s';"
-	count, consumerErr := checkEssentialStatus(db, query, updateSQLTemplate, utils.ErrEssentialConsumerNotEnabled, true)
+	count, consumerErr := checkEssentialStatus(db, query, updateSQLTemplate)
 	// If the count of enabled items is less than 3, call the stored procedure
 	if count < constants.EssentialConsumersCount {
 		if err := enableEssentialConsumersAndInstrumentsProcedure(db); err != nil {
@@ -147,14 +142,6 @@ func checkEssentialConsumers(db utils.DataSource) error {
 		}
 	}
 	return consumerErr
-}
-
-// checkEssentialInstruments checks if the essential instruments are enabled in the Performance Schema.
-func checkEssentialInstruments(db utils.DataSource) error {
-	query := buildInstrumentQuery()
-	updateSQLTemplate := "Essential instrument %s is not fully enabled. To enable it, run: UPDATE performance_schema.setup_instruments SET ENABLED = 'YES', TIMED = 'YES' WHERE NAME = '%s';"
-	_, instrumentsErr := checkEssentialStatus(db, query, updateSQLTemplate, utils.ErrEssentialInstrumentNotEnabled, false)
-	return instrumentsErr
 }
 
 // logEnablePerformanceSchemaInstructions logs instructions to enable the Performance Schema.
@@ -231,29 +218,6 @@ func buildConsumerStatusQuery() string {
 	query := "SELECT NAME, ENABLED FROM performance_schema.setup_consumers WHERE NAME IN ("
 	query += "'" + strings.Join(consumers, "', '") + "'"
 	query += ");"
-
-	return query
-}
-
-// buildInstrumentQuery constructs a SQL query to check the status of essential instruments
-func buildInstrumentQuery() string {
-	// List of essential instruments to check
-	instruments := []string{
-		"wait/%",
-		"statement/%",
-		"%lock%",
-	}
-
-	// Pre-allocate the slice with the expected length
-	instrumentConditions := make([]string, 0, len(instruments))
-	for _, instrument := range instruments {
-		instrumentConditions = append(instrumentConditions, fmt.Sprintf("NAME LIKE '%s'", instrument))
-	}
-
-	// Build the query to check the status of essential instruments
-	query := "SELECT NAME, ENABLED FROM performance_schema.setup_instruments WHERE "
-	query += strings.Join(instrumentConditions, " OR ")
-	query += ";"
 
 	return query
 }
