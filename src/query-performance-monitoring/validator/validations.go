@@ -25,7 +25,7 @@ var (
 	ErrImproperlyFormattedVersion = errors.New("version string is improperly formatted")
 	ErrPerformanceSchemaDisabled  = errors.New("performance schema is not enabled")
 	ErrNoRowsFound                = errors.New("no rows found")
-	ErrMysqlVersion               = errors.New("only version 8.0+ is supported")
+	ErrMySQLVersion               = errors.New("only version 8.0+ is supported")
 	ErrUnsupportedMySQLVersion    = errors.New("MySQL version is not supported")
 )
 
@@ -127,6 +127,8 @@ func enableEssentialConsumersAndInstrumentsProcedure(db utils.DataSource) error 
 	if err != nil {
 		return fmt.Errorf("failed to execute stored procedure to enable essential consumers and instruments: %w", err)
 	}
+
+	log.Debug("Stored procedure executed successfully.")
 	return nil
 }
 
