@@ -10,8 +10,9 @@ Unreleased section should follow [Release Toolkit](https://github.com/newrelic/r
 ## Unreleased
 
 ### 🚀 Enhancements
-- Updated isSupportedStatement to normalize case of both query and SupportedStatements
 - Added Query Performance Monitoring support for RDS
+- Added QueryMonitoringOnly flag to enable only query monitoring feature
+- Updated isSupportedStatement to normalize case of both query and SupportedStatements
 
 ## v1.14.2 - 2025-03-31
 
