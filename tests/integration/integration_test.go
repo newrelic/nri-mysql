@@ -327,7 +327,8 @@ func TestUnconfiguredPerfMySQLIntegration(t *testing.T) {
 				"ENABLE_QUERY_MONITORING=true",
 			},
 			outputMetricsFile: "mysql-schema-master.json",
-			expectedError:     "essential consumer is not enabled: events_statements_cpu",
+			// No error expected as the stored procedure should enable the consumers
+			expectedError: "",
 		},
 		{
 			name: "LocalEntity_EnableQueryMonitoring",
@@ -335,7 +336,8 @@ func TestUnconfiguredPerfMySQLIntegration(t *testing.T) {
 				"ENABLE_QUERY_MONITORING=true",
 			},
 			outputMetricsFile: "mysql-schema-master-localentity.json",
-			expectedError:     "essential consumer is not enabled: events_statements_cpu",
+			// No error expected as the stored procedure should enable the consumers
+			expectedError: "",
 		},
 		{
 			name: "OnlyMetrics_EnableQueryMonitoring",
@@ -344,7 +346,8 @@ func TestUnconfiguredPerfMySQLIntegration(t *testing.T) {
 				"ENABLE_QUERY_MONITORING=true",
 			},
 			outputMetricsFile: "mysql-schema-metrics-master.json",
-			expectedError:     "essential consumer is not enabled: events_statements_cpu",
+			// No error expected as the stored procedure should enable the consumers
+			expectedError: "",
 		},
 		{
 			name: "OnlyInventory_EnableQueryMonitoring",

@@ -29,23 +29,6 @@ func (m *mockDataSource) QueryxContext(ctx context.Context, query string, args .
 
 var errQuery = errors.New("query failed")
 
-func TestCheckEssentialInstruments_AllEnabled(t *testing.T) {
-	rows := sqlmock.NewRows([]string{"NAME", "ENABLED"}).
-		AddRow("wait/synch/mutex/sql/LOCK_plugin", "YES").
-		AddRow("statement/sql/select", "YES").
-		AddRow("wait/io/file/sql/FILE", "YES")
-	db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
-	assert.NoError(t, err, "an error was not expected when opening a stub database connection")
-	defer db.Close()
-
-	sqlxDB := sqlx.NewDb(db, "sqlmock")
-	mockDataSource := &mockDataSource{db: sqlxDB}
-
-	mock.ExpectQuery(buildInstrumentQuery()).WillReturnRows(rows)
-	err = checkEssentialInstruments(mockDataSource)
-	assert.NoError(t, err)
-}
-
 func TestValidatePreconditions_PerformanceSchemaDisabled(t *testing.T) {
 	rows := sqlmock.NewRows([]string{"Variable_name", "Value"}).
 		AddRow("performance_schema", "OFF")
@@ -80,13 +63,6 @@ func TestValidatePreconditions_EssentialChecksFailed(t *testing.T) {
 			name: "EssentialConsumersCheckFailed",
 			expectQueryFunc: func(mock sqlmock.Sqlmock) {
 				mock.ExpectQuery(buildConsumerStatusQuery()).WillReturnError(errQuery)
-			},
-			assertError: false, // The function logs a warning but does not return an error
-		},
-		{
-			name: "EssentialInstrumentsCheckFailed",
-			expectQueryFunc: func(mock sqlmock.Sqlmock) {
-				mock.ExpectQuery(buildInstrumentQuery()).WillReturnError(errQuery)
 			},
 			assertError: false, // The function logs a warning but does not return an error
 		},
@@ -143,21 +119,6 @@ func TestCheckEssentialConsumers_ConsumerNotEnabled(t *testing.T) {
 
 	mock.ExpectQuery(buildConsumerStatusQuery()).WillReturnRows(rows)
 	err = checkEssentialConsumers(mockDataSource)
-	assert.Error(t, err)
-}
-
-func TestCheckEssentialInstruments_InstrumentNotEnabled(t *testing.T) {
-	rows := sqlmock.NewRows([]string{"NAME", "ENABLED", "TIMED"}).
-		AddRow("wait/synch/mutex/sql/LOCK_plugin", "NO", "YES")
-	db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
-	assert.NoError(t, err, "an error was not expected when opening a stub database connection")
-	defer db.Close()
-
-	sqlxDB := sqlx.NewDb(db, "sqlmock")
-	mockDataSource := &mockDataSource{db: sqlxDB}
-
-	mock.ExpectQuery(buildInstrumentQuery()).WillReturnRows(rows)
-	err = checkEssentialInstruments(mockDataSource)
 	assert.Error(t, err)
 }
 

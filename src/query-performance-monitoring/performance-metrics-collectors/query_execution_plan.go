@@ -341,8 +341,9 @@ func SetExecutionPlanMetrics(i *integration.Integration, args arguments.Argument
 
 // isSupportedStatement checks if the given query is a supported statement.
 func isSupportedStatement(query string) bool {
+	upperCaseQuery := strings.ToUpper(query)
 	for _, stmt := range strings.Split(constants.SupportedStatements, " ") {
-		if strings.HasPrefix(query, stmt) {
+		if strings.HasPrefix(upperCaseQuery, stmt) {
 			return true
 		}
 	}
