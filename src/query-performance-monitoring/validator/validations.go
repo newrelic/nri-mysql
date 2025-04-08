@@ -20,6 +20,12 @@ const versionQuery = "SELECT VERSION();"
 // Stored procedure to enable essential consumers and instruments in the Performance Schema
 const enableEssentialConsumersAndInstrumentsProcedureQuery = "CALL newrelic.enable_essential_consumers_and_instruments();"
 
+/*
+	SQL template for updating the status of essential consumers in the Performance Schema.
+	This template provides the SQL command to enable a specific consumer by updating its status in the setup_consumers table.
+*/
+const updateSQLTemplate = "Essential consumer %s is not enabled. To enable it, run: UPDATE performance_schema.setup_consumers SET ENABLED = 'YES' WHERE NAME = '%s';"
+
 // Dynamic error
 var (
 	ErrImproperlyFormattedVersion = errors.New("version string is improperly formatted")
@@ -85,7 +91,7 @@ func isPerformanceSchemaEnabled(db utils.DataSource) (bool, error) {
 }
 
 // checkEssentialStatus executes a query to check if essential items are enabled.
-func checkEssentialStatus(db utils.DataSource, query string, updateSQLTemplate string) (count int, essentialError error) {
+func checkEssentialStatus(db utils.DataSource, query string) (count int, essentialError error) {
 	enabledCount := 0
 
 	// Execute the query
@@ -104,7 +110,7 @@ func checkEssentialStatus(db utils.DataSource, query string, updateSQLTemplate s
 		if err := rows.Scan(&name, &enabled); err != nil {
 			return enabledCount, fmt.Errorf("failed to scan row: %w", err)
 		}
-		if enabled == "YES" {
+		if strings.ToUpper(enabled) == "YES" {
 			enabledCount++
 		} else {
 			log.Warn(updateSQLTemplate, name, name)
@@ -119,8 +125,8 @@ func checkEssentialStatus(db utils.DataSource, query string, updateSQLTemplate s
 }
 
 /*
-enableEssentialConsumersAndInstrumentsProcedure calls a stored procedure to enable essential consumers and instruments.
-This procedure ensures that the required consumers and instruments in the Performance Schema are enabled.
+	enableEssentialConsumersAndInstrumentsProcedure calls a stored procedure to enable essential consumers and instruments.
+	This procedure ensures that the required consumers and instruments in the Performance Schema are enabled.
 */
 func enableEssentialConsumersAndInstrumentsProcedure(db utils.DataSource) error {
 	_, err := db.QueryX(enableEssentialConsumersAndInstrumentsProcedureQuery)
@@ -135,8 +141,7 @@ func enableEssentialConsumersAndInstrumentsProcedure(db utils.DataSource) error 
 // checkEssentialConsumers checks if the essential consumers are enabled in the Performance Schema.
 func checkEssentialConsumers(db utils.DataSource) error {
 	query := buildConsumerStatusQuery()
-	updateSQLTemplate := "Essential consumer %s is not enabled. To enable it, run: UPDATE performance_schema.setup_consumers SET ENABLED = 'YES' WHERE NAME = '%s';"
-	count, consumerErr := checkEssentialStatus(db, query, updateSQLTemplate)
+	count, consumerErr := checkEssentialStatus(db, query)
 	// If the count of enabled items is less than 3, call the stored procedure
 	if count < constants.EssentialConsumersCount {
 		if err := enableEssentialConsumersAndInstrumentsProcedure(db); err != nil {

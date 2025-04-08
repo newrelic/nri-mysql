@@ -341,8 +341,13 @@ func SetExecutionPlanMetrics(i *integration.Integration, args arguments.Argument
 
 // isSupportedStatement checks if the given query is a supported statement.
 func isSupportedStatement(query string) bool {
-	upperCaseQuery := strings.ToUpper(query)
-	for _, stmt := range strings.Split(constants.SupportedStatements, " ") {
+	upperCaseQuery := strings.ToUpper(strings.TrimSpace(query))
+	/*
+		SupportedStatements defines the SQL statements for which this integration fetches query execution plans.
+		Restricting the supported statements improves compatibility and reduces the complexity of plan analysis.
+	*/
+	supportedStatements := []string{"SELECT", "WITH"}
+	for _, stmt := range supportedStatements {
 		if strings.HasPrefix(upperCaseQuery, stmt) {
 			return true
 		}
