@@ -16,14 +16,12 @@ import (
 
 // Dynamic error
 var (
-	ErrEssentialConsumerNotEnabled   = errors.New("essential consumer is not enabled")
-	ErrEssentialInstrumentNotEnabled = errors.New("essential instrument is not fully enabled")
-	ErrMySQLVersion                  = errors.New("failed to determine MySQL version")
-	ErrModelIsNotValid               = errors.New("model is not a valid struct")
-	ErrNoRowsReturned                = errors.New("no rows returned from EXPLAIN")
-	ErrQueryTextNil                  = errors.New("query text is nil")
-	ErrQueryTextEmpty                = errors.New("query text is empty")
-	ErrQueryIDNil                    = errors.New("query ID is nil")
+	ErrMySQLVersion    = errors.New("failed to determine MySQL version")
+	ErrModelIsNotValid = errors.New("model is not a valid struct")
+	ErrNoRowsReturned  = errors.New("no rows returned from EXPLAIN")
+	ErrQueryTextNil    = errors.New("query text is nil")
+	ErrQueryTextEmpty  = errors.New("query text is empty")
+	ErrQueryIDNil      = errors.New("query ID is nil")
 )
 
 func CreateMetricSet(e *integration.Entity, sampleName string, args arguments.ArgumentList) *metric.Set {
