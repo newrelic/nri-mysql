@@ -27,7 +27,9 @@ func (m *mockDataSource) QueryxContext(ctx context.Context, query string, args .
 	return m.db.QueryxContext(ctx, query, args...)
 }
 
-var errQuery = errors.New("query failed")
+var errQueryFailed = errors.New("query failed")
+var errQuery = errors.New("query error")
+var errProcedure = errors.New("procedure error")
 
 func TestValidatePreconditions_PerformanceSchemaDisabled(t *testing.T) {
 	rows := sqlmock.NewRows([]string{"Variable_name", "Value"}).
@@ -62,7 +64,7 @@ func TestValidatePreconditions_EssentialChecksFailed(t *testing.T) {
 		{
 			name: "EssentialConsumersCheckFailed",
 			expectQueryFunc: func(mock sqlmock.Sqlmock) {
-				mock.ExpectQuery(buildConsumerStatusQuery()).WillReturnError(errQuery)
+				mock.ExpectQuery(buildConsumerStatusQuery()).WillReturnError(errQueryFailed)
 			},
 			assertError: false, // The function logs a warning but does not return an error
 		},
@@ -123,95 +125,95 @@ func TestCheckEssentialConsumers_ConsumerNotEnabled(t *testing.T) {
 }
 
 func TestCheckEssentialStatus(t *testing.T) {
-    tests := []struct {
-        name           string
-        setupMock      func(mock sqlmock.Sqlmock)
-        testFunc       func(dataSource *mockDataSource) (interface{}, error)
-        expectedResult interface{}
-        expectError    bool
-    }{
-        {
-            name: "CheckEssentialStatus_Success",
-            setupMock: func(mock sqlmock.Sqlmock) {
-                query := "SELECT NAME, ENABLED FROM performance_schema.setup_consumers WHERE NAME IN (.+);"
-                rows := sqlmock.NewRows([]string{"NAME", "ENABLED"}).
-                    AddRow("events_waits_current", "YES").
-                    AddRow("events_statements_history", "YES")
-                mock.ExpectQuery(query).WillReturnRows(rows)
-            },
-            testFunc: func(dataSource *mockDataSource) (interface{}, error) {
-                query := "SELECT NAME, ENABLED FROM performance_schema.setup_consumers WHERE NAME IN (.+);"
-                return checkEssentialStatus(dataSource, query)
-            },
-            expectedResult: 2,
-            expectError:    false,
-        },
-        {
-            name: "CheckEssentialStatus_Failure_QueryError",
-            setupMock: func(mock sqlmock.Sqlmock) {
-                query := "SELECT NAME, ENABLED FROM performance_schema.setup_consumers WHERE NAME IN (.+);"
-                mock.ExpectQuery(query).WillReturnError(errors.New("query error"))
-            },
-            testFunc: func(dataSource *mockDataSource) (interface{}, error) {
-                query := "SELECT NAME, ENABLED FROM performance_schema.setup_consumers WHERE NAME IN (.+);"
-                return checkEssentialStatus(dataSource, query)
-            },
-            expectedResult: 0,
-            expectError:    true,
-        },
-        {
-            name: "CheckEssentialStatus_Failure_ScanError",
-            setupMock: func(mock sqlmock.Sqlmock) {
-                query := "SELECT NAME, ENABLED FROM performance_schema.setup_consumers WHERE NAME IN (.+);"
-                rows := sqlmock.NewRows([]string{"NAME", "ENABLED"}).
-                    AddRow("events_waits_current", nil) // Simulate scan error
-                mock.ExpectQuery(query).WillReturnRows(rows)
-            },
-            testFunc: func(dataSource *mockDataSource) (interface{}, error) {
-                query := "SELECT NAME, ENABLED FROM performance_schema.setup_consumers WHERE NAME IN (.+);"
-                return checkEssentialStatus(dataSource, query)
-            },
-            expectedResult: 0,
-            expectError:    true,
-        },
-    }
+	tests := []struct {
+		name           string
+		setupMock      func(mock sqlmock.Sqlmock)
+		testFunc       func(dataSource *mockDataSource) (interface{}, error)
+		expectedResult interface{}
+		expectError    bool
+	}{
+		{
+			name: "CheckEssentialStatus_Success",
+			setupMock: func(mock sqlmock.Sqlmock) {
+				query := "SELECT NAME, ENABLED FROM performance_schema.setup_consumers WHERE NAME IN (.+);"
+				rows := sqlmock.NewRows([]string{"NAME", "ENABLED"}).
+					AddRow("events_waits_current", "YES").
+					AddRow("events_statements_history", "YES")
+				mock.ExpectQuery(query).WillReturnRows(rows)
+			},
+			testFunc: func(dataSource *mockDataSource) (interface{}, error) {
+				query := "SELECT NAME, ENABLED FROM performance_schema.setup_consumers WHERE NAME IN (.+);"
+				return checkEssentialStatus(dataSource, query)
+			},
+			expectedResult: 2,
+			expectError:    false,
+		},
+		{
+			name: "CheckEssentialStatus_Failure_QueryError",
+			setupMock: func(mock sqlmock.Sqlmock) {
+				query := "SELECT NAME, ENABLED FROM performance_schema.setup_consumers WHERE NAME IN (.+);"
+				mock.ExpectQuery(query).WillReturnError(errQuery)
+			},
+			testFunc: func(dataSource *mockDataSource) (interface{}, error) {
+				query := "SELECT NAME, ENABLED FROM performance_schema.setup_consumers WHERE NAME IN (.+);"
+				return checkEssentialStatus(dataSource, query)
+			},
+			expectedResult: 0,
+			expectError:    true,
+		},
+		{
+			name: "CheckEssentialStatus_Failure_ScanError",
+			setupMock: func(mock sqlmock.Sqlmock) {
+				query := "SELECT NAME, ENABLED FROM performance_schema.setup_consumers WHERE NAME IN (.+);"
+				rows := sqlmock.NewRows([]string{"NAME", "ENABLED"}).
+					AddRow("events_waits_current", nil) // Simulate scan error
+				mock.ExpectQuery(query).WillReturnRows(rows)
+			},
+			testFunc: func(dataSource *mockDataSource) (interface{}, error) {
+				query := "SELECT NAME, ENABLED FROM performance_schema.setup_consumers WHERE NAME IN (.+);"
+				return checkEssentialStatus(dataSource, query)
+			},
+			expectedResult: 0,
+			expectError:    true,
+		},
+	}
 
-    for _, tt := range tests {
-        t.Run(tt.name, func(t *testing.T) {
-            db, mock, err := sqlmock.New()
-            assert.NoError(t, err)
-            defer db.Close()
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			db, mock, err := sqlmock.New()
+			assert.NoError(t, err)
+			defer db.Close()
 
-            sqlxDB := sqlx.NewDb(db, "sqlmock")
-            mockDataSource := &mockDataSource{db: sqlxDB}
+			sqlxDB := sqlx.NewDb(db, "sqlmock")
+			mockDataSource := &mockDataSource{db: sqlxDB}
 
-            tt.setupMock(mock)
+			tt.setupMock(mock)
 
-            result, err := tt.testFunc(mockDataSource)
-            if tt.expectError {
-                assert.Error(t, err)
-            } else {
-                assert.NoError(t, err)
-                assert.Equal(t, tt.expectedResult, result)
-            }
+			result, err := tt.testFunc(mockDataSource)
+			if tt.expectError {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+				assert.Equal(t, tt.expectedResult, result)
+			}
 
-            assert.NoError(t, mock.ExpectationsWereMet())
-        })
-    }
+			assert.NoError(t, mock.ExpectationsWereMet())
+		})
+	}
 }
 
 func TestEnableEssentialConsumersAndInstrumentsProcedure_Failure(t *testing.T) {
-    db, mock, err := sqlmock.New()
-    assert.NoError(t, err)
-    defer db.Close()
+	db, mock, err := sqlmock.New()
+	assert.NoError(t, err)
+	defer db.Close()
 
 	sqlxDB := sqlx.NewDb(db, "sqlmock")
 	mockDataSource := &mockDataSource{db: sqlxDB}
 
-    mock.ExpectQuery(enableEssentialConsumersAndInstrumentsProcedureQuery).WillReturnError(errors.New("procedure error"))
+	mock.ExpectQuery(enableEssentialConsumersAndInstrumentsProcedureQuery).WillReturnError(errProcedure)
 
-    err = enableEssentialConsumersAndInstrumentsProcedure(mockDataSource)
-    assert.Error(t, err)
+	err = enableEssentialConsumersAndInstrumentsProcedure(mockDataSource)
+	assert.Error(t, err)
 }
 
 func TestGetMySQLVersion(t *testing.T) {

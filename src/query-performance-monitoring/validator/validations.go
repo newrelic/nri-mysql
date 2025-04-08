@@ -21,8 +21,8 @@ const versionQuery = "SELECT VERSION();"
 const enableEssentialConsumersAndInstrumentsProcedureQuery = "CALL newrelic.enable_essential_consumers_and_instruments();"
 
 /*
-	SQL template for updating the status of essential consumers in the Performance Schema.
-	This template provides the SQL command to enable a specific consumer by updating its status in the setup_consumers table.
+SQL template for updating the status of essential consumers in the Performance Schema.
+This template provides the SQL command to enable a specific consumer by updating its status in the setup_consumers table.
 */
 const updateSQLTemplate = "Essential consumer %s is not enabled. To enable it, run: UPDATE performance_schema.setup_consumers SET ENABLED = 'YES' WHERE NAME = '%s';"
 
@@ -125,8 +125,8 @@ func checkEssentialStatus(db utils.DataSource, query string) (count int, essenti
 }
 
 /*
-	enableEssentialConsumersAndInstrumentsProcedure calls a stored procedure to enable essential consumers and instruments.
-	This procedure ensures that the required consumers and instruments in the Performance Schema are enabled.
+enableEssentialConsumersAndInstrumentsProcedure calls a stored procedure to enable essential consumers and instruments.
+This procedure ensures that the required consumers and instruments in the Performance Schema are enabled.
 */
 func enableEssentialConsumersAndInstrumentsProcedure(db utils.DataSource) error {
 	_, err := db.QueryX(enableEssentialConsumersAndInstrumentsProcedureQuery)
