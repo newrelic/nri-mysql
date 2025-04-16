@@ -9,9 +9,7 @@ Unreleased section should follow [Release Toolkit](https://github.com/newrelic/r
 
 ## Unreleased
 
-## v1.14.3 - 2025-04-14
-
-### ⛓️ Dependencies
+### dependencies
 - Updated github.com/go-sql-driver/mysql to v1.9.2 - [Changelog 🔗](https://github.com/go-sql-driver/mysql/releases/tag/v1.9.2)
 
 ## v1.14.2 - 2025-03-31
