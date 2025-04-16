@@ -1,4 +1,4 @@
-FROM mysql:8.4.4
+FROM mysql:8.4.5
 # Create and set permissions for log directory
 RUN mkdir -p /var/log/mysql && \
     chown -R mysql:mysql /var/log/mysql
