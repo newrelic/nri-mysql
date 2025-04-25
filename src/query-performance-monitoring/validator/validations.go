@@ -17,7 +17,37 @@ const performanceSchemaQuery = "SHOW GLOBAL VARIABLES LIKE 'performance_schema';
 // Query to get the MySQL version
 const versionQuery = "SELECT VERSION();"
 
-// Stored procedure to enable essential consumers and instruments in the Performance Schema
+/*
+enableEssentialConsumersAndInstruments calls a stored procedure to enable essential consumers and instruments
+in the MySQL Performance Schema.
+
+NOTE: This procedure (`newrelic.enable_essential_consumers_and_instruments`) is a custom stored procedure that
+is NOT part of the default MySQL server. It must be created as part of the initial setup when installing
+this integration to instrument AWS RDS MySQL DB instances.
+
+The stored procedure enables:
+1. All event statement and event wait consumers
+2. All wait, statement, and lock-related instruments with timing
+
+To set up this stored procedure, the following SQL must be executed with appropriate privileges:
+
+ 1. Create the schema:
+    CREATE SCHEMA IF NOT EXISTS newrelic;
+    GRANT EXECUTE ON newrelic.* TO 'newrelic'@'localhost';
+
+ 2. Create the stored procedure:
+    DELIMITER $$
+    CREATE PROCEDURE newrelic.enable_essential_consumers_and_instruments()
+    SQL SECURITY DEFINER
+    BEGIN
+    UPDATE performance_schema.setup_consumers SET enabled='YES' WHERE name LIKE 'events_statements_%' OR name LIKE 'events_waits_%';
+    UPDATE performance_schema.setup_instruments SET ENABLED = 'YES', TIMED = 'YES' WHERE NAME LIKE 'wait/%' OR NAME LIKE 'statement/%' OR NAME LIKE '%lock%';
+    END $$
+    DELIMITER ;
+    GRANT EXECUTE ON PROCEDURE newrelic.enable_essential_consumers_and_instruments TO 'newrelic'@'localhost';
+
+This procedure is automatically called when the integration detects that essential performance monitoring consumers are not properly enabled.
+*/
 const enableEssentialConsumersAndInstrumentsProcedureQuery = "CALL newrelic.enable_essential_consumers_and_instruments();"
 
 /*
@@ -34,6 +64,12 @@ var (
 	ErrMySQLVersion               = errors.New("only version 8.0+ is supported")
 	ErrUnsupportedMySQLVersion    = errors.New("MySQL version is not supported")
 )
+
+// ConsumerStatus represents the status of a consumer in the Performance Schema.
+type ConsumerStatus struct {
+	Name    string `db:"NAME"`
+	Enabled string `db:"ENABLED"`
+}
 
 // ValidatePreconditions checks if the necessary preconditions are met for performance monitoring.
 func ValidatePreconditions(db utils.DataSource) error {
@@ -90,45 +126,31 @@ func isPerformanceSchemaEnabled(db utils.DataSource) (bool, error) {
 	return performanceSchemaEnabled == "ON", nil
 }
 
-// checkEssentialStatus executes a query to check if essential items are enabled.
-func checkEssentialStatus(db utils.DataSource, query string) (count int, essentialError error) {
-	enabledCount := 0
-
-	// Execute the query
-	rows, err := db.QueryX(query)
+// numberOfEssentialConsumersEnabledCheck executes a query to check if essential items are enabled.
+func numberOfEssentialConsumersEnabledCheck(db utils.DataSource, query string) (count int, essentialError error) {
+	// Use CollectMetrics to get the consumer statuses
+	consumerStatuses, err := utils.CollectMetrics[ConsumerStatus](db, query)
 	if err != nil {
-		return enabledCount, fmt.Errorf("failed to check essential status: %w", err)
+		return 0, fmt.Errorf("failed to check essential status: %w", err)
 	}
-	defer func() {
-		if err := rows.Close(); err != nil {
-			log.Error("Failed to close rows: %v", err)
-		}
-	}()
 
-	for rows.Next() {
-		var name, enabled string
-		if err := rows.Scan(&name, &enabled); err != nil {
-			return enabledCount, fmt.Errorf("failed to scan row: %w", err)
-		}
-		if strings.ToUpper(enabled) == "YES" {
+	enabledCount := 0
+	for _, status := range consumerStatuses {
+		if strings.ToUpper(status.Enabled) == "YES" {
 			enabledCount++
 		} else {
-			log.Warn(updateSQLTemplate, name, name)
+			log.Warn(updateSQLTemplate, status.Name, status.Name)
 		}
-	}
-
-	if err := rows.Err(); err != nil {
-		return enabledCount, fmt.Errorf("query to check essential status failed: %w", err)
 	}
 
 	return enabledCount, nil
 }
 
 /*
-enableEssentialConsumersAndInstrumentsProcedure calls a stored procedure to enable essential consumers and instruments.
+enableEssentialConsumersAndInstruments calls a stored procedure to enable essential consumers and instruments.
 This procedure ensures that the required consumers and instruments in the Performance Schema are enabled.
 */
-func enableEssentialConsumersAndInstrumentsProcedure(db utils.DataSource) error {
+func enableEssentialConsumersAndInstruments(db utils.DataSource) error {
 	_, err := db.QueryX(enableEssentialConsumersAndInstrumentsProcedureQuery)
 	if err != nil {
 		return fmt.Errorf("failed to execute stored procedure to enable essential consumers and instruments: %w", err)
@@ -141,10 +163,10 @@ func enableEssentialConsumersAndInstrumentsProcedure(db utils.DataSource) error 
 // checkEssentialConsumers checks if the essential consumers are enabled in the Performance Schema.
 func checkEssentialConsumers(db utils.DataSource) error {
 	query := buildConsumerStatusQuery()
-	count, consumerErr := checkEssentialStatus(db, query)
-	// If the count of enabled items is less than 3, call the stored procedure
+	count, consumerErr := numberOfEssentialConsumersEnabledCheck(db, query)
+	// If the count of enabled items is less than 5, call the stored procedure
 	if count < constants.EssentialConsumersCount {
-		if err := enableEssentialConsumersAndInstrumentsProcedure(db); err != nil {
+		if err := enableEssentialConsumersAndInstruments(db); err != nil {
 			return fmt.Errorf("failed to enable essential consumers and instruments via stored procedure: %w", err)
 		}
 	}

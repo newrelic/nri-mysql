@@ -124,7 +124,7 @@ func TestCheckEssentialConsumers_ConsumerNotEnabled(t *testing.T) {
 	assert.Error(t, err)
 }
 
-func TestCheckEssentialStatus(t *testing.T) {
+func TestCheckEssentialConsumersStatus(t *testing.T) {
 	tests := []struct {
 		name           string
 		setupMock      func(mock sqlmock.Sqlmock)
@@ -133,7 +133,7 @@ func TestCheckEssentialStatus(t *testing.T) {
 		expectError    bool
 	}{
 		{
-			name: "CheckEssentialStatus_Success",
+			name: "CheckEssentialConsumersStatus_Success",
 			setupMock: func(mock sqlmock.Sqlmock) {
 				query := "SELECT NAME, ENABLED FROM performance_schema.setup_consumers WHERE NAME IN (.+);"
 				rows := sqlmock.NewRows([]string{"NAME", "ENABLED"}).
@@ -143,26 +143,26 @@ func TestCheckEssentialStatus(t *testing.T) {
 			},
 			testFunc: func(dataSource *mockDataSource) (interface{}, error) {
 				query := "SELECT NAME, ENABLED FROM performance_schema.setup_consumers WHERE NAME IN (.+);"
-				return checkEssentialStatus(dataSource, query)
+				return numberOfEssentialConsumersEnabledCheck(dataSource, query)
 			},
 			expectedResult: 2,
 			expectError:    false,
 		},
 		{
-			name: "CheckEssentialStatus_Failure_QueryError",
+			name: "CheckEssentialConsumersStatus_Failure_QueryError",
 			setupMock: func(mock sqlmock.Sqlmock) {
 				query := "SELECT NAME, ENABLED FROM performance_schema.setup_consumers WHERE NAME IN (.+);"
 				mock.ExpectQuery(query).WillReturnError(errQuery)
 			},
 			testFunc: func(dataSource *mockDataSource) (interface{}, error) {
 				query := "SELECT NAME, ENABLED FROM performance_schema.setup_consumers WHERE NAME IN (.+);"
-				return checkEssentialStatus(dataSource, query)
+				return numberOfEssentialConsumersEnabledCheck(dataSource, query)
 			},
 			expectedResult: 0,
 			expectError:    true,
 		},
 		{
-			name: "CheckEssentialStatus_Failure_ScanError",
+			name: "CheckEssentialConsumersStatus_Failure_ScanError",
 			setupMock: func(mock sqlmock.Sqlmock) {
 				query := "SELECT NAME, ENABLED FROM performance_schema.setup_consumers WHERE NAME IN (.+);"
 				rows := sqlmock.NewRows([]string{"NAME", "ENABLED"}).
@@ -171,7 +171,7 @@ func TestCheckEssentialStatus(t *testing.T) {
 			},
 			testFunc: func(dataSource *mockDataSource) (interface{}, error) {
 				query := "SELECT NAME, ENABLED FROM performance_schema.setup_consumers WHERE NAME IN (.+);"
-				return checkEssentialStatus(dataSource, query)
+				return numberOfEssentialConsumersEnabledCheck(dataSource, query)
 			},
 			expectedResult: 0,
 			expectError:    true,
@@ -212,7 +212,7 @@ func TestEnableEssentialConsumersAndInstrumentsProcedure_Failure(t *testing.T) {
 
 	mock.ExpectQuery(enableEssentialConsumersAndInstrumentsProcedureQuery).WillReturnError(errProcedure)
 
-	err = enableEssentialConsumersAndInstrumentsProcedure(mockDataSource)
+	err = enableEssentialConsumersAndInstruments(mockDataSource)
 	assert.Error(t, err)
 }
 
