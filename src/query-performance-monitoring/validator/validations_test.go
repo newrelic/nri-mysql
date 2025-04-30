@@ -120,11 +120,11 @@ func TestCheckEssentialConsumers_ConsumerNotEnabled(t *testing.T) {
 	mockDataSource := &mockDataSource{db: sqlxDB}
 
 	mock.ExpectQuery(buildConsumerStatusQuery()).WillReturnRows(rows)
-	err = checkEssentialConsumers(mockDataSource)
+	err = checkAndEnableEssentialConsumers(mockDataSource)
 	assert.Error(t, err)
 }
 
-func TestCheckEssentialConsumersStatus(t *testing.T) {
+func TestCheckAndEnableEssentialConsumers(t *testing.T) {
 	tests := []struct {
 		name           string
 		setupMock      func(mock sqlmock.Sqlmock)
@@ -133,7 +133,7 @@ func TestCheckEssentialConsumersStatus(t *testing.T) {
 		expectError    bool
 	}{
 		{
-			name: "CheckEssentialConsumersStatus_Success",
+			name: "AllEssentialConsumersEnabled_Success",
 			setupMock: func(mock sqlmock.Sqlmock) {
 				query := "SELECT NAME, ENABLED FROM performance_schema.setup_consumers WHERE NAME IN (.+);"
 				rows := sqlmock.NewRows([]string{"NAME", "ENABLED"}).
@@ -149,7 +149,7 @@ func TestCheckEssentialConsumersStatus(t *testing.T) {
 			expectError:    false,
 		},
 		{
-			name: "CheckEssentialConsumersStatus_Failure_QueryError",
+			name: "Failure_DatabaseQueryError",
 			setupMock: func(mock sqlmock.Sqlmock) {
 				query := "SELECT NAME, ENABLED FROM performance_schema.setup_consumers WHERE NAME IN (.+);"
 				mock.ExpectQuery(query).WillReturnError(errQuery)
@@ -162,7 +162,7 @@ func TestCheckEssentialConsumersStatus(t *testing.T) {
 			expectError:    true,
 		},
 		{
-			name: "CheckEssentialConsumersStatus_Failure_ScanError",
+			name: "Failure_RowScanError",
 			setupMock: func(mock sqlmock.Sqlmock) {
 				query := "SELECT NAME, ENABLED FROM performance_schema.setup_consumers WHERE NAME IN (.+);"
 				rows := sqlmock.NewRows([]string{"NAME", "ENABLED"}).

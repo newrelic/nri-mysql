@@ -357,6 +357,8 @@ func TestIsSupportedStatement(t *testing.T) {
 		assert.True(t, isSupportedStatement("select * from users"))
 		assert.True(t, isSupportedStatement("  SELECT * FROM users"))
 		assert.True(t, isSupportedStatement("with cte as (select * from users) select * from cte"))
+		assert.True(t, isSupportedStatement("Select * from test"))
+		assert.True(t, isSupportedStatement("With cte as (Select * from test) Select * from cte"))
 	})
 
 	t.Run("Unsupported Statement", func(t *testing.T) {

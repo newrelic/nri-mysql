@@ -80,6 +80,11 @@ const (
 	/*
 		EssentialConsumersCount defines the number of essential consumers that must be enabled
 		in the performance schema to ensure that the necessary performance data is available.
+
+		The EssentialConsumersCount is set to 5 because two of the consumers (events_statements_cpu and events_waits_history_long) 
+		are optional and may not be available in Aurora RDS environments. Therefore, we consider only the remaining five consumers 
+		(events_waits_current, events_waits_history, events_statements_current, events_statements_history, and events_statements_history_long) as essential and 
+		consistently available across all supported MySQL environments.
 	*/
 	EssentialConsumersCount = 5
 )

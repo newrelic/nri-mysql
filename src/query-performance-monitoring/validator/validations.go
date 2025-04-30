@@ -23,7 +23,7 @@ in the MySQL Performance Schema.
 
 NOTE: This procedure (`newrelic.enable_essential_consumers_and_instruments`) is a custom stored procedure that
 is NOT part of the default MySQL server. It must be created as part of the initial setup when installing
-this integration to instrument AWS RDS MySQL DB instances.
+this integration to instrument self-hosted, RDS, and Aurora MySql servers.
 
 The stored procedure enables:
 1. All event statement and event wait consumers
@@ -54,7 +54,7 @@ const enableEssentialConsumersAndInstrumentsProcedureQuery = "CALL newrelic.enab
 SQL template for updating the status of essential consumers in the Performance Schema.
 This template provides the SQL command to enable a specific consumer by updating its status in the setup_consumers table.
 */
-const updateSQLTemplate = "Essential consumer %s is not enabled. To enable it, run: UPDATE performance_schema.setup_consumers SET ENABLED = 'YES' WHERE NAME = '%s';"
+const essentialConsumerNotEnabledWarning = "Essential consumer %s is not enabled. To enable it, run: UPDATE performance_schema.setup_consumers SET ENABLED = 'YES' WHERE NAME = '%s';"
 
 // Dynamic error
 var (
@@ -98,7 +98,7 @@ func ValidatePreconditions(db utils.DataSource) error {
 	}
 
 	// Check if essential consumers are enabled
-	errEssentialConsumers := checkEssentialConsumers(db)
+	errEssentialConsumers := checkAndEnableEssentialConsumers(db)
 	if errEssentialConsumers != nil {
 		log.Warn("Essential consumer check failed: %v", errEssentialConsumers)
 	}
@@ -139,7 +139,7 @@ func numberOfEssentialConsumersEnabledCheck(db utils.DataSource, query string) (
 		if strings.ToUpper(status.Enabled) == "YES" {
 			enabledCount++
 		} else {
-			log.Warn(updateSQLTemplate, status.Name, status.Name)
+			log.Warn(essentialConsumerNotEnabledWarning, status.Name, status.Name)
 		}
 	}
 
@@ -160,11 +160,13 @@ func enableEssentialConsumersAndInstruments(db utils.DataSource) error {
 	return nil
 }
 
-// checkEssentialConsumers checks if the essential consumers are enabled in the Performance Schema.
-func checkEssentialConsumers(db utils.DataSource) error {
+// checkAndEnableEssentialConsumers checks if the essential consumers are enabled in the Performance Schema.
+// If fewer than the required number of consumers are enabled, it attempts to enable them
+// via the newrelic.enable_essential_consumers_and_instruments stored procedure.
+func checkAndEnableEssentialConsumers(db utils.DataSource) error {
 	query := buildConsumerStatusQuery()
 	count, consumerErr := numberOfEssentialConsumersEnabledCheck(db, query)
-	// If the count of enabled items is less than 5, call the stored procedure
+	// If the count of enabled essential consumers is less than 5, call the stored procedure
 	if count < constants.EssentialConsumersCount {
 		if err := enableEssentialConsumersAndInstruments(db); err != nil {
 			return fmt.Errorf("failed to enable essential consumers and instruments via stored procedure: %w", err)
