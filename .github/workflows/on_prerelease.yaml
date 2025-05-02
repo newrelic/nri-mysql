@@ -13,4 +13,5 @@ jobs:
       tag: ${{ github.event.release.tag_name }}
       integration: mysql
       upload_fips_packages: true
+      dest_prefix: tara-team-testing/
     secrets: inherit
