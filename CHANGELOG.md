@@ -14,6 +14,14 @@ Unreleased section should follow [Release Toolkit](https://github.com/newrelic/r
 - Added QueryMonitoringOnly flag to enable only query monitoring feature
 - Updated isSupportedStatement to normalize case of both query and SupportedStatements
 
+## v1.15.0 - 2025-04-21
+
+### 🚀 Enhancements
+- Updated github.com/go-sql-driver/mysql to v1.9.2 - [Changelog 🔗](https://github.com/go-sql-driver/mysql/releases/tag/v1.9.2)
+
+### ⛓️ Dependencies
+- Updated github.com/go-sql-driver/mysql to v1.9.2 - [Changelog 🔗](https://github.com/go-sql-driver/mysql/releases/tag/v1.9.2)
+
 ## v1.14.2 - 2025-03-31
 
 ### 🐞 Bug fixes
