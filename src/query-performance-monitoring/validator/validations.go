@@ -17,14 +17,59 @@ const performanceSchemaQuery = "SHOW GLOBAL VARIABLES LIKE 'performance_schema';
 // Query to get the MySQL version
 const versionQuery = "SELECT VERSION();"
 
+/*
+enableEssentialConsumersAndInstruments calls a stored procedure to enable essential consumers and instruments
+in the MySQL Performance Schema.
+
+NOTE: This procedure (`newrelic.enable_essential_consumers_and_instruments`) is a custom stored procedure that
+is NOT part of the default MySQL server. It must be created as part of the initial setup when installing
+this integration to instrument self-hosted, RDS, and Aurora MySql servers.
+
+The stored procedure enables:
+1. All event statement and event wait consumers
+2. All wait, statement, and lock-related instruments with timing
+
+To set up this stored procedure, the following SQL must be executed with appropriate privileges:
+
+ 1. Create the schema:
+    CREATE SCHEMA IF NOT EXISTS newrelic;
+    GRANT EXECUTE ON newrelic.* TO 'newrelic'@'localhost';
+
+ 2. Create the stored procedure:
+    DELIMITER $$
+    CREATE PROCEDURE newrelic.enable_essential_consumers_and_instruments()
+    SQL SECURITY DEFINER
+    BEGIN
+    UPDATE performance_schema.setup_consumers SET enabled='YES' WHERE name LIKE 'events_statements_%' OR name LIKE 'events_waits_%';
+    UPDATE performance_schema.setup_instruments SET ENABLED = 'YES', TIMED = 'YES' WHERE NAME LIKE 'wait/%' OR NAME LIKE 'statement/%' OR NAME LIKE '%lock%';
+    END $$
+    DELIMITER ;
+    GRANT EXECUTE ON PROCEDURE newrelic.enable_essential_consumers_and_instruments TO 'newrelic'@'localhost';
+
+This procedure is automatically called when the integration detects that essential performance monitoring consumers are not properly enabled.
+*/
+const enableEssentialConsumersAndInstrumentsProcedureQuery = "CALL newrelic.enable_essential_consumers_and_instruments();"
+
+/*
+SQL template for updating the status of essential consumers in the Performance Schema.
+This template provides the SQL command to enable a specific consumer by updating its status in the setup_consumers table.
+*/
+const essentialConsumerNotEnabledWarning = "Essential consumer %s is not enabled. To enable it, run: UPDATE performance_schema.setup_consumers SET ENABLED = 'YES' WHERE NAME = '%s';"
+
 // Dynamic error
 var (
 	ErrImproperlyFormattedVersion = errors.New("version string is improperly formatted")
 	ErrPerformanceSchemaDisabled  = errors.New("performance schema is not enabled")
 	ErrNoRowsFound                = errors.New("no rows found")
-	ErrMysqlVersion               = errors.New("only version 8.0+ is supported")
+	ErrMySQLVersion               = errors.New("only version 8.0+ is supported")
 	ErrUnsupportedMySQLVersion    = errors.New("MySQL version is not supported")
 )
+
+// ConsumerStatus represents the status of a consumer in the Performance Schema.
+type ConsumerStatus struct {
+	Name    string `db:"NAME"`
+	Enabled string `db:"ENABLED"`
+}
 
 // ValidatePreconditions checks if the necessary preconditions are met for performance monitoring.
 func ValidatePreconditions(db utils.DataSource) error {
@@ -53,15 +98,9 @@ func ValidatePreconditions(db utils.DataSource) error {
 	}
 
 	// Check if essential consumers are enabled
-	errEssentialConsumers := checkEssentialConsumers(db)
+	errEssentialConsumers := checkAndEnableEssentialConsumers(db)
 	if errEssentialConsumers != nil {
 		log.Warn("Essential consumer check failed: %v", errEssentialConsumers)
-	}
-
-	// Check if essential instruments are enabled
-	errEssentialInstruments := checkEssentialInstruments(db)
-	if errEssentialInstruments != nil {
-		log.Warn("Essential instruments check failed: %v", errEssentialInstruments)
 	}
 	return nil
 }
@@ -87,50 +126,53 @@ func isPerformanceSchemaEnabled(db utils.DataSource) (bool, error) {
 	return performanceSchemaEnabled == "ON", nil
 }
 
-// checkEssentialStatus executes a query to check if essential items are enabled.
-func checkEssentialStatus(db utils.DataSource, query string, updateSQLTemplate string, errMsgTemplate error) error {
-	// Execute the query
-	rows, err := db.QueryX(query)
+// numberOfEssentialConsumersEnabledCheck executes a query to check if essential items are enabled.
+func numberOfEssentialConsumersEnabledCheck(db utils.DataSource, query string) (count int, essentialError error) {
+	// Use CollectMetrics to get the consumer statuses
+	consumerStatuses, err := utils.CollectMetrics[ConsumerStatus](db, query)
 	if err != nil {
-		return fmt.Errorf("failed to check essential status: %w", err)
+		return 0, fmt.Errorf("failed to check essential status: %w", err)
 	}
-	defer func() {
-		if err := rows.Close(); err != nil {
-			log.Error("Failed to close rows: %v", err)
-		}
-	}()
 
-	// Check if each essential item is enabled
-	for rows.Next() {
-		var name, enabled string
-		if err := rows.Scan(&name, &enabled); err != nil {
-			return fmt.Errorf("failed to scan row: %w", err)
-		}
-		if enabled != "YES" {
-			log.Warn(updateSQLTemplate, name, name)
-			return fmt.Errorf("%w: %s", errMsgTemplate, name)
+	enabledCount := 0
+	for _, status := range consumerStatuses {
+		if strings.ToUpper(status.Enabled) == "YES" {
+			enabledCount++
+		} else {
+			log.Warn(essentialConsumerNotEnabledWarning, status.Name, status.Name)
 		}
 	}
 
-	if err := rows.Err(); err != nil {
-		return fmt.Errorf("query to check essential status failed: %w", err)
+	return enabledCount, nil
+}
+
+/*
+enableEssentialConsumersAndInstruments calls a stored procedure to enable essential consumers and instruments.
+This procedure ensures that the required consumers and instruments in the Performance Schema are enabled.
+*/
+func enableEssentialConsumersAndInstruments(db utils.DataSource) error {
+	_, err := db.QueryX(enableEssentialConsumersAndInstrumentsProcedureQuery)
+	if err != nil {
+		return fmt.Errorf("failed to execute stored procedure to enable essential consumers and instruments: %w", err)
 	}
 
+	log.Debug("Stored procedure executed successfully.")
 	return nil
 }
 
-// checkEssentialConsumers checks if the essential consumers are enabled in the Performance Schema.
-func checkEssentialConsumers(db utils.DataSource) error {
+// checkAndEnableEssentialConsumers checks if the essential consumers are enabled in the Performance Schema.
+// If fewer than the required number of consumers are enabled, it attempts to enable them
+// via the newrelic.enable_essential_consumers_and_instruments stored procedure.
+func checkAndEnableEssentialConsumers(db utils.DataSource) error {
 	query := buildConsumerStatusQuery()
-	updateSQLTemplate := "Essential consumer %s is not enabled. To enable it, run: UPDATE performance_schema.setup_consumers SET ENABLED = 'YES' WHERE NAME = '%s';"
-	return checkEssentialStatus(db, query, updateSQLTemplate, utils.ErrEssentialConsumerNotEnabled)
-}
-
-// checkEssentialInstruments checks if the essential instruments are enabled in the Performance Schema.
-func checkEssentialInstruments(db utils.DataSource) error {
-	query := buildInstrumentQuery()
-	updateSQLTemplate := "Essential instrument %s is not fully enabled. To enable it, run: UPDATE performance_schema.setup_instruments SET ENABLED = 'YES', TIMED = 'YES' WHERE NAME = '%s';"
-	return checkEssentialStatus(db, query, updateSQLTemplate, utils.ErrEssentialInstrumentNotEnabled)
+	count, consumerErr := numberOfEssentialConsumersEnabledCheck(db, query)
+	// If the count of enabled essential consumers is less than 5, call the stored procedure
+	if count < constants.EssentialConsumersCount {
+		if err := enableEssentialConsumersAndInstruments(db); err != nil {
+			return fmt.Errorf("failed to enable essential consumers and instruments via stored procedure: %w", err)
+		}
+	}
+	return consumerErr
 }
 
 // logEnablePerformanceSchemaInstructions logs instructions to enable the Performance Schema.
@@ -207,29 +249,6 @@ func buildConsumerStatusQuery() string {
 	query := "SELECT NAME, ENABLED FROM performance_schema.setup_consumers WHERE NAME IN ("
 	query += "'" + strings.Join(consumers, "', '") + "'"
 	query += ");"
-
-	return query
-}
-
-// buildInstrumentQuery constructs a SQL query to check the status of essential instruments
-func buildInstrumentQuery() string {
-	// List of essential instruments to check
-	instruments := []string{
-		"wait/%",
-		"statement/%",
-		"%lock%",
-	}
-
-	// Pre-allocate the slice with the expected length
-	instrumentConditions := make([]string, 0, len(instruments))
-	for _, instrument := range instruments {
-		instrumentConditions = append(instrumentConditions, fmt.Sprintf("NAME LIKE '%s'", instrument))
-	}
-
-	// Build the query to check the status of essential instruments
-	query := "SELECT NAME, ENABLED FROM performance_schema.setup_instruments WHERE "
-	query += strings.Join(instrumentConditions, " OR ")
-	query += ";"
 
 	return query
 }
