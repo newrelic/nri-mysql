@@ -27,24 +27,9 @@ func (m *mockDataSource) QueryxContext(ctx context.Context, query string, args .
 	return m.db.QueryxContext(ctx, query, args...)
 }
 
-var errQuery = errors.New("query failed")
-
-func TestCheckEssentialInstruments_AllEnabled(t *testing.T) {
-	rows := sqlmock.NewRows([]string{"NAME", "ENABLED"}).
-		AddRow("wait/synch/mutex/sql/LOCK_plugin", "YES").
-		AddRow("statement/sql/select", "YES").
-		AddRow("wait/io/file/sql/FILE", "YES")
-	db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
-	assert.NoError(t, err, "an error was not expected when opening a stub database connection")
-	defer db.Close()
-
-	sqlxDB := sqlx.NewDb(db, "sqlmock")
-	mockDataSource := &mockDataSource{db: sqlxDB}
-
-	mock.ExpectQuery(buildInstrumentQuery()).WillReturnRows(rows)
-	err = checkEssentialInstruments(mockDataSource)
-	assert.NoError(t, err)
-}
+var errQueryFailed = errors.New("query failed")
+var errQuery = errors.New("query error")
+var errProcedure = errors.New("procedure error")
 
 func TestValidatePreconditions_PerformanceSchemaDisabled(t *testing.T) {
 	rows := sqlmock.NewRows([]string{"Variable_name", "Value"}).
@@ -79,14 +64,7 @@ func TestValidatePreconditions_EssentialChecksFailed(t *testing.T) {
 		{
 			name: "EssentialConsumersCheckFailed",
 			expectQueryFunc: func(mock sqlmock.Sqlmock) {
-				mock.ExpectQuery(buildConsumerStatusQuery()).WillReturnError(errQuery)
-			},
-			assertError: false, // The function logs a warning but does not return an error
-		},
-		{
-			name: "EssentialInstrumentsCheckFailed",
-			expectQueryFunc: func(mock sqlmock.Sqlmock) {
-				mock.ExpectQuery(buildInstrumentQuery()).WillReturnError(errQuery)
+				mock.ExpectQuery(buildConsumerStatusQuery()).WillReturnError(errQueryFailed)
 			},
 			assertError: false, // The function logs a warning but does not return an error
 		},
@@ -142,22 +120,99 @@ func TestCheckEssentialConsumers_ConsumerNotEnabled(t *testing.T) {
 	mockDataSource := &mockDataSource{db: sqlxDB}
 
 	mock.ExpectQuery(buildConsumerStatusQuery()).WillReturnRows(rows)
-	err = checkEssentialConsumers(mockDataSource)
+	err = checkAndEnableEssentialConsumers(mockDataSource)
 	assert.Error(t, err)
 }
 
-func TestCheckEssentialInstruments_InstrumentNotEnabled(t *testing.T) {
-	rows := sqlmock.NewRows([]string{"NAME", "ENABLED", "TIMED"}).
-		AddRow("wait/synch/mutex/sql/LOCK_plugin", "NO", "YES")
-	db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
-	assert.NoError(t, err, "an error was not expected when opening a stub database connection")
+func TestCheckAndEnableEssentialConsumers(t *testing.T) {
+	tests := []struct {
+		name           string
+		setupMock      func(mock sqlmock.Sqlmock)
+		testFunc       func(dataSource *mockDataSource) (interface{}, error)
+		expectedResult interface{}
+		expectError    bool
+	}{
+		{
+			name: "AllEssentialConsumersEnabled_Success",
+			setupMock: func(mock sqlmock.Sqlmock) {
+				query := "SELECT NAME, ENABLED FROM performance_schema.setup_consumers WHERE NAME IN (.+);"
+				rows := sqlmock.NewRows([]string{"NAME", "ENABLED"}).
+					AddRow("events_waits_current", "YES").
+					AddRow("events_statements_history", "YES")
+				mock.ExpectQuery(query).WillReturnRows(rows)
+			},
+			testFunc: func(dataSource *mockDataSource) (interface{}, error) {
+				query := "SELECT NAME, ENABLED FROM performance_schema.setup_consumers WHERE NAME IN (.+);"
+				return numberOfEssentialConsumersEnabledCheck(dataSource, query)
+			},
+			expectedResult: 2,
+			expectError:    false,
+		},
+		{
+			name: "Failure_DatabaseQueryError",
+			setupMock: func(mock sqlmock.Sqlmock) {
+				query := "SELECT NAME, ENABLED FROM performance_schema.setup_consumers WHERE NAME IN (.+);"
+				mock.ExpectQuery(query).WillReturnError(errQuery)
+			},
+			testFunc: func(dataSource *mockDataSource) (interface{}, error) {
+				query := "SELECT NAME, ENABLED FROM performance_schema.setup_consumers WHERE NAME IN (.+);"
+				return numberOfEssentialConsumersEnabledCheck(dataSource, query)
+			},
+			expectedResult: 0,
+			expectError:    true,
+		},
+		{
+			name: "Failure_RowScanError",
+			setupMock: func(mock sqlmock.Sqlmock) {
+				query := "SELECT NAME, ENABLED FROM performance_schema.setup_consumers WHERE NAME IN (.+);"
+				rows := sqlmock.NewRows([]string{"NAME", "ENABLED"}).
+					AddRow("events_waits_current", nil) // Simulate scan error
+				mock.ExpectQuery(query).WillReturnRows(rows)
+			},
+			testFunc: func(dataSource *mockDataSource) (interface{}, error) {
+				query := "SELECT NAME, ENABLED FROM performance_schema.setup_consumers WHERE NAME IN (.+);"
+				return numberOfEssentialConsumersEnabledCheck(dataSource, query)
+			},
+			expectedResult: 0,
+			expectError:    true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			db, mock, err := sqlmock.New()
+			assert.NoError(t, err)
+			defer db.Close()
+
+			sqlxDB := sqlx.NewDb(db, "sqlmock")
+			mockDataSource := &mockDataSource{db: sqlxDB}
+
+			tt.setupMock(mock)
+
+			result, err := tt.testFunc(mockDataSource)
+			if tt.expectError {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+				assert.Equal(t, tt.expectedResult, result)
+			}
+
+			assert.NoError(t, mock.ExpectationsWereMet())
+		})
+	}
+}
+
+func TestEnableEssentialConsumersAndInstrumentsProcedure_Failure(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	assert.NoError(t, err)
 	defer db.Close()
 
 	sqlxDB := sqlx.NewDb(db, "sqlmock")
 	mockDataSource := &mockDataSource{db: sqlxDB}
 
-	mock.ExpectQuery(buildInstrumentQuery()).WillReturnRows(rows)
-	err = checkEssentialInstruments(mockDataSource)
+	mock.ExpectQuery(enableEssentialConsumersAndInstrumentsProcedureQuery).WillReturnError(errProcedure)
+
+	err = enableEssentialConsumersAndInstruments(mockDataSource)
 	assert.Error(t, err)
 }
 

@@ -327,7 +327,8 @@ func TestUnconfiguredPerfMySQLIntegration(t *testing.T) {
 				"ENABLE_QUERY_MONITORING=true",
 			},
 			outputMetricsFile: "mysql-schema-master.json",
-			expectedError:     "essential consumer is not enabled: events_statements_cpu",
+			// Error expected due to missing stored procedure
+			expectedError: "PROCEDURE newrelic.enable_essential_consumers_and_instruments does not exist",
 		},
 		{
 			name: "LocalEntity_EnableQueryMonitoring",
@@ -335,7 +336,8 @@ func TestUnconfiguredPerfMySQLIntegration(t *testing.T) {
 				"ENABLE_QUERY_MONITORING=true",
 			},
 			outputMetricsFile: "mysql-schema-master-localentity.json",
-			expectedError:     "essential consumer is not enabled: events_statements_cpu",
+			// Error expected due to missing stored procedure
+			expectedError: "PROCEDURE newrelic.enable_essential_consumers_and_instruments does not exist",
 		},
 		{
 			name: "OnlyMetrics_EnableQueryMonitoring",
@@ -344,7 +346,8 @@ func TestUnconfiguredPerfMySQLIntegration(t *testing.T) {
 				"ENABLE_QUERY_MONITORING=true",
 			},
 			outputMetricsFile: "mysql-schema-metrics-master.json",
-			expectedError:     "essential consumer is not enabled: events_statements_cpu",
+			// Error expected due to missing stored procedure
+			expectedError: "PROCEDURE newrelic.enable_essential_consumers_and_instruments does not exist",
 		},
 		{
 			name: "OnlyInventory_EnableQueryMonitoring",
