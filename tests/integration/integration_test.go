@@ -327,8 +327,8 @@ func TestUnconfiguredPerfMySQLIntegration(t *testing.T) {
 				"ENABLE_QUERY_MONITORING=true",
 			},
 			outputMetricsFile: "mysql-schema-master.json",
-			// No error expected as the stored procedure should enable the consumers
-			expectedError: "",
+			// Error expected due to missing stored procedure
+			expectedError: "PROCEDURE newrelic.enable_essential_consumers_and_instruments does not exist",
 		},
 		{
 			name: "LocalEntity_EnableQueryMonitoring",
@@ -336,8 +336,8 @@ func TestUnconfiguredPerfMySQLIntegration(t *testing.T) {
 				"ENABLE_QUERY_MONITORING=true",
 			},
 			outputMetricsFile: "mysql-schema-master-localentity.json",
-			// No error expected as the stored procedure should enable the consumers
-			expectedError: "",
+			// Error expected due to missing stored procedure
+			expectedError: "PROCEDURE newrelic.enable_essential_consumers_and_instruments does not exist",
 		},
 		{
 			name: "OnlyMetrics_EnableQueryMonitoring",
@@ -346,8 +346,8 @@ func TestUnconfiguredPerfMySQLIntegration(t *testing.T) {
 				"ENABLE_QUERY_MONITORING=true",
 			},
 			outputMetricsFile: "mysql-schema-metrics-master.json",
-			// No error expected as the stored procedure should enable the consumers
-			expectedError: "",
+			// Error expected due to missing stored procedure
+			expectedError: "PROCEDURE newrelic.enable_essential_consumers_and_instruments does not exist",
 		},
 		{
 			name: "OnlyInventory_EnableQueryMonitoring",
