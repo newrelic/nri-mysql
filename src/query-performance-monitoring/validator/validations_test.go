@@ -7,6 +7,7 @@ import (
 
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/jmoiron/sqlx"
+	"github.com/newrelic/nri-mysql/src/args"
 	constants "github.com/newrelic/nri-mysql/src/query-performance-monitoring/constants"
 	"github.com/stretchr/testify/assert"
 )
@@ -42,12 +43,13 @@ func TestValidatePreconditions_PerformanceSchemaDisabled(t *testing.T) {
 
 	sqlxDB := sqlx.NewDb(db, "sqlmock")
 	mockDataSource := &mockDataSource{db: sqlxDB}
+	mockArgs := args.ArgumentList{} // Mock ArgumentList
 
 	// Set the correct order of mock expectations
 	mock.ExpectQuery(versionQuery).WillReturnRows(versionRows)
 	mock.ExpectQuery(performanceSchemaQuery).WillReturnRows(rows)
 
-	err = ValidatePreconditions(mockDataSource)
+	err = ValidatePreconditions(mockDataSource, mockArgs)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "performance schema is not enabled")
 
@@ -79,12 +81,13 @@ func TestValidatePreconditions_EssentialChecksFailed(t *testing.T) {
 			defer db.Close()
 			sqlxDB := sqlx.NewDb(db, "sqlmock")
 			mockDataSource := &mockDataSource{db: sqlxDB}
+			mockArgs := args.ArgumentList{} // Mock ArgumentList
 
 			mock.ExpectQuery(versionQuery).WillReturnRows(versionRows)
 			mock.ExpectQuery(performanceSchemaQuery).WillReturnRows(performanceSchemaRows)
 			tc.expectQueryFunc(mock) // Dynamically call the query expectation function
 
-			err = ValidatePreconditions(mockDataSource)
+			err = ValidatePreconditions(mockDataSource, mockArgs)
 			if tc.assertError {
 				assert.Error(t, err)
 			} else {
@@ -118,13 +121,14 @@ func TestCheckEssentialConsumers_ConsumerNotEnabled(t *testing.T) {
 
 	sqlxDB := sqlx.NewDb(db, "sqlmock")
 	mockDataSource := &mockDataSource{db: sqlxDB}
+	mockArgs := args.ArgumentList{} // Mock ArgumentList
 
 	mock.ExpectQuery(buildConsumerStatusQuery()).WillReturnRows(rows)
-	err = checkAndEnableEssentialConsumers(mockDataSource)
+	err = checkAndEnableEssentialConsumers(mockDataSource, mockArgs)
 	assert.Error(t, err)
 }
 
-func TestCheckAndEnableEssentialConsumers(t *testing.T) {
+func TestNumberOfEssentialConsumersEnabledCheck(t *testing.T) {
 	tests := []struct {
 		name           string
 		setupMock      func(mock sqlmock.Sqlmock)
@@ -209,11 +213,49 @@ func TestEnableEssentialConsumersAndInstrumentsProcedure_Failure(t *testing.T) {
 
 	sqlxDB := sqlx.NewDb(db, "sqlmock")
 	mockDataSource := &mockDataSource{db: sqlxDB}
+	mockArgs := args.ArgumentList{EnableMetricsActivationMethod: "SP"}
 
 	mock.ExpectQuery(enableEssentialConsumersAndInstrumentsProcedureQuery).WillReturnError(errProcedure)
 
-	err = enableEssentialConsumersAndInstruments(mockDataSource)
+	err = enableEssentialConsumersAndInstruments(mockDataSource, mockArgs.EnableMetricsActivationMethod)
 	assert.Error(t, err)
+}
+
+func TestEnableEssentialConsumersAndInstruments_EnableMetricsActivationMethod_EP_Queries(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	assert.NoError(t, err)
+	defer db.Close()
+
+	sqlxDB := sqlx.NewDb(db, "sqlmock")
+	mockDataSource := &mockDataSource{db: sqlxDB}
+	mockArgs := args.ArgumentList{EnableMetricsActivationMethod: "EP"}
+
+	var Queries = []string{
+		"UPDATE performance_schema.setup_consumers SET enabled='YES' WHERE name LIKE 'events_statements_%' OR name LIKE 'events_waits_%';",
+		"UPDATE performance_schema.setup_instruments SET ENABLED = 'YES', TIMED = 'YES' WHERE NAME LIKE 'wait/%' OR NAME LIKE 'statement/%' OR NAME LIKE '%lock%';",
+	}
+
+	for _, query := range Queries {
+		mock.ExpectQuery(query).WillReturnRows(sqlmock.NewRows([]string{"result"}).AddRow("success"))
+	}
+
+	err = enableEssentialConsumersAndInstruments(mockDataSource, mockArgs.EnableMetricsActivationMethod)
+	assert.NoError(t, err)
+}
+
+func TestEnableEssentialConsumersAndInstruments_EnableMetricsActivationMethod_Empty(t *testing.T) {
+	db, _, err := sqlmock.New()
+	assert.NoError(t, err)
+	defer db.Close()
+
+	sqlxDB := sqlx.NewDb(db, "sqlmock")
+	mockDataSource := &mockDataSource{db: sqlxDB}
+	mockArgs := args.ArgumentList{EnableMetricsActivationMethod: ""}
+
+	// Expect no queries to be executed since the method is invalid
+	err = enableEssentialConsumersAndInstruments(mockDataSource, mockArgs.EnableMetricsActivationMethod)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "invalid EnableMetricsActivationMethod")
 }
 
 func TestGetMySQLVersion(t *testing.T) {

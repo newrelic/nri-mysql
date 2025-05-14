@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/newrelic/infra-integrations-sdk/v3/log"
+	arguments "github.com/newrelic/nri-mysql/src/args"
 	constants "github.com/newrelic/nri-mysql/src/query-performance-monitoring/constants"
 	utils "github.com/newrelic/nri-mysql/src/query-performance-monitoring/utils"
 )
@@ -56,6 +57,12 @@ This template provides the SQL command to enable a specific consumer by updating
 */
 const essentialConsumerNotEnabledWarning = "Essential consumer %s is not enabled. To enable it, run: UPDATE performance_schema.setup_consumers SET ENABLED = 'YES' WHERE NAME = '%s';"
 
+// EP (Explicit Queries): Execute explicit SQL queries to enable essential consumers and instruments.
+var Queries = []string{
+	"UPDATE performance_schema.setup_consumers SET enabled='YES' WHERE name LIKE 'events_statements_%' OR name LIKE 'events_waits_%';",
+	"UPDATE performance_schema.setup_instruments SET ENABLED = 'YES', TIMED = 'YES' WHERE NAME LIKE 'wait/%' OR NAME LIKE 'statement/%' OR NAME LIKE '%lock%';",
+}
+
 // Dynamic error
 var (
 	ErrImproperlyFormattedVersion = errors.New("version string is improperly formatted")
@@ -72,7 +79,7 @@ type ConsumerStatus struct {
 }
 
 // ValidatePreconditions checks if the necessary preconditions are met for performance monitoring.
-func ValidatePreconditions(db utils.DataSource) error {
+func ValidatePreconditions(db utils.DataSource, args arguments.ArgumentList) error {
 	// Get the MySQL version
 	version, err := getMySQLVersion(db)
 	if err != nil {
@@ -98,7 +105,7 @@ func ValidatePreconditions(db utils.DataSource) error {
 	}
 
 	// Check if essential consumers are enabled
-	errEssentialConsumers := checkAndEnableEssentialConsumers(db)
+	errEssentialConsumers := checkAndEnableEssentialConsumers(db, args)
 	if errEssentialConsumers != nil {
 		log.Warn("Essential consumer check failed: %v", errEssentialConsumers)
 	}
@@ -147,28 +154,53 @@ func numberOfEssentialConsumersEnabledCheck(db utils.DataSource, query string) (
 }
 
 /*
-enableEssentialConsumersAndInstruments calls a stored procedure to enable essential consumers and instruments.
-This procedure ensures that the required consumers and instruments in the Performance Schema are enabled.
-*/
-func enableEssentialConsumersAndInstruments(db utils.DataSource) error {
-	_, err := db.QueryX(enableEssentialConsumersAndInstrumentsProcedureQuery)
-	if err != nil {
-		return fmt.Errorf("failed to execute stored procedure to enable essential consumers and instruments: %w", err)
-	}
+enableEssentialConsumersAndInstruments enables essential consumers and instruments in the MySQL Performance Schema.
 
-	log.Debug("Stored procedure executed successfully.")
+Parameters:
+- db: The database connection object.
+- EnableMetricsActivationMethod: The method to activate metrics. It can be one of the following:
+  - "SP": Uses a stored procedure to enable essential consumers and instruments.
+  - "EP": Executes explicit SQL queries to enable essential consumers and instruments. Requires the following permissions:
+    GRANT UPDATE ON performance_schema.setup_consumers TO 'newrelic'@'localhost';
+    GRANT UPDATE ON performance_schema.setup_instruments TO 'newrelic'@'localhost';
+
+Returns:
+- An error if the operation fails or if an invalid activation method is provided.
+*/
+func enableEssentialConsumersAndInstruments(db utils.DataSource, EnableMetricsActivationMethod string) error {
+	if EnableMetricsActivationMethod == "SP" {
+		// SP (Stored Procedure): Execute the stored procedure to enable essential consumers and instruments.
+		_, err := db.QueryX(enableEssentialConsumersAndInstrumentsProcedureQuery)
+		if err != nil {
+			return fmt.Errorf("failed to execute stored procedure to enable essential consumers and instruments: %w", err)
+		}
+		log.Debug("Stored procedure executed successfully.")
+	} else if EnableMetricsActivationMethod == "EP" {
+		for _, query := range Queries {
+			_, err := db.QueryX(query)
+			if err != nil {
+				return fmt.Errorf("failed to execute query '%s': %w", query, err)
+			}
+		}
+		log.Debug("Essential consumers and instruments enabled using explicit queries.")
+	} else {
+		// Invalid method: Log and return an error if the activation method is neither SP nor EP.
+		err := fmt.Errorf("invalid EnableMetricsActivationMethod: %s. It must be either 'SP' or 'EP'", EnableMetricsActivationMethod)
+		log.Error(err.Error())
+		return err
+	}
 	return nil
 }
 
 // checkAndEnableEssentialConsumers checks if the essential consumers are enabled in the Performance Schema.
 // If fewer than the required number of consumers are enabled, it attempts to enable them
 // via the newrelic.enable_essential_consumers_and_instruments stored procedure.
-func checkAndEnableEssentialConsumers(db utils.DataSource) error {
+func checkAndEnableEssentialConsumers(db utils.DataSource, args arguments.ArgumentList) error {
 	query := buildConsumerStatusQuery()
 	count, consumerErr := numberOfEssentialConsumersEnabledCheck(db, query)
 	// If the count of enabled essential consumers is less than 5, call the stored procedure
 	if count < constants.EssentialConsumersCount {
-		if err := enableEssentialConsumersAndInstruments(db); err != nil {
+		if err := enableEssentialConsumersAndInstruments(db, args.EnableMetricsActivationMethod); err != nil {
 			return fmt.Errorf("failed to enable essential consumers and instruments via stored procedure: %w", err)
 		}
 	}

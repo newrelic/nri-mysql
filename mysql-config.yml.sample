@@ -69,8 +69,9 @@ integrations:
 
     # Enable query performance monitoring
     ENABLE_QUERY_MONITORING: true
-    # Enable collection of only detailed query performance metrics, excluding other metrics. - Defaults to false
-    QUERY_MONITORING_ONLY : false
+    # Enable activation method for query performance metrics for both consumers and instruments. 
+    # SP - Stored Procedure, EP - Elevated Privileges (requires GRANT UPDATE ON performance_schema.setup_consumers and GRANT UPDATE ON performance_schema.setup_instruments to 'newrelic'@'localhost').
+    # EnableMetricsActivationMethod: "SP"
     # Fetch interval in seconds for grouped slow queries. Should match the interval in mysql-config.yml
     # SLOW_QUERY_MONITORING_FETCH_INTERVAL: 30
     # Threshold in milliseconds for query response time to fetch individual query performance metrics
@@ -115,6 +116,9 @@ integrations:
 
     # Enable collection of only detailed query performance metrics, excluding other metrics. - Defaults to false
     QUERY_MONITORING_ONLY : true
+    # Enable activation method for query performance metrics for both consumers and instruments. 
+    # SP - Stored Procedure, EP - Elevated Privileges (requires GRANT UPDATE ON performance_schema.setup_consumers and GRANT UPDATE ON performance_schema.setup_instruments to 'newrelic'@'localhost').
+    # EnableMetricsActivationMethod: "SP"
     # Fetch interval in seconds for grouped slow queries. Should match the interval in mysql-config.yml
     # SLOW_QUERY_MONITORING_FETCH_INTERVAL: 30
     # Threshold in milliseconds for query response time to fetch individual query performance metrics

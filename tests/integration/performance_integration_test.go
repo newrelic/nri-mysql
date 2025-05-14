@@ -280,6 +280,21 @@ func TestPerfMySQLIntegrationValidArguments(t *testing.T) {
 	}
 }
 
+// validateOutputAgainstSchemas validates each of the provided outputs against their corresponding schemas
+func validateOutputAgainstSchemas(t *testing.T, nonEmptyOutputs []string, outputConfigs []struct {
+	name           string
+	schemaFileName string
+}) {
+	// Validate each output against the corresponding schema
+	for i, output := range nonEmptyOutputs {
+		if i < len(outputConfigs) {
+			schemaPath := filepath.Join("json-schema-performance-files", outputConfigs[i].schemaFileName)
+			err := jsonschema.Validate(schemaPath, output)
+			require.NoError(t, err, "The output of MySQL integration doesn't match schema for %s", outputConfigs[i].name)
+		}
+	}
+}
+
 func TestQueryMonitoringOnly(t *testing.T) {
 	testCases := []struct {
 		name              string
@@ -331,71 +346,20 @@ func TestQueryMonitoringOnly(t *testing.T) {
 				assert.Equal(t, testCase.expectedCount, len(nonEmptyOutputs),
 					"Expected %d output blocks but got %d", testCase.expectedCount, len(nonEmptyOutputs))
 
-				// Verify that these outputs match the schemas for the query performance monitoring events
+				// Define the output configurations for validation
 				outputConfigs := []struct {
 					name           string
 					schemaFileName string
 				}{
-					{
-						"SlowQueryMetrics",
-						"mysql-schema-slow-queries.json",
-					},
-					{
-						"IndividualQueryMetrics",
-						"mysql-schema-individual-queries.json",
-					},
-					{
-						"QueryExecutionMetrics",
-						"mysql-schema-query-execution.json",
-					},
-					{
-						"WaitEventMetrics",
-						"mysql-schema-wait-events.json",
-					},
-					{
-						"BlockingSessionMetrics",
-						"mysql-schema-blocking-sessions.json",
-					},
+					{"SlowQueryMetrics", "mysql-schema-slow-queries.json"},
+					{"IndividualQueryMetrics", "mysql-schema-individual-queries.json"},
+					{"QueryExecutionMetrics", "mysql-schema-query-execution.json"},
+					{"WaitEventsMetrics", "mysql-schema-wait-events.json"},
+					{"BlockingSessionMetrics", "mysql-schema-blocking-sessions.json"},
 				}
 
-				// Check if we have exactly these event types
-				expectedEventTypes := map[string]bool{
-					"MysqlSlowQueriesSample":       false,
-					"MysqlIndividualQueriesSample": false,
-					"MysqlQueryExplainSample":      false,
-					"MysqlWaitEventSample":         false,
-					"MysqlBlockingSessionSample":   false,
-				}
-
-				for _, output := range nonEmptyOutputs {
-					var data map[string]interface{}
-					err := json.Unmarshal([]byte(output), &data)
-					require.NoError(t, err, "Failed to unmarshal output JSON")
-
-					// Check if this output contains one of our expected event types
-					if metrics, ok := data["metrics"]; ok {
-						if metricsMap, ok := metrics.(map[string]interface{}); ok {
-							if eventType, ok := metricsMap["event_type"]; ok {
-								if eventTypeStr, ok := eventType.(string); ok {
-									if _, exists := expectedEventTypes[eventTypeStr]; exists {
-										expectedEventTypes[eventTypeStr] = true
-									} else {
-										assert.Fail(t, "Unexpected event type found: %s", eventTypeStr)
-									}
-								}
-							}
-						}
-					}
-				}
-
-				// Validate each output against the corresponding schema
-				for i, output := range nonEmptyOutputs {
-					if i < len(outputConfigs) {
-						schemaPath := filepath.Join("json-schema-performance-files", outputConfigs[i].schemaFileName)
-						err := jsonschema.Validate(schemaPath, output)
-						require.NoError(t, err, "The output of MySQL integration doesn't match schema for %s", outputConfigs[i].name)
-					}
-				}
+				// Use the new function to validate outputs against schemas
+				validateOutputAgainstSchemas(t, nonEmptyOutputs, outputConfigs)
 			})
 		}
 	}

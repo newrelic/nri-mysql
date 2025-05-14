@@ -21,6 +21,7 @@ type ArgumentList struct {
 	ShowVersion                          bool   `default:"false" help:"Display build information and exit."`
 	EnableQueryMonitoring                bool   `default:"false" help:"Enable collection of detailed query performance metrics."`
 	QueryMonitoringOnly                  bool   `default:"false" help:"Enable collection of only detailed query performance metrics, excluding other metrics."`
+	EnableMetricsActivationMethod        string `default:"SP" help:"Enable activation method for query performance metrics for both consumers and instruments. SP - Stored Procedure, EP - Elevated Privileges (requires GRANT UPDATE ON performance_schema.setup_consumers and GRANT UPDATE ON performance_schema.setup_instruments to 'newrelic'@'localhost')."`
 	SlowQueryMonitoringFetchInterval     int    `default:"30" help:"Fetch interval in seconds for grouped slow queries. Should match the interval in mysql-config.yml."`
 	QueryMonitoringResponseTimeThreshold int    `default:"500" help:"Threshold in milliseconds for query response time to fetch individual query performance metrics."`
 	QueryMonitoringCountThreshold        int    `default:"20" help:"Query count limit for fetching grouped slow and individual query performance metrics."`
