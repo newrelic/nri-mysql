@@ -25,7 +25,7 @@ func PopulateQueryPerformanceMetrics(args arguments.ArgumentList, e *integration
 	defer db.Close()
 
 	// Validate preconditions before proceeding
-	preValidationErr := validator.ValidatePreconditions(db, args)
+	preValidationErr := validator.ValidatePreconditions(db)
 	if preValidationErr != nil {
 		infrautils.FatalIfErr(fmt.Errorf("preconditions failed: %w", preValidationErr))
 	}
