@@ -49,11 +49,11 @@ type MysqlConfig struct {
 
 var (
 	MysqlConfigs = []MysqlConfig{
-		// {
-		// 	Version:        "5.7.35",
-		// 	MasterHostname: "mysql_master-5-7-35",
-		// 	SlaveHostname:  "mysql_slave-5-7-35",
-		// },
+		{
+			Version:        "5.7.35",
+			MasterHostname: "mysql_master-5-7-35",
+			SlaveHostname:  "mysql_slave-5-7-35",
+		},
 		{
 			/*
 				The query cache variables are removed from MySQL 8.0 - https://dev.mysql.com/doc/refman/5.7/en/query-cache-status-and-maintenance.html
