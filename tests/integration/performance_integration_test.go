@@ -295,6 +295,42 @@ func validateOutputAgainstSchemas(t *testing.T, nonEmptyOutputs []string, output
 	}
 }
 
+func executeQueryMonitoringTest(t *testing.T, testCase struct {
+	name              string
+	args              []string
+	outputMetricsFile string
+	expectedCount     int
+}, mysqlPerfConfig MysqlPerformanceConfig) {
+	t.Run(testCase.name+"_"+mysqlPerfConfig.Version, func(t *testing.T) {
+		args := append(testCase.args, fmt.Sprintf("NRIA_CACHE_PATH=/tmp/%v.json", testCase.name))
+		stdout, stderr, err := runIntegrationAndGetStdoutWithError(t, mysqlPerfConfig.Hostname, args...)
+		if stderr != "" {
+			log.Debug("Integration command Standard Error: ", stderr)
+		}
+		require.NoError(t, err)
+		outputMetricsList := strings.Split(stdout, "\n")
+
+		// Verify that we have the expected number of outputs
+		assert.Equal(t, testCase.expectedCount, len(outputMetricsList),
+			"Expected %d output blocks but got %d", testCase.expectedCount, len(outputMetricsList))
+
+		// Define the output configurations for validation
+		outputConfigs := []struct {
+			name           string
+			schemaFileName string
+		}{
+			{"SlowQueryMetrics", "mysql-schema-slow-queries.json"},
+			{"IndividualQueryMetrics", "mysql-schema-individual-queries.json"},
+			{"QueryExecutionMetrics", "mysql-schema-query-execution.json"},
+			{"WaitEventsMetrics", "mysql-schema-wait-events.json"},
+			{"BlockingSessionMetrics", "mysql-schema-blocking-sessions.json"},
+		}
+
+		// Validate outputs against schemas
+		validateOutputAgainstSchemas(t, outputMetricsList, outputConfigs)
+	})
+}
+
 func TestQueryMonitoringOnly(t *testing.T) {
 	testCases := []struct {
 		name              string
@@ -306,61 +342,24 @@ func TestQueryMonitoringOnly(t *testing.T) {
 			name: "QueryMonitoringOnly",
 			args: []string{
 				"QUERY_MONITORING_ONLY=true",
-				"ENABLE_QUERY_MONITORING=true",
 			},
 			outputMetricsFile: "mysql-schema-master-localentity.json",
-			expectedCount:     5, // Expecting only the 5 query monitoring event types
+			expectedCount:     6, // Expecting the 5 query monitoring event types plus an additional output block
 		},
 		{
 			name: "QueryMonitoringOnly_WithRemoteMonitoring",
 			args: []string{
 				"QUERY_MONITORING_ONLY=true",
-				"ENABLE_QUERY_MONITORING=true",
 				"REMOTE_MONITORING=true",
 			},
 			outputMetricsFile: "mysql-schema-master.json",
-			expectedCount:     5, // Expecting only the 5 query monitoring event types
+			expectedCount:     6, // Expecting the 5 query monitoring event types plus an additional output block
 		},
 	}
 
 	for _, testCase := range testCases {
 		for _, mysqlPerfConfig := range MysqlPerfConfigs {
-			t.Run(testCase.name+"_"+mysqlPerfConfig.Version, func(t *testing.T) {
-				args := append(testCase.args, fmt.Sprintf("NRIA_CACHE_PATH=/tmp/%v.json", testCase.name))
-				stdout, stderr, err := runIntegrationAndGetStdoutWithError(t, mysqlPerfConfig.Hostname, args...)
-				if stderr != "" {
-					log.Debug("Integration command Standard Error: ", stderr)
-				}
-				require.NoError(t, err)
-				outputMetricsList := strings.Split(stdout, "\n")
-
-				// Filter out empty strings
-				var nonEmptyOutputs []string
-				for _, output := range outputMetricsList {
-					if strings.TrimSpace(output) != "" {
-						nonEmptyOutputs = append(nonEmptyOutputs, output)
-					}
-				}
-
-				// Verify that we have the expected number of outputs
-				assert.Equal(t, testCase.expectedCount, len(nonEmptyOutputs),
-					"Expected %d output blocks but got %d", testCase.expectedCount, len(nonEmptyOutputs))
-
-				// Define the output configurations for validation
-				outputConfigs := []struct {
-					name           string
-					schemaFileName string
-				}{
-					{"SlowQueryMetrics", "mysql-schema-slow-queries.json"},
-					{"IndividualQueryMetrics", "mysql-schema-individual-queries.json"},
-					{"QueryExecutionMetrics", "mysql-schema-query-execution.json"},
-					{"WaitEventsMetrics", "mysql-schema-wait-events.json"},
-					{"BlockingSessionMetrics", "mysql-schema-blocking-sessions.json"},
-				}
-
-				// Use the new function to validate outputs against schemas
-				validateOutputAgainstSchemas(t, nonEmptyOutputs, outputConfigs)
-			})
+			executeQueryMonitoringTest(t, testCase, mysqlPerfConfig)
 		}
 	}
 }

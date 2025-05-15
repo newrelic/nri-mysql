@@ -18,9 +18,6 @@ const performanceSchemaQuery = "SHOW GLOBAL VARIABLES LIKE 'performance_schema';
 const versionQuery = "SELECT VERSION();"
 
 /*
-enableEssentialConsumersAndInstruments calls a stored procedure to enable essential consumers and instruments
-in the MySQL Performance Schema.
-
 NOTE: This procedure (`newrelic.enable_essential_consumers_and_instruments`) is a custom stored procedure that
 is NOT part of the default MySQL server. It must be created as part of the initial setup when installing
 this integration to instrument self-hosted, RDS, and Aurora MySql servers.
@@ -57,7 +54,7 @@ This template provides the SQL command to enable a specific consumer by updating
 const essentialConsumerNotEnabledWarning = "Essential consumer %s is not enabled. To enable it, run: UPDATE performance_schema.setup_consumers SET ENABLED = 'YES' WHERE NAME = '%s';"
 
 // EP (Explicit Queries): Execute explicit SQL queries to enable essential consumers and instruments.
-var Queries = []string{
+var QueriesToEnableEssentialConsumersAndInstruments = []string{
 	"UPDATE performance_schema.setup_consumers SET enabled='YES' WHERE name LIKE 'events_statements_%' OR name LIKE 'events_waits_%';",
 	"UPDATE performance_schema.setup_instruments SET ENABLED = 'YES', TIMED = 'YES' WHERE NAME LIKE 'wait/%' OR NAME LIKE 'statement/%' OR NAME LIKE '%lock%';",
 }
@@ -198,7 +195,7 @@ func enableViaStoredProcedure(db utils.DataSource) error {
 // enableViaExplicitQueries attempts to enable essential consumers and instruments using explicit SQL queries
 func enableViaExplicitQueries(db utils.DataSource) error {
 	log.Debug("Attempting to enable essential consumers and instruments via explicit queries...")
-	for _, query := range Queries {
+	for _, query := range QueriesToEnableEssentialConsumersAndInstruments {
 		_, err := db.QueryX(query)
 		if err != nil {
 			log.Error("Failed to execute query '%s': %v", query, err)

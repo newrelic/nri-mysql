@@ -214,7 +214,7 @@ func TestEnableEssentialConsumersAndInstruments_FallbackToQueries(t *testing.T) 
 	mock.ExpectQuery(enableEssentialConsumersAndInstrumentsProcedureQuery).WillReturnError(errProcedure)
 
 	// Mock explicit queries to succeed for fallback
-	for _, query := range Queries {
+	for _, query := range QueriesToEnableEssentialConsumersAndInstruments {
 		mock.ExpectQuery(query).WillReturnRows(sqlmock.NewRows([]string{"result"}).AddRow("success"))
 	}
 
@@ -252,7 +252,7 @@ func TestEnableEssentialConsumersAndInstruments_BothMethodsFail(t *testing.T) {
 	mock.ExpectQuery(enableEssentialConsumersAndInstrumentsProcedureQuery).WillReturnError(errProcedure)
 
 	// First explicit query fails
-	mock.ExpectQuery(Queries[0]).WillReturnError(errQuery)
+	mock.ExpectQuery(QueriesToEnableEssentialConsumersAndInstruments[0]).WillReturnError(errQuery)
 
 	err = enableEssentialConsumersAndInstruments(mockDataSource)
 	assert.Error(t, err)
@@ -300,7 +300,7 @@ func TestEnableViaExplicitQueries_Success(t *testing.T) {
 	sqlxDB := sqlx.NewDb(db, "sqlmock")
 	mockDataSource := &mockDataSource{db: sqlxDB}
 
-	for _, query := range Queries {
+	for _, query := range QueriesToEnableEssentialConsumersAndInstruments {
 		mock.ExpectQuery(query).WillReturnRows(sqlmock.NewRows([]string{"result"}).AddRow("success"))
 	}
 
@@ -318,10 +318,10 @@ func TestEnableViaExplicitQueries_PartialFailure(t *testing.T) {
 	mockDataSource := &mockDataSource{db: sqlxDB}
 
 	// First query succeeds
-	mock.ExpectQuery(Queries[0]).WillReturnRows(sqlmock.NewRows([]string{"result"}).AddRow("success"))
+	mock.ExpectQuery(QueriesToEnableEssentialConsumersAndInstruments[0]).WillReturnRows(sqlmock.NewRows([]string{"result"}).AddRow("success"))
 
 	// Second query fails
-	mock.ExpectQuery(Queries[1]).WillReturnError(errQuery)
+	mock.ExpectQuery(QueriesToEnableEssentialConsumersAndInstruments[1]).WillReturnError(errQuery)
 
 	err = enableViaExplicitQueries(mockDataSource)
 	assert.Error(t, err)
@@ -340,7 +340,7 @@ func TestEnableEssentialConsumersAndInstruments_ViaExplicitQueries(t *testing.T)
 	// Test that direct queries work when the stored procedure is unavailable
 	// This simulates the fallback path when mock.ExpectQuery for the stored procedure is not set up,
 	// causing the code to skip to explicit queries
-	for _, query := range Queries {
+	for _, query := range QueriesToEnableEssentialConsumersAndInstruments {
 		mock.ExpectQuery(query).WillReturnRows(sqlmock.NewRows([]string{"result"}).AddRow("success"))
 	}
 
