@@ -18,32 +18,11 @@ const performanceSchemaQuery = "SHOW GLOBAL VARIABLES LIKE 'performance_schema';
 const versionQuery = "SELECT VERSION();"
 
 /*
-NOTE: This procedure (`newrelic.enable_essential_consumers_and_instruments`) is a custom stored procedure that
-is NOT part of the default MySQL server. It must be created as part of the initial setup when installing
-this integration to instrument self-hosted, RDS, and Aurora MySql servers.
+NOTE: This procedure (`newrelic.enable_essential_consumers_and_instruments`) enables essential consumers
+and instruments for MySQL query performance monitoring. It's not part of default MySQL and must be created
+during initial setup for self-hosted, RDS, or Aurora MySQL servers.
 
-The stored procedure enables:
-1. All event statement and event wait consumers
-2. All wait, statement, and lock-related instruments with timing
-
-To set up this stored procedure, the following SQL must be executed with appropriate privileges:
-
- 1. Create the schema:
-    CREATE SCHEMA IF NOT EXISTS newrelic;
-    GRANT EXECUTE ON newrelic.* TO 'newrelic'@'localhost';
-
- 2. Create the stored procedure:
-    DELIMITER $$
-    CREATE PROCEDURE newrelic.enable_essential_consumers_and_instruments()
-    SQL SECURITY DEFINER
-    BEGIN
-    UPDATE performance_schema.setup_consumers SET enabled='YES' WHERE name LIKE 'events_statements_%' OR name LIKE 'events_waits_%';
-    UPDATE performance_schema.setup_instruments SET ENABLED = 'YES', TIMED = 'YES' WHERE NAME LIKE 'wait/%' OR NAME LIKE 'statement/%' OR NAME LIKE '%lock%';
-    END $$
-    DELIMITER ;
-    GRANT EXECUTE ON PROCEDURE newrelic.enable_essential_consumers_and_instruments TO 'newrelic'@'localhost';
-
-This procedure is automatically called when the integration detects that essential performance monitoring consumers are not properly enabled.
+For detailed setup instructions, see: https://docs.newrelic.com/install/mysql
 */
 const enableEssentialConsumersAndInstrumentsProcedureQuery = "CALL newrelic.enable_essential_consumers_and_instruments();"
 
