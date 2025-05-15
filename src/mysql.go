@@ -49,6 +49,15 @@ func main() {
 	e, err := infrautils.CreateNodeEntity(i, args.RemoteMonitoring, args.Hostname, args.Port)
 	infrautils.FatalIfErr(err)
 
+	/*
+		If the QueryMonitoringOnly flag is set, only populate query performance metrics
+		and return from main function without proceeding further.
+	*/
+	if args.QueryMonitoringOnly {
+		queryperformancemonitoring.PopulateQueryPerformanceMetrics(args, e, i)
+		return
+	}
+
 	db, err := openSQLDB(dbutils.GenerateDSN(args, ""))
 	infrautils.FatalIfErr(err)
 	defer db.close()
