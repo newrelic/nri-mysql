@@ -150,40 +150,55 @@ func numberOfEssentialConsumersEnabled(db utils.DataSource, query string) (count
 }
 
 /*
-enableEssentialConsumersAndInstruments enables essential consumers and instruments in the MySQL Performance Schema.
+Enables essential Performance Schema consumers and instruments using either a stored procedure
+or direct SQL queries. First attempts to use the custom procedure 'newrelic.enable_essential_consumers_and_instruments',
+then falls back to explicit queries if needed.
 
-The function first attempts to enable the consumers and instruments via the custom stored procedure
-'newrelic.enable_essential_consumers_and_instruments'. If this fails (for example, if the procedure
-doesn't exist or the user doesn't have permission to execute it), it falls back to executing
-explicit SQL queries directly.
-
-This function primarily executes for AWS Standard RDS instances as they do not support consumer
-and instrument enablement using parameter groups. It's also used in very rare cases for
-self-hosted MySQL servers and Aurora RDS instances.
-
-Both methods enable:
-1. All event statement and event wait consumers
-2. All wait, statement, and lock-related instruments with timing
+Used primarily for AWS RDS instances and self-hosted MySQL servers. For setup details, see:
+https://docs.newrelic.com/install/mysql
 
 Parameters:
 - db: The database connection object.
 
 Returns:
-- An error if both the stored procedure and explicit queries fail.
+- An error if both methods fail.
 */
 func enableEssentialConsumersAndInstruments(db utils.DataSource) error {
 	log.Debug("Attempting to enable essential consumers and instruments via stored procedure...")
 	err := enableViaStoredProcedure(db)
-	if err != nil {
-		log.Debug("Stored procedure failed, attempting fallback to explicit queries: %v", err)
+	if err == nil {
+		log.Debug("Successfully enabled essential consumers and instruments via stored procedure")
+		return nil
+	}
+
+	// Check if error is related to stored procedure not existing or permissions
+	// These are errors where falling back to explicit queries might help
+	errMsg := strings.ToLower(err.Error())
+	if isRecoverableError(errMsg) {
+		log.Debug("Stored procedure failed with recoverable error, attempting fallback to explicit queries: %v", err)
 		return enableViaExplicitQueries(db)
 	}
 
-	log.Debug("Successfully enabled essential consumers and instruments via stored procedure")
-	return nil
+	// For other errors (like connection issues), don't attempt fallback
+	log.Error("Failed to enable essential consumers and instruments: %v", err)
+	return fmt.Errorf("failed to enable essential consumers and instruments: %w", err)
 }
 
-// enableViaStoredProcedure attempts to enable essential consumers and instruments using a stored procedure
+func isRecoverableError(errMsg string) bool {
+	recoverablePatterns := []string{
+		"procedure newrelic.enable_essential_consumers_and_instruments does not exist",
+		"routine newrelic.enable_essential_consumers_and_instruments does not exist",
+		"permission denied",
+	}
+
+	for _, pattern := range recoverablePatterns {
+		if strings.Contains(errMsg, strings.ToLower(pattern)) {
+			return true
+		}
+	}
+	return false
+}
+
 func enableViaStoredProcedure(db utils.DataSource) error {
 	_, err := db.QueryX(enableEssentialConsumersAndInstrumentsProcedureQuery)
 	if err != nil {
@@ -192,7 +207,6 @@ func enableViaStoredProcedure(db utils.DataSource) error {
 	return nil
 }
 
-// enableViaExplicitQueries attempts to enable essential consumers and instruments using explicit SQL queries
 func enableViaExplicitQueries(db utils.DataSource) error {
 	log.Debug("Attempting to enable essential consumers and instruments via explicit queries...")
 	for _, query := range QueriesToEnableEssentialConsumersAndInstruments {

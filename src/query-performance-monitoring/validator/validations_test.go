@@ -210,8 +210,9 @@ func TestEnableEssentialConsumersAndInstruments_FallbackToQueries(t *testing.T) 
 	sqlxDB := sqlx.NewDb(db, "sqlmock")
 	mockDataSource := &mockDataSource{db: sqlxDB}
 
-	// Mock stored procedure to fail
-	mock.ExpectQuery(enableEssentialConsumersAndInstrumentsProcedureQuery).WillReturnError(errProcedure)
+	// Mock stored procedure to fail with a recognizable recoverable error
+	recoverableErr := errors.New("procedure newrelic.enable_essential_consumers_and_instruments does not exist")
+	mock.ExpectQuery(enableEssentialConsumersAndInstrumentsProcedureQuery).WillReturnError(recoverableErr)
 
 	// Mock explicit queries to succeed for fallback
 	for _, query := range QueriesToEnableEssentialConsumersAndInstruments {
@@ -248,8 +249,9 @@ func TestEnableEssentialConsumersAndInstruments_BothMethodsFail(t *testing.T) {
 	sqlxDB := sqlx.NewDb(db, "sqlmock")
 	mockDataSource := &mockDataSource{db: sqlxDB}
 
-	// Stored procedure fails
-	mock.ExpectQuery(enableEssentialConsumersAndInstrumentsProcedureQuery).WillReturnError(errProcedure)
+	// Stored procedure fails with a recoverable error to trigger fallback
+	recoverableErr := errors.New("procedure newrelic.enable_essential_consumers_and_instruments does not exist")
+	mock.ExpectQuery(enableEssentialConsumersAndInstrumentsProcedureQuery).WillReturnError(recoverableErr)
 
 	// First explicit query fails
 	mock.ExpectQuery(QueriesToEnableEssentialConsumersAndInstruments[0]).WillReturnError(errQuery)
@@ -330,22 +332,25 @@ func TestEnableViaExplicitQueries_PartialFailure(t *testing.T) {
 }
 
 func TestEnableEssentialConsumersAndInstruments_ViaExplicitQueries(t *testing.T) {
-	db, mock, err := sqlmock.New()
+	db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
 	assert.NoError(t, err)
 	defer db.Close()
 
 	sqlxDB := sqlx.NewDb(db, "sqlmock")
 	mockDataSource := &mockDataSource{db: sqlxDB}
 
-	// Test that direct queries work when the stored procedure is unavailable
-	// This simulates the fallback path when mock.ExpectQuery for the stored procedure is not set up,
-	// causing the code to skip to explicit queries
+	// Mock stored procedure to fail with a recognizable recoverable error to trigger fallback
+	recoverableErr := errors.New("procedure newrelic.enable_essential_consumers_and_instruments does not exist")
+	mock.ExpectQuery(enableEssentialConsumersAndInstrumentsProcedureQuery).WillReturnError(recoverableErr)
+
+	// Mock the explicit queries to succeed
 	for _, query := range QueriesToEnableEssentialConsumersAndInstruments {
 		mock.ExpectQuery(query).WillReturnRows(sqlmock.NewRows([]string{"result"}).AddRow("success"))
 	}
 
 	err = enableEssentialConsumersAndInstruments(mockDataSource)
 	assert.NoError(t, err)
+	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
 func TestGetMySQLVersion(t *testing.T) {

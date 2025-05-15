@@ -12,7 +12,7 @@ Unreleased section should follow [Release Toolkit](https://github.com/newrelic/r
 ### enhancements
 - Added Query Performance Monitoring support for RDS
 - Added QueryMonitoringOnly flag to enable only query monitoring feature
-- Updated isSupportedStatement to normalize case of both query and SupportedStatements
+- Updated isSupportedStatement function to normalize case of both input SQL queries and SupportedStatements array items for consistent case-insensitive matching, fixing potential issues with SQL statement recognition
 
 ## v1.15.0 - 2025-04-21
 

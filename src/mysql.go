@@ -51,7 +51,7 @@ func main() {
 
 	/*
 		If the QueryMonitoringOnly flag is set, only populate query performance metrics
-		and exit the program without proceeding further.
+		and return from main function without proceeding further, which terminates the program.
 	*/
 	if args.QueryMonitoringOnly {
 		queryperformancemonitoring.PopulateQueryPerformanceMetrics(args, e, i)
