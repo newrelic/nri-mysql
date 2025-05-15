@@ -354,6 +354,11 @@ func TestIsSupportedStatement(t *testing.T) {
 	t.Run("Supported Statement", func(t *testing.T) {
 		assert.True(t, isSupportedStatement("SELECT * FROM test"))
 		assert.True(t, isSupportedStatement("WITH cte AS (SELECT * FROM test) SELECT * FROM cte"))
+		assert.True(t, isSupportedStatement("select * from users"))
+		assert.True(t, isSupportedStatement("  SELECT * FROM users"))
+		assert.True(t, isSupportedStatement("with cte as (select * from users) select * from cte"))
+		assert.True(t, isSupportedStatement("Select * from test"))
+		assert.True(t, isSupportedStatement("With cte as (Select * from test) Select * from cte"))
 	})
 
 	t.Run("Unsupported Statement", func(t *testing.T) {
@@ -362,6 +367,9 @@ func TestIsSupportedStatement(t *testing.T) {
 		assert.False(t, isSupportedStatement("INSERT INTO test VALUES (1)"))
 		assert.False(t, isSupportedStatement("UPDATE test SET value = 1"))
 		assert.False(t, isSupportedStatement("DELETE FROM test"))
+		assert.False(t, isSupportedStatement("CREATE TABLE users (id INT, name VARCHAR(255))"))
+		assert.False(t, isSupportedStatement(""))
+		assert.False(t, isSupportedStatement("   "))
 	})
 }
 
