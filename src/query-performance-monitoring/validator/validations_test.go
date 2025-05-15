@@ -30,6 +30,7 @@ func (m *mockDataSource) QueryxContext(ctx context.Context, query string, args .
 var errQueryFailed = errors.New("query failed")
 var errQuery = errors.New("query error")
 var errProcedure = errors.New("procedure error")
+var errProcedureNotExist = errors.New("procedure newrelic.enable_essential_consumers_and_instruments does not exist")
 
 func TestValidatePreconditions_PerformanceSchemaDisabled(t *testing.T) {
 	rows := sqlmock.NewRows([]string{"Variable_name", "Value"}).
@@ -211,8 +212,7 @@ func TestEnableEssentialConsumersAndInstruments_FallbackToQueries(t *testing.T) 
 	mockDataSource := &mockDataSource{db: sqlxDB}
 
 	// Mock stored procedure to fail with a recognizable recoverable error
-	recoverableErr := errors.New("procedure newrelic.enable_essential_consumers_and_instruments does not exist")
-	mock.ExpectQuery(enableEssentialConsumersAndInstrumentsProcedureQuery).WillReturnError(recoverableErr)
+	mock.ExpectQuery(enableEssentialConsumersAndInstrumentsProcedureQuery).WillReturnError(errProcedureNotExist)
 
 	// Mock explicit queries to succeed for fallback
 	for _, query := range QueriesToEnableEssentialConsumersAndInstruments {
@@ -250,8 +250,7 @@ func TestEnableEssentialConsumersAndInstruments_BothMethodsFail(t *testing.T) {
 	mockDataSource := &mockDataSource{db: sqlxDB}
 
 	// Stored procedure fails with a recoverable error to trigger fallback
-	recoverableErr := errors.New("procedure newrelic.enable_essential_consumers_and_instruments does not exist")
-	mock.ExpectQuery(enableEssentialConsumersAndInstrumentsProcedureQuery).WillReturnError(recoverableErr)
+	mock.ExpectQuery(enableEssentialConsumersAndInstrumentsProcedureQuery).WillReturnError(errProcedureNotExist)
 
 	// First explicit query fails
 	mock.ExpectQuery(QueriesToEnableEssentialConsumersAndInstruments[0]).WillReturnError(errQuery)
@@ -340,8 +339,7 @@ func TestEnableEssentialConsumersAndInstruments_ViaExplicitQueries(t *testing.T)
 	mockDataSource := &mockDataSource{db: sqlxDB}
 
 	// Mock stored procedure to fail with a recognizable recoverable error to trigger fallback
-	recoverableErr := errors.New("procedure newrelic.enable_essential_consumers_and_instruments does not exist")
-	mock.ExpectQuery(enableEssentialConsumersAndInstrumentsProcedureQuery).WillReturnError(recoverableErr)
+	mock.ExpectQuery(enableEssentialConsumersAndInstrumentsProcedureQuery).WillReturnError(errProcedureNotExist)
 
 	// Mock the explicit queries to succeed
 	for _, query := range QueriesToEnableEssentialConsumersAndInstruments {
