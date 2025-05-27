@@ -159,7 +159,6 @@ func enableEssentialConsumersAndInstruments(db utils.DataSource) error {
 	}
 
 	// For other errors (like connection issues), don't attempt fallback
-	log.Error("Failed to enable essential consumers and instruments: %v", err)
 	return fmt.Errorf("failed to enable essential consumers and instruments: %w", err)
 }
 
