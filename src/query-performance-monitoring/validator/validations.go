@@ -205,13 +205,21 @@ func enableViaExplicitQueries(db utils.DataSource) error {
 func checkAndEnableEssentialConsumers(db utils.DataSource) error {
 	query := buildConsumerStatusQuery()
 	count, consumerErr := numberOfEssentialConsumersEnabled(db, query)
+
+	// If there was an error checking consumers, return it immediately
+	if consumerErr != nil {
+		return consumerErr
+	}
+
 	// If the count of enabled essential consumers is less than the required count, try to enable them
 	if count < constants.EssentialConsumersCount {
 		if err := enableEssentialConsumersAndInstruments(db); err != nil {
 			return fmt.Errorf("failed to enable essential consumers and instruments: %w", err)
 		}
 	}
-	return consumerErr
+
+	// If we've made it here, everything is successful
+	return nil
 }
 
 // logEnablePerformanceSchemaInstructions logs instructions to enable the Performance Schema.
