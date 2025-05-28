@@ -386,8 +386,6 @@ func TestUnconfiguredPerfMySQLIntegration(t *testing.T) {
 				No fixed schema file is specified for the following reasons:
 				1. QueryMonitoringOnly produces output that varies based on MySQL configuration
 				2. In unconfigured environments (as in this test), output will be empty because there are no slow queries, blocking sessions running on the MySQL service
-				3. In configured environments, it produces multiple JSON outputs (see performance_integration_test.go)
-				4. Each JSON output has its own schema (slow queries, individual queries, etc.)
 			*/
 			outputMetricsFile: "",
 			expectedError:     "",
