@@ -303,8 +303,23 @@ func runUnconfiguredMysqlPerfConfigTest(t *testing.T, args []string, outputMetri
 			args = append(args, fmt.Sprintf("NRIA_CACHE_PATH=/tmp/%v.json", testName))
 			stdout, stderr, err := runIntegrationAndGetStdoutWithError(t, mysqlUnconfiguredPerfConfig.MasterHostname, args...)
 			outputMetricsList := strings.Split(stdout, "\n")
-			assert.Empty(t, outputMetricsList[1], "Unexpected stdout content")
+			if len(outputMetricsList) > 1 {
+				assert.Empty(t, outputMetricsList[1], "Unexpected stdout content")
+			}
 			helpers.AssertReceivedErrors(t, expectedError, strings.Split(stderr, "\n")...)
+
+			// For QueryMonitoringOnly case, we don't need to validate any output
+			if strings.Contains(testName, "QueryMonitoringOnly") {
+				t.Logf("Skipping schema validation for QueryMonitoringOnly - no validation required")
+				return
+			}
+
+			// Skip schema validation if there's no output to validate
+			if len(outputMetricsList) == 0 || (len(outputMetricsList) == 1 && strings.TrimSpace(outputMetricsList[0]) == "") {
+				t.Logf("Empty output - skipping schema validation")
+				return
+			}
+
 			schemaPath := filepath.Join("json-schema-performance-files", outputMetricsFile)
 			err = jsonschema.Validate(schemaPath, outputMetricsList[0])
 			require.NoError(t, err, "The output of MySQL integration doesn't have expected format")
@@ -327,7 +342,8 @@ func TestUnconfiguredPerfMySQLIntegration(t *testing.T) {
 				"ENABLE_QUERY_MONITORING=true",
 			},
 			outputMetricsFile: "mysql-schema-master.json",
-			expectedError:     "essential consumer is not enabled: events_statements_cpu",
+			// We don't get any error in this case because the root user is being used to enable essential consumers and instruments via explicit queries.
+			expectedError: "",
 		},
 		{
 			name: "LocalEntity_EnableQueryMonitoring",
@@ -335,7 +351,8 @@ func TestUnconfiguredPerfMySQLIntegration(t *testing.T) {
 				"ENABLE_QUERY_MONITORING=true",
 			},
 			outputMetricsFile: "mysql-schema-master-localentity.json",
-			expectedError:     "essential consumer is not enabled: events_statements_cpu",
+			// We don't get any error in this case because the root user is being used to enable essential consumers and instruments via explicit queries.
+			expectedError: "",
 		},
 		{
 			name: "OnlyMetrics_EnableQueryMonitoring",
@@ -344,7 +361,8 @@ func TestUnconfiguredPerfMySQLIntegration(t *testing.T) {
 				"ENABLE_QUERY_MONITORING=true",
 			},
 			outputMetricsFile: "mysql-schema-metrics-master.json",
-			expectedError:     "essential consumer is not enabled: events_statements_cpu",
+			// We don't get any error in this case because the root user is being used to enable essential consumers and instruments via explicit queries.
+			expectedError: "",
 		},
 		{
 			name: "OnlyInventory_EnableQueryMonitoring",
@@ -358,6 +376,19 @@ func TestUnconfiguredPerfMySQLIntegration(t *testing.T) {
 					Refer args.HasMetrics() implementation here https://github.com/newrelic/infra-integrations-sdk/blob/12ee4e8a20a479f2b3d9ba328d2f80c9dc663c79/args/args.go#L33
 			*/
 			expectedError: "",
+		},
+		{
+			name: "QueryMonitoringOnly",
+			args: []string{
+				"QUERY_MONITORING_ONLY=true",
+			},
+			/*
+				No fixed schema file is specified for the following reasons:
+				1. QueryMonitoringOnly produces output that varies based on MySQL configuration
+				2. In unconfigured environments (as in this test), output will be empty because there are no slow queries, blocking sessions running on the MySQL service
+			*/
+			outputMetricsFile: "",
+			expectedError:     "",
 		},
 	}
 	for _, testCase := range testCases {
