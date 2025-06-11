@@ -377,19 +377,6 @@ func TestUnconfiguredPerfMySQLIntegration(t *testing.T) {
 			*/
 			expectedError: "",
 		},
-		{
-			name: "QueryMonitoringOnly",
-			args: []string{
-				"QUERY_MONITORING_ONLY=true",
-			},
-			/*
-				No fixed schema file is specified for the following reasons:
-				1. QueryMonitoringOnly produces output that varies based on MySQL configuration
-				2. In unconfigured environments (as in this test), output will be empty because there are no slow queries, blocking sessions running on the MySQL service
-			*/
-			outputMetricsFile: "",
-			expectedError:     "",
-		},
 	}
 	for _, testCase := range testCases {
 		runUnconfiguredMysqlPerfConfigTest(t, testCase.args, testCase.outputMetricsFile, testCase.expectedError, testCase.name)

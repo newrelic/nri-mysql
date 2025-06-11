@@ -20,7 +20,6 @@ type ArgumentList struct {
 	OldPasswords                         bool   `default:"false" help:"Allow the use of old passwords: https://dev.mysql.com/doc/refman/5.6/en/server-system-variables.html#sysvar_old_passwords"`
 	ShowVersion                          bool   `default:"false" help:"Display build information and exit."`
 	EnableQueryMonitoring                bool   `default:"false" help:"Enable collection of detailed query performance metrics."`
-	QueryMonitoringOnly                  bool   `default:"false" help:"Enable collection of only detailed query performance metrics, excluding other metrics."`
 	SlowQueryMonitoringFetchInterval     int    `default:"30" help:"Fetch interval in seconds for grouped slow queries. Should match the interval in mysql-config.yml."`
 	QueryMonitoringResponseTimeThreshold int    `default:"500" help:"Threshold in milliseconds for query response time to fetch individual query performance metrics."`
 	QueryMonitoringCountThreshold        int    `default:"20" help:"Query count limit for fetching grouped slow and individual query performance metrics."`
