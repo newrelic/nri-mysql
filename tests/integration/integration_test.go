@@ -308,12 +308,6 @@ func runUnconfiguredMysqlPerfConfigTest(t *testing.T, args []string, outputMetri
 			}
 			helpers.AssertReceivedErrors(t, expectedError, strings.Split(stderr, "\n")...)
 
-			// For QueryMonitoringOnly case, we don't need to validate any output
-			if strings.Contains(testName, "QueryMonitoringOnly") {
-				t.Logf("Skipping schema validation for QueryMonitoringOnly - no validation required")
-				return
-			}
-
 			// Skip schema validation if there's no output to validate
 			if len(outputMetricsList) == 0 || (len(outputMetricsList) == 1 && strings.TrimSpace(outputMetricsList[0]) == "") {
 				t.Logf("Empty output - skipping schema validation")
