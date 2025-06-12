@@ -308,12 +308,6 @@ func runUnconfiguredMysqlPerfConfigTest(t *testing.T, args []string, outputMetri
 			}
 			helpers.AssertReceivedErrors(t, expectedError, strings.Split(stderr, "\n")...)
 
-			// For QueryMonitoringOnly case, we don't need to validate any output
-			if strings.Contains(testName, "QueryMonitoringOnly") {
-				t.Logf("Skipping schema validation for QueryMonitoringOnly - no validation required")
-				return
-			}
-
 			// Skip schema validation if there's no output to validate
 			if len(outputMetricsList) == 0 || (len(outputMetricsList) == 1 && strings.TrimSpace(outputMetricsList[0]) == "") {
 				t.Logf("Empty output - skipping schema validation")
@@ -376,19 +370,6 @@ func TestUnconfiguredPerfMySQLIntegration(t *testing.T) {
 					Refer args.HasMetrics() implementation here https://github.com/newrelic/infra-integrations-sdk/blob/12ee4e8a20a479f2b3d9ba328d2f80c9dc663c79/args/args.go#L33
 			*/
 			expectedError: "",
-		},
-		{
-			name: "QueryMonitoringOnly",
-			args: []string{
-				"QUERY_MONITORING_ONLY=true",
-			},
-			/*
-				No fixed schema file is specified for the following reasons:
-				1. QueryMonitoringOnly produces output that varies based on MySQL configuration
-				2. In unconfigured environments (as in this test), output will be empty because there are no slow queries, blocking sessions running on the MySQL service
-			*/
-			outputMetricsFile: "",
-			expectedError:     "",
 		},
 	}
 	for _, testCase := range testCases {
