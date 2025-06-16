@@ -83,4 +83,4 @@ integrations:
   labels:
     env: production
     role: performance-monitoring
-  inventory_source: config/mysql-performance
+  inventory_source: config/mysql
