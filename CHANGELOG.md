@@ -9,9 +9,14 @@ Unreleased section should follow [Release Toolkit](https://github.com/newrelic/r
 
 ## Unreleased
 
-### enhancements
+## v1.16.0 - 2025-06-16
+
+### 🚀 Enhancements
 - Added Query Performance Monitoring support for RDS
 - Made individual query filtering case-insensitive
+
+### ⛓️ Dependencies
+- Updated github.com/go-sql-driver/mysql to v1.9.3 - [Changelog 🔗](https://github.com/go-sql-driver/mysql/releases/tag/v1.9.3)
 
 ## v1.15.0 - 2025-04-21
 
