@@ -9,8 +9,13 @@ Unreleased section should follow [Release Toolkit](https://github.com/newrelic/r
 
 ## Unreleased
 
-### enhancements
+## v1.17.0 - 2025-08-29
+
+### 🚀 Enhancements
 - Reduced QueryMonitoringResponseTimeThreshold from 500ms to 1ms to improve visibility of Individual query performance data immediately
+
+### ⛓️ Dependencies
+- Updated golang patch version to v1.24.6
 
 ## v1.16.1 - 2025-06-30
 
