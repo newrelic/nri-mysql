@@ -21,7 +21,7 @@ type ArgumentList struct {
 	ShowVersion                          bool   `default:"false" help:"Display build information and exit."`
 	EnableQueryMonitoring                bool   `default:"false" help:"Enable collection of detailed query performance metrics."`
 	SlowQueryMonitoringFetchInterval     int    `default:"30" help:"Fetch interval in seconds for grouped slow queries. Should match the interval in mysql-config.yml."`
-	QueryMonitoringResponseTimeThreshold int    `default:"500" help:"Threshold in milliseconds for query response time to fetch individual query performance metrics."`
+	QueryMonitoringResponseTimeThreshold int    `default:"1" help:"Threshold in milliseconds for query response time to fetch individual query performance metrics."`
 	QueryMonitoringCountThreshold        int    `default:"20" help:"Query count limit for fetching grouped slow and individual query performance metrics."`
 	ExcludedPerformanceDatabases         string `default:"[]" help:"A JSON array that lists databases to be excluded from performance metrics collection. System databases are always excluded."`
 }

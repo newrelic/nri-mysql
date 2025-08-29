@@ -29,7 +29,27 @@ func Validate(fileName string, input string) error {
 	if err != nil {
 		return err
 	}
-	schemaURI := fmt.Sprintf("file://%s", filepath.Join(pwd, fileName))
+
+	// Support running tests from either tests/integration (original behavior)
+	// or the repository root by resolving the schema path using common bases.
+	candidatePaths := []string{
+		filepath.Join(pwd, fileName),
+		filepath.Join(pwd, "tests", "integration", fileName),
+	}
+
+	var resolvedPath string
+	for _, p := range candidatePaths {
+		if info, err := os.Stat(p); err == nil && !info.IsDir() {
+			resolvedPath = p
+			break
+		}
+	}
+
+	if resolvedPath == "" {
+		return fmt.Errorf("Error loading JSON schema, file not found. looked in: %v", candidatePaths)
+	}
+
+	schemaURI := fmt.Sprintf("file://%s", resolvedPath)
 
 	schemaLoader := gojsonschema.NewReferenceLoader(schemaURI)
 	documentLoader := gojsonschema.NewStringLoader(input)

@@ -38,7 +38,7 @@ const (
 	DefaultSlowQueryFetchInterval = 30
 
 	//  DefaultQueryFetchInterval(ms) defines the default interval for fetching individual query performance metrics. */
-	DefaultQueryResponseTimeThreshold = 500
+	DefaultQueryResponseTimeThreshold = 1
 
 	/*
 		NOTE: The default and max values chosen may be adjusted in the future. Assumptions made to choose the defaults and max values:
