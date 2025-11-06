@@ -108,7 +108,6 @@
                                     "type": "integer"
                                 },
                                 "table_name": {
-                                    "minLength": 1,
                                     "type": "string"
                                 },
                                 "thread_id": {
