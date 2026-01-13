@@ -9,6 +9,9 @@ Unreleased section should follow [Release Toolkit](https://github.com/newrelic/r
 
 ## Unreleased
 
+### bugfix
+- Standardized execution timestamps to UTC to ensure consistent filtering across different MySQL configurations.
+
 ## v1.18.2 - 2025-12-12
 
 ### ⛓️ Dependencies
