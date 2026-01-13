@@ -9,6 +9,9 @@ Unreleased section should follow [Release Toolkit](https://github.com/newrelic/r
 
 ## Unreleased
 
+### bugfix
+- Added CONVERT_TZ function to convert LAST_SEEN timestamp from session timezone to UTC in both the SELECT clause and WHERE clause.
+
 ## v1.18.2 - 2025-12-12
 
 ### ⛓️ Dependencies
