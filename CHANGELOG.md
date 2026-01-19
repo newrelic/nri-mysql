@@ -9,8 +9,13 @@ Unreleased section should follow [Release Toolkit](https://github.com/newrelic/r
 
 ## Unreleased
 
-### bugfix
+## v1.18.3 - 2026-01-19
+
+### 🐞 Bug fixes
 - Standardized execution timestamps to UTC to ensure consistent filtering across different MySQL configurations.
+
+### ⛓️ Dependencies
+- Updated github.com/sirupsen/logrus to v1.9.4 - [Changelog 🔗](https://github.com/sirupsen/logrus/releases/tag/v1.9.4)
 
 ## v1.18.2 - 2025-12-12
 
