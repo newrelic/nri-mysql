@@ -1,6 +1,6 @@
 module github.com/newrelic/nri-mysql
 
-go 1.25.8
+go 1.25.9
 
 require (
 	github.com/DATA-DOG/go-sqlmock v1.5.2
