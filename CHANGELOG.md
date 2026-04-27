@@ -9,9 +9,12 @@ Unreleased section should follow [Release Toolkit](https://github.com/newrelic/r
 
 ## Unreleased
 
+## v1.21.0 - 2026-04-27
 
-### security
-- update go to v1.25.9
+### 🛡️ Security notices
+- update go to v1.25.8
+- update filippo.io/edwards25519 to v1.1.1
+
 ## v1.20.0 - 2026-03-26
 
 ### 🛡️ Security notices
