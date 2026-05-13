@@ -42,7 +42,6 @@
                             "type": "object",
                             "properties": {
                                 "access_type": {
-                                    "minLength": 1,
                                     "type": "string"
                                 },
                                 "data_read_per_join": {
@@ -123,11 +122,9 @@
                                 "using_index": { "type": "string" }
                             },
                             "required": [
-                                "access_type",
                                 "event_id",
                                 "event_type",
                                 "step_id",
-                                "table_name",
                                 "thread_id"
                             ]
                         }
