@@ -113,6 +113,30 @@ func getRawData(db dataSource) (map[string]interface{}, map[string]interface{}, 
 	metrics["version_comment"] = inventory["version_comment"]
 	metrics["version"] = inventory["version"]
 
+	// Collect backup metrics if enabled
+	if args.ExtendedBackupMetrics {
+		backupData, err := db.query(backupMetricsQuery)
+		if err != nil {
+			log.Warn("Can't get backup metrics: %v", err)
+		} else {
+			for key := range backupData {
+				metrics[key] = backupData[key]
+			}
+		}
+	}
+
+	// Collect historical backup metrics if enabled
+	if args.ExtendedBackupHistoryMetrics {
+		backupHistoryData, err := db.query(backupHistoryMetricsQuery)
+		if err != nil {
+			log.Warn("Can't get backup history metrics (performance_schema may not be enabled or configured): %v", err)
+		} else {
+			for key := range backupHistoryData {
+				metrics[key] = backupHistoryData[key]
+			}
+		}
+	}
+
 	return inventory, metrics, dbVersion, nil
 }
 
@@ -147,6 +171,12 @@ func populateMetrics(sample *metric.Set, rawMetrics map[string]interface{}, dbVe
 	}
 	if args.ExtendedMyIsamMetrics {
 		populatePartialMetrics(sample, rawMetrics, myisamMetrics, dbVersion)
+	}
+	if args.ExtendedBackupMetrics {
+		populatePartialMetrics(sample, rawMetrics, backupMetrics, dbVersion)
+	}
+	if args.ExtendedBackupHistoryMetrics {
+		populatePartialMetrics(sample, rawMetrics, backupHistoryMetrics, dbVersion)
 	}
 }
 
