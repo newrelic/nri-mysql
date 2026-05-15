@@ -11,6 +11,7 @@ import (
 type dataSource interface {
 	close()
 	query(string) (map[string]interface{}, error)
+	getBackupQuery() string
 }
 
 type database struct {
@@ -35,6 +36,12 @@ func openSQLDB(dsn string) (dataSource, error) {
 
 func (db *database) close() {
 	db.source.Close()
+}
+
+// getBackupQuery returns the appropriate backup metrics query based on database version
+// Checks if performance_schema.metadata_locks is available and returns the appropriate query
+func (db *database) getBackupQuery() string {
+	return getBackupMetricsQuery(db.source)
 }
 
 /*

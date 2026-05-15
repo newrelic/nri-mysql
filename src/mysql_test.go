@@ -116,6 +116,10 @@ func (d testdb) query(query string) (map[string]interface{}, error) {
 	}
 	return nil, nil
 }
+func (d testdb) getBackupQuery() string {
+	// For tests, always return the main query (assumes newer version)
+	return backupMetricsQuery
+}
 
 func TestGetRawData(t *testing.T) {
 	database := testdb{

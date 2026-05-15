@@ -115,7 +115,9 @@ func getRawData(db dataSource) (map[string]interface{}, map[string]interface{}, 
 
 	// Collect backup metrics if enabled
 	if args.ExtendedBackupMetrics {
-		backupData, err := db.query(backupMetricsQuery)
+		// Get version-appropriate backup metrics query
+		backupQuery := db.getBackupQuery()
+		backupData, err := db.query(backupQuery)
 		if err != nil {
 			log.Warn("Can't get backup metrics: %v", err)
 		} else {
