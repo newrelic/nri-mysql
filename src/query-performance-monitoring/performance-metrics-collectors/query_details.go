@@ -146,7 +146,44 @@ func getIndividualQueryList(db utils.DataSource, queryIDList []string, args argu
 	allMetrics = append(allMetrics, recentQueryMetrics...)
 	allMetrics = append(allMetrics, extensiveQueryMetrics...)
 
-	return allMetrics, nil
+	// Apply enhanced deduplication to remove duplicate query executions from overlapping Performance Schema tables
+	// Uses EVENT_ID + THREAD_ID + EXECUTION_TIME for robust deduplication that handles edge cases
+	deduplicatedMetrics := deduplicateIndividualQueryMetrics(allMetrics)
+
+	return deduplicatedMetrics, nil
+}
+
+// deduplicateIndividualQueryMetrics removes duplicate query executions based on EVENT_ID + THREAD_ID + EXECUTION_TIME combination
+// This prevents the same query execution from being sent to New Relic multiple times when it appears
+// in multiple Performance Schema tables (current, history, history_long), while also handling edge cases
+// where EVENT_ID and THREAD_ID might be reused across different legitimate executions
+func deduplicateIndividualQueryMetrics(metrics []utils.IndividualQueryMetrics) []utils.IndividualQueryMetrics {
+	if len(metrics) == 0 {
+		return metrics
+	}
+
+	// Use a map to track unique combinations
+	seen := make(map[string]bool)
+	var deduplicated []utils.IndividualQueryMetrics
+
+	for _, metric := range metrics {
+		// Skip metrics with nil fields - these shouldn't occur due to query structure
+		if metric.EventID == nil || metric.ThreadID == nil || metric.ExecutionTimeMs == nil {
+			continue
+		}
+
+		// Always use enhanced key with execution time for robust deduplication
+		// This handles edge cases where EVENT_ID + THREAD_ID might be reused
+		key := fmt.Sprintf("%d_%d_%.3f", *metric.EventID, *metric.ThreadID, *metric.ExecutionTimeMs)
+
+		// Only include if we haven't seen this combination before
+		if !seen[key] {
+			seen[key] = true
+			deduplicated = append(deduplicated, metric)
+		}
+	}
+
+	return deduplicated
 }
 
 // setupQueryListCopyForReporting prepares the query list by removing unnecessary data
