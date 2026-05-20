@@ -84,7 +84,7 @@ func ValidatePreconditions(db utils.DataSource) (utils.DatabaseProfile, error) {
 	}
 
 	if !performanceSchemaEnabled {
-		logEnablePerformanceSchemaInstructions(profile)
+		logEnablePerformanceSchemaInstructions()
 		return utils.DatabaseProfile{}, ErrPerformanceSchemaDisabled
 	}
 
@@ -232,13 +232,9 @@ func checkAndEnableEssentialConsumers(db utils.DataSource) error {
 }
 
 // logEnablePerformanceSchemaInstructions logs instructions to enable the Performance Schema.
-func logEnablePerformanceSchemaInstructions(profile utils.DatabaseProfile) {
-	if profile.Flavor == utils.DatabaseFlavorMariaDB || isVersion8OrGreater(profile.RawVersion) {
-		log.Debug("To enable the Performance Schema, add the following lines to your database configuration file (my.cnf or my.ini) in the [mysqld] section and restart the server:")
-		log.Debug("performance_schema=ON")
-	} else {
-		log.Error("MySQL version %s is not supported. Only version 8.0+ is supported.", profile.RawVersion)
-	}
+func logEnablePerformanceSchemaInstructions() {
+	log.Debug("To enable the Performance Schema, add the following lines to your database configuration file (my.cnf or my.ini) in the [mysqld] section and restart the server:")
+	log.Debug("performance_schema=ON")
 }
 
 // getMySQLVersion retrieves the MySQL version from the database.
