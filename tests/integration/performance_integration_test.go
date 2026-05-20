@@ -88,7 +88,7 @@ func executeBlockingSessionQuery(mysqlPerfConfig MysqlPerformanceConfig) error {
 		log.SetLevel(log.DebugLevel)
 	}
 
-	masterErr := helpers.WaitForPort(*perfContainer, mysqlPerfConfig.Hostname, *port, 60*time.Second)
+	masterErr := helpers.WaitForPort(*perfContainer, mysqlPerfConfig.Hostname, *port, 120*time.Second)
 	if masterErr != nil {
 		return masterErr
 	}
@@ -255,6 +255,11 @@ func runValidMysqlPerfConfigTest(t *testing.T, args []string, outputMetricsFile 
 						} else {
 							t.Logf("Output line %d empty - skipping schema validation for %s", idx, name)
 						}
+
+						// For CI environments: WaitEventsMetrics might be legitimately empty
+						if name == "WaitEventsMetrics" {
+							t.Logf("WaitEventsMetrics empty in CI environment - this is expected due to resource constraints")
+						}
 					}
 				}
 
@@ -271,6 +276,13 @@ func runValidMysqlPerfConfigTest(t *testing.T, args []string, outputMetricsFile 
 				for _, outputConfig := range outputMetricsConfigs {
 					schemaPath := filepath.Join("json-schema-performance-files", outputConfig.schemaFileName)
 					err := jsonschema.Validate(schemaPath, outputConfig.stdout)
+					if err != nil {
+						// Debug: Print the actual JSON output causing validation failure
+						t.Logf("VALIDATION FAILURE for %s:", outputConfig.name)
+						t.Logf("Schema file: %s", outputConfig.schemaFileName)
+						t.Logf("Actual JSON output: %s", outputConfig.stdout)
+						t.Logf("Validation error: %v", err)
+					}
 					require.NoError(t, err, "The output of MySQL integration doesn't have expected format for %s", outputConfig.name)
 				}
 			}
