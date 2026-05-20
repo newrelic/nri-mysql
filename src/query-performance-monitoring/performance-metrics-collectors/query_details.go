@@ -120,7 +120,7 @@ func PopulateIndividualQueryDetails(db utils.DataSource, queryIDList []string, i
 	return groupQueriesByDatabase, nil
 }
 
-// getIndividualQueryList fetches and combines current, recent, and extensive query metrics
+// getIndividualQueryList fetches and combines current and recent query metrics
 func getIndividualQueryList(db utils.DataSource, queryIDList []string, args arguments.ArgumentList, querySet utils.QuerySet) ([]utils.IndividualQueryMetrics, error) {
 	// Collect current query metrics from the performance schema database for the given query IDs
 	currentQueryMetrics, err := collectIndividualQueryMetrics(db, queryIDList, querySet.CurrentRunningQueriesSearch, args)
@@ -134,29 +134,23 @@ func getIndividualQueryList(db utils.DataSource, queryIDList []string, args argu
 		return nil, fmt.Errorf("failed to collect recent query metrics: %w", err)
 	}
 
-	// Collect extensive query metrics from the performance schema database for the given query IDs
-	extensiveQueryMetrics, err := collectIndividualQueryMetrics(db, queryIDList, querySet.PastQueriesSearch, args)
-	if err != nil {
-		return nil, fmt.Errorf("failed to collect extensive query metrics: %w", err)
-	}
-
-	// Combine all collected metrics into a single list
+	// Combine collected metrics into a single list
 	var allMetrics []utils.IndividualQueryMetrics
 	allMetrics = append(allMetrics, currentQueryMetrics...)
 	allMetrics = append(allMetrics, recentQueryMetrics...)
-	allMetrics = append(allMetrics, extensiveQueryMetrics...)
 
-	// Apply enhanced deduplication to remove duplicate query executions from overlapping Performance Schema tables
-	// Uses EVENT_ID + THREAD_ID + EXECUTION_TIME for robust deduplication that handles edge cases
+	// Apply deduplication to handle any overlapping query executions between current and recent tables
+	// Uses EVENT_ID + THREAD_ID which uniquely identifies each execution
 	deduplicatedMetrics := deduplicateIndividualQueryMetrics(allMetrics)
 
 	return deduplicatedMetrics, nil
 }
 
-// deduplicateIndividualQueryMetrics removes duplicate query executions based on EVENT_ID + THREAD_ID + EXECUTION_TIME combination
+// deduplicateIndividualQueryMetrics removes duplicate query executions based on EVENT_ID + THREAD_ID combination.
 // This prevents the same query execution from being sent to New Relic multiple times when it appears
-// in multiple Performance Schema tables (current, history, history_long), while also handling edge cases
-// where EVENT_ID and THREAD_ID might be reused across different legitimate executions
+// in multiple Performance Schema tables (current, history). EVENT_ID is auto-incrementing per thread
+// and the (EVENT_ID, THREAD_ID) pair uniquely identifies exactly one execution within a monitoring window.
+// Only skips metrics that are missing EventID or ThreadID (required for deduplication key).
 func deduplicateIndividualQueryMetrics(metrics []utils.IndividualQueryMetrics) []utils.IndividualQueryMetrics {
 	if len(metrics) == 0 {
 		return metrics
@@ -167,14 +161,22 @@ func deduplicateIndividualQueryMetrics(metrics []utils.IndividualQueryMetrics) [
 	var deduplicated []utils.IndividualQueryMetrics
 
 	for _, metric := range metrics {
-		// Skip metrics with nil fields - these shouldn't occur due to query structure
-		if metric.EventID == nil || metric.ThreadID == nil || metric.ExecutionTimeMs == nil {
+		// Skip metrics with nil fields required for deduplication
+		if metric.EventID == nil || metric.ThreadID == nil {
+			var nilFields []string
+			if metric.EventID == nil {
+				nilFields = append(nilFields, "EventID")
+			}
+			if metric.ThreadID == nil {
+				nilFields = append(nilFields, "ThreadID")
+			}
+			log.Warn("Skipping individual query metric with nil %v - cannot deduplicate", nilFields)
 			continue
 		}
 
-		// Always use enhanced key with execution time for robust deduplication
-		// This handles edge cases where EVENT_ID + THREAD_ID might be reused
-		key := fmt.Sprintf("%d_%d_%.3f", *metric.EventID, *metric.ThreadID, *metric.ExecutionTimeMs)
+		// Use EVENT_ID + THREAD_ID for deduplication
+		// EVENT_ID is auto-incrementing per thread and uniquely identifies one execution
+		key := fmt.Sprintf("%d_%d", *metric.EventID, *metric.ThreadID)
 
 		// Only include if we haven't seen this combination before
 		if !seen[key] {

@@ -7,7 +7,6 @@ type QuerySet struct {
 	SlowQueries                 string
 	CurrentRunningQueriesSearch string
 	RecentQueriesSearch         string
-	PastQueriesSearch           string
 	BlockingSessionsQuery       string
 	// NeedsQueryAnonymization indicates whether blocking query texts require
 	// Go-side anonymization. True for MariaDB because its trx_query fallback
@@ -33,7 +32,6 @@ func GetQuerySet(flavor DatabaseFlavor) QuerySet {
 		SlowQueries:                 slowQuery,
 		CurrentRunningQueriesSearch: CurrentRunningQueriesSearch,
 		RecentQueriesSearch:         RecentQueriesSearch,
-		PastQueriesSearch:           PastQueriesSearch,
 		BlockingSessionsQuery:       blockingQuery,
 		NeedsQueryAnonymization:     needsAnonymization,
 	}

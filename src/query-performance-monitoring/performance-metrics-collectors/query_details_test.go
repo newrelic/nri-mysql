@@ -324,42 +324,53 @@ func TestDeduplicateIndividualQueryMetrics_NilThreadID(t *testing.T) {
 	assert.Equal(t, uint64(60), *result[0].ThreadID, "Expected ThreadID 60")
 }
 
-// TestDeduplicateIndividualQueryMetrics_NilExecutionTimeMs tests handling of nil ExecutionTimeMs
+// TestDeduplicateIndividualQueryMetrics_NilExecutionTimeMs tests that nil ExecutionTimeMs doesn't affect deduplication
 func TestDeduplicateIndividualQueryMetrics_NilExecutionTimeMs(t *testing.T) {
 	input := []utils.IndividualQueryMetrics{
 		{
 			EventID:         uint64Ptr(700),
 			ThreadID:        uint64Ptr(70),
-			QueryID:         stringPtr("invalid-query-1"),
+			QueryID:         stringPtr("query-1"),
 			DatabaseName:    stringPtr("test_db"),
-			ExecutionTimeMs: nil, // Nil ExecutionTimeMs
+			ExecutionTimeMs: nil, // Nil ExecutionTimeMs - should still be included
 		},
 		{
 			EventID:         uint64Ptr(701),
 			ThreadID:        uint64Ptr(71),
-			QueryID:         stringPtr("valid-query"),
+			QueryID:         stringPtr("query-2"),
 			DatabaseName:    stringPtr("test_db"),
 			ExecutionTimeMs: float64Ptr(2.0),
 		},
 		{
 			EventID:         uint64Ptr(702),
 			ThreadID:        uint64Ptr(72),
-			QueryID:         stringPtr("invalid-query-2"),
+			QueryID:         stringPtr("query-3"),
 			DatabaseName:    stringPtr("test_db"),
-			ExecutionTimeMs: nil, // Another nil ExecutionTimeMs
+			ExecutionTimeMs: nil, // Another nil ExecutionTimeMs - should still be included
 		},
 	}
 
 	result := deduplicateIndividualQueryMetrics(input)
 
-	// Only the valid metric should remain
-	assert.Len(t, result, 1, "Expected 1 valid item")
-	assert.NotNil(t, result[0].ExecutionTimeMs, "Expected non-nil ExecutionTimeMs")
-	assert.Equal(t, float64(2.0), *result[0].ExecutionTimeMs, "Expected ExecutionTimeMs 2.0")
+	// All metrics should be included since they have valid EventID/ThreadID for deduplication
+	assert.Len(t, result, 3, "Expected all 3 items (ExecutionTimeMs nil doesn't affect deduplication)")
+
+	// Verify the metrics with nil ExecutionTimeMs are included
+	var nilExecutionTimeCount int
+	var nonNilExecutionTimeCount int
+	for _, metric := range result {
+		if metric.ExecutionTimeMs == nil {
+			nilExecutionTimeCount++
+		} else {
+			nonNilExecutionTimeCount++
+		}
+	}
+	assert.Equal(t, 2, nilExecutionTimeCount, "Expected 2 metrics with nil ExecutionTimeMs")
+	assert.Equal(t, 1, nonNilExecutionTimeCount, "Expected 1 metric with non-nil ExecutionTimeMs")
 }
 
-// TestDeduplicateIndividualQueryMetrics_EnhancedLogic tests the enhanced deduplication logic
-// that includes execution time to handle multi-application and edge case scenarios
+// TestDeduplicateIndividualQueryMetrics_EnhancedLogic tests the deduplication logic using EVENT_ID + THREAD_ID
+// which uniquely identifies query executions in Performance Schema across overlapping tables
 func TestDeduplicateIndividualQueryMetrics_EnhancedLogic(t *testing.T) {
 	tests := []struct {
 		name     string
@@ -368,7 +379,7 @@ func TestDeduplicateIndividualQueryMetrics_EnhancedLogic(t *testing.T) {
 		scenario string
 	}{
 		{
-			name: "Standard deduplication - same EVENT_ID, THREAD_ID, different execution times",
+			name: "Basic deduplication - same EVENT_ID and THREAD_ID",
 			input: []utils.IndividualQueryMetrics{
 				{
 					EventID:         uint64Ptr(1000),
@@ -378,33 +389,16 @@ func TestDeduplicateIndividualQueryMetrics_EnhancedLogic(t *testing.T) {
 				{
 					EventID:         uint64Ptr(1000),
 					ThreadID:        uint64Ptr(45),
-					ExecutionTimeMs: float64Ptr(89.300), // Different execution time
+					ExecutionTimeMs: float64Ptr(120.500), // Same execution appearing in multiple PS tables
+				},
+				{
+					EventID:         uint64Ptr(1000),
+					ThreadID:        uint64Ptr(45),
+					ExecutionTimeMs: float64Ptr(120.500), // Third occurrence of same execution
 				},
 			},
-			expected: 2, // Both should be kept (different execution times)
-			scenario: "Multi-application edge case - same IDs, different executions",
-		},
-		{
-			name: "True duplicates - identical EVENT_ID, THREAD_ID, execution time",
-			input: []utils.IndividualQueryMetrics{
-				{
-					EventID:         uint64Ptr(2000),
-					ThreadID:        uint64Ptr(50),
-					ExecutionTimeMs: float64Ptr(45.123),
-				},
-				{
-					EventID:         uint64Ptr(2000),
-					ThreadID:        uint64Ptr(50),
-					ExecutionTimeMs: float64Ptr(45.123), // Identical - true duplicate
-				},
-				{
-					EventID:         uint64Ptr(2000),
-					ThreadID:        uint64Ptr(50),
-					ExecutionTimeMs: float64Ptr(45.123), // Identical - true duplicate
-				},
-			},
-			expected: 1, // Only one should be kept (true duplicates filtered)
-			scenario: "Performance Schema overlapping tables - same execution",
+			expected: 1, // Should be deduplicated (same EVENT_ID + THREAD_ID identifies one execution)
+			scenario: "Performance Schema overlapping tables - same execution appears in current and history",
 		},
 		{
 			name: "Mixed scenario - some duplicates, some unique",
@@ -417,24 +411,24 @@ func TestDeduplicateIndividualQueryMetrics_EnhancedLogic(t *testing.T) {
 				{
 					EventID:         uint64Ptr(3000),
 					ThreadID:        uint64Ptr(60),
-					ExecutionTimeMs: float64Ptr(100.000), // Duplicate
+					ExecutionTimeMs: float64Ptr(100.000), // Duplicate - same execution in different PS tables
 				},
 				{
-					EventID:         uint64Ptr(3000),
+					EventID:         uint64Ptr(3001), // Different EVENT_ID (different execution)
 					ThreadID:        uint64Ptr(60),
-					ExecutionTimeMs: float64Ptr(110.500), // Different execution time
+					ExecutionTimeMs: float64Ptr(110.500),
 				},
 				{
-					EventID:         uint64Ptr(3001), // Different EVENT_ID
+					EventID:         uint64Ptr(3002), // Different EVENT_ID (different execution)
 					ThreadID:        uint64Ptr(60),
-					ExecutionTimeMs: float64Ptr(100.000),
+					ExecutionTimeMs: float64Ptr(95.200),
 				},
 			},
-			expected: 3, // First + third + fourth (second is duplicate of first)
+			expected: 3, // Three distinct executions (first duplicated, others unique)
 			scenario: "Mixed production scenario",
 		},
 		{
-			name: "Multi-application same query - separate connection pools",
+			name: "Different threads - separate connection pools",
 			input: []utils.IndividualQueryMetrics{
 				{
 					EventID:         uint64Ptr(15001),
@@ -452,11 +446,11 @@ func TestDeduplicateIndividualQueryMetrics_EnhancedLogic(t *testing.T) {
 					ExecutionTimeMs: float64Ptr(45.089),
 				},
 			},
-			expected: 3, // All should be kept (different connection pools)
+			expected: 3, // All should be kept (different THREAD_IDs)
 			scenario: "Multi-application with separate connection pools",
 		},
 		{
-			name: "Multi-application same query - shared connection pool",
+			name: "Same thread, different EVENT_IDs - shared connection pool",
 			input: []utils.IndividualQueryMetrics{
 				{
 					EventID:         uint64Ptr(20001),
@@ -476,23 +470,6 @@ func TestDeduplicateIndividualQueryMetrics_EnhancedLogic(t *testing.T) {
 			},
 			expected: 3, // All should be kept (different EVENT_IDs)
 			scenario: "Multi-application with shared connection pool",
-		},
-		{
-			name: "Edge case - same EVENT_ID, THREAD_ID, similar execution times",
-			input: []utils.IndividualQueryMetrics{
-				{
-					EventID:         uint64Ptr(25000),
-					ThreadID:        uint64Ptr(75),
-					ExecutionTimeMs: float64Ptr(123.456),
-				},
-				{
-					EventID:         uint64Ptr(25000),
-					ThreadID:        uint64Ptr(75),
-					ExecutionTimeMs: float64Ptr(123.457), // 1ms difference
-				},
-			},
-			expected: 2, // Both should be kept (different execution times)
-			scenario: "Microsecond precision handling",
 		},
 	}
 

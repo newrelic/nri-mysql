@@ -149,36 +149,6 @@ const (
 		LIMIT ?;
 	`
 
-	/*
-		PastQueriesSearch: Fetches past long-running queries from the history long table based on a digest.
-		This is useful for diagnosing historical performance issues and understanding query behavior over time.
-		By examining past queries, you can discover inefficient patterns and possible optimization strategies.
-
-		Arguments:
-		1. Digest (STRING): The digest of the query to search for.
-		2. Minimum execution time in seconds (INT): The minimum execution time to filter queries.
-		3. Limit (INT): The maximum number of results to return.
-	*/
-	PastQueriesSearch = `
-		SELECT
-			DIGEST AS query_id,
-			CASE
-				WHEN CHAR_LENGTH(DIGEST_TEXT) > 4000 THEN CONCAT(LEFT(DIGEST_TEXT, 3997), '...')
-				ELSE DIGEST_TEXT
-			END AS query_text,
-			SQL_TEXT AS query_sample_text,
-			EVENT_ID AS event_id,
-			THREAD_ID AS thread_id,
-			ROUND(TIMER_WAIT / 1000000000, 3) AS execution_time_ms,
-			ROWS_SENT AS rows_sent,
-			ROWS_EXAMINED AS rows_examined,
-			CURRENT_SCHEMA AS database_name
-		FROM performance_schema.events_statements_history_long
-		WHERE DIGEST = ?
-			AND TIMER_WAIT / 1000000000 > ?
-		ORDER BY TIMER_WAIT DESC
-		LIMIT ?;
-	`
 
 	/*
 		WaitEventsQuery: Analyzes waiting events across different sessions for query performance monitoring.

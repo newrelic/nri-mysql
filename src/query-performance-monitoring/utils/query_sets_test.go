@@ -71,7 +71,6 @@ func TestGetQuerySet(t *testing.T) {
 			// Verify other queries are consistent across flavors
 			assert.Equal(t, CurrentRunningQueriesSearch, querySet.CurrentRunningQueriesSearch)
 			assert.Equal(t, RecentQueriesSearch, querySet.RecentQueriesSearch)
-			assert.Equal(t, PastQueriesSearch, querySet.PastQueriesSearch)
 		})
 	}
 }
