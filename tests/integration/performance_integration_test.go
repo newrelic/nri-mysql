@@ -269,9 +269,9 @@ func runValidMysqlPerfConfigTest(t *testing.T, args []string, outputMetricsFile 
 				addIfPresent(0, "DefaultMetrics", defaultMetricsSchema)
 				addIfPresent(1, "SlowQueryMetrics", "mysql-schema-slow-queries.json")
 				addIfPresent(2, "IndividualQueryMetrics", "mysql-schema-individual-queries.json")
-				addIfPresent(3, "WaitEventsMetrics", "mysql-schema-wait-events.json")
+				addIfPresent(3, "QueryExecutionMetrics", "mysql-schema-query-execution.json")
 				addIfPresent(4, "BlockingSessionMetrics", "mysql-schema-blocking-sessions.json")
-				addIfPresent(5, "QueryExecutionMetrics", "mysql-schema-query-execution.json")
+				addIfPresent(5, "WaitEventsMetrics", "mysql-schema-wait-events.json")
 
 				for _, outputConfig := range outputMetricsConfigs {
 					schemaPath := filepath.Join("json-schema-performance-files", outputConfig.schemaFileName)
