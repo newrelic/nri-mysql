@@ -88,7 +88,7 @@ func executeBlockingSessionQuery(mysqlPerfConfig MysqlPerformanceConfig) error {
 		log.SetLevel(log.DebugLevel)
 	}
 
-	masterErr := helpers.WaitForPort(*perfContainer, mysqlPerfConfig.Hostname, *port, 120*time.Second)
+	masterErr := helpers.WaitForPort(*perfContainer, mysqlPerfConfig.Hostname, *port, 60*time.Second)
 	if masterErr != nil {
 		return masterErr
 	}
@@ -135,7 +135,7 @@ func TestMain(m *testing.M) {
 	for _, mysqlPerfConfig := range MysqlPerfConfigs {
 		err := executeBlockingSessionQuery(mysqlPerfConfig)
 		if err != nil {
-			fmt.Printf("Failed to connect to %s: %v\n", mysqlPerfConfig.Hostname, err)
+			fmt.Println(err)
 			tErr := teardown()
 			if tErr != nil {
 				fmt.Printf("Error during the teardown of the tests: %s\n", tErr)
@@ -235,7 +235,8 @@ func runValidMysqlPerfConfigTest(t *testing.T, args []string, outputMetricsFile 
 					t.Logf("Empty output - skipping schema validation for %s", testName)
 				}
 			} else {
-				// Dynamic metric validation: identify metric types by content rather than position
+				// Build validation list conditionally to avoid out-of-range access when
+				// some metric groups are not emitted for certain MySQL versions.
 				type cfg struct {
 					name           string
 					stdout         string
@@ -243,106 +244,34 @@ func runValidMysqlPerfConfigTest(t *testing.T, args []string, outputMetricsFile 
 				}
 				var outputMetricsConfigs []cfg
 
-				// Function to identify metric type from JSON content
-				identifyMetricType := func(jsonOutput string) (string, bool) {
-					var parsed map[string]interface{}
-					if err := json.Unmarshal([]byte(jsonOutput), &parsed); err != nil {
-						return "", false
-					}
-
-					// Navigate to data[0].metrics[0].event_type to identify the metric type
-					if data, ok := parsed["data"].([]interface{}); ok && len(data) > 0 {
-						if dataItem, ok := data[0].(map[string]interface{}); ok {
-							if metrics, ok := dataItem["metrics"].([]interface{}); ok && len(metrics) > 0 {
-								if metricItem, ok := metrics[0].(map[string]interface{}); ok {
-									if eventType, ok := metricItem["event_type"].(string); ok {
-										switch eventType {
-										case "MysqlSlowQueriesSample":
-											return "SlowQueryMetrics", true
-										case "MysqlIndividualQueriesSample":
-											return "IndividualQueryMetrics", true
-										case "MysqlQueryExecutionSample":
-											return "QueryExecutionMetrics", true
-										case "MysqlWaitEventsSample":
-											return "WaitEventsMetrics", true
-										case "MysqlBlockingSessionSample":
-											return "BlockingSessionMetrics", true
-										default:
-											// If no specific event_type found, assume it's DefaultMetrics
-											return "DefaultMetrics", true
-										}
-									}
-								}
-							}
+				addIfPresent := func(idx int, name, schema string) {
+					// Select appropriate schema based on database type
+					schemaFile := getSchemaFile(schema)
+					if len(outputMetricsList) > idx && strings.TrimSpace(outputMetricsList[idx]) != "" {
+						outputMetricsConfigs = append(outputMetricsConfigs, cfg{name, outputMetricsList[idx], schemaFile})
+					} else {
+						if len(outputMetricsList) <= idx {
+							t.Logf("Output line %d missing - skipping schema validation for %s", idx, name)
+						} else {
+							t.Logf("Output line %d empty - skipping schema validation for %s", idx, name)
 						}
 					}
-					// If we can't identify the type but it's valid JSON, assume DefaultMetrics
-					return "DefaultMetrics", true
 				}
 
-				// Function to get schema file for a metric type
-				getSchemaForMetricType := func(metricType string) string {
-					switch metricType {
-					case "SlowQueryMetrics":
-						return getSchemaFile("mysql-schema-slow-queries.json")
-					case "IndividualQueryMetrics":
-						return getSchemaFile("mysql-schema-individual-queries.json")
-					case "QueryExecutionMetrics":
-						return getSchemaFile("mysql-schema-query-execution.json")
-					case "WaitEventsMetrics":
-						return getSchemaFile("mysql-schema-wait-events.json")
-					case "BlockingSessionMetrics":
-						return getSchemaFile("mysql-schema-blocking-sessions.json")
-					case "DefaultMetrics":
-						return getSchemaFile(outputMetricsFile)
-					default:
-						return getSchemaFile(outputMetricsFile) // fallback
-					}
-				}
+				// Select appropriate base schema for default metrics
+				defaultMetricsSchema := getSchemaFile(outputMetricsFile)
 
-				// Process each output line dynamically
-				for i, line := range outputMetricsList {
-					line = strings.TrimSpace(line)
-					if line == "" {
-						t.Logf("Output line %d empty - skipping validation", i)
-						continue
-					}
+				addIfPresent(0, "DefaultMetrics", defaultMetricsSchema)
+				addIfPresent(1, "SlowQueryMetrics", "mysql-schema-slow-queries.json")
+				addIfPresent(2, "IndividualQueryMetrics", "mysql-schema-individual-queries.json")
+				addIfPresent(3, "QueryExecutionMetrics", "mysql-schema-query-execution.json")
+				addIfPresent(4, "WaitEventsMetrics", "mysql-schema-wait-events.json")
+				addIfPresent(5, "BlockingSessionMetrics", "mysql-schema-blocking-sessions.json")
 
-					metricType, identified := identifyMetricType(line)
-					if !identified {
-						t.Logf("Could not identify metric type for line %d - treating as DefaultMetrics", i)
-						metricType = "DefaultMetrics"
-					}
-
-					schemaFileName := getSchemaForMetricType(metricType)
-					outputMetricsConfigs = append(outputMetricsConfigs, cfg{metricType, line, schemaFileName})
-					t.Logf("Line %d identified as %s, using schema %s", i, metricType, schemaFileName)
-				}
-
-				// Log summary of found metrics
-				metricCounts := make(map[string]int)
-				for _, config := range outputMetricsConfigs {
-					metricCounts[config.name]++
-				}
-				t.Logf("Metrics found: %v", metricCounts)
-
-				// Special handling for missing WaitEventsMetrics in CI
-				if metricCounts["WaitEventsMetrics"] == 0 {
-					t.Logf("WaitEventsMetrics not found - this is expected in CI environments due to resource constraints")
-				}
-
-				// Validate each metric against its schema
 				for _, outputConfig := range outputMetricsConfigs {
 					schemaPath := filepath.Join("json-schema-performance-files", outputConfig.schemaFileName)
 					err := jsonschema.Validate(schemaPath, outputConfig.stdout)
-					if err != nil {
-						// Debug: Print the actual JSON output causing validation failure
-						t.Logf("VALIDATION FAILURE for %s:", outputConfig.name)
-						t.Logf("Schema file: %s", outputConfig.schemaFileName)
-						t.Logf("Actual JSON output: %s", outputConfig.stdout)
-						t.Logf("Validation error: %v", err)
-					}
-					require.NoError(t, err, "The output of MySQL integration doesn't have expected format for %s", outputConfig.name)
+					require.NoError(t, err, "The output of MySQL integration doesn't have expected format")
 				}
 			}
 		})
