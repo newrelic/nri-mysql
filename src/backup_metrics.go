@@ -12,7 +12,6 @@ var backupMetrics = map[string][]interface{}{
 	"db.backupActive.logical":   {"logical_backup_active", metric.GAUGE},
 	"db.backupActive.physical":  {"physical_backup_active", metric.GAUGE},
 	"db.backupActive.tableLock": {"table_lock_active", metric.GAUGE},
-	"db.backupActive.other":     {"other_backup_active", metric.GAUGE},
 }
 
 // backupHistoryMetrics defines metrics for historical backup operations from performance_schema
@@ -59,14 +58,12 @@ var backupHistoryMetrics = map[string][]interface{}{
 //
 //   - Exclude specific users by filtering on trx_mysql_thread_id
 //
-// Note: This query is optimized for MariaDB 10.5+. For MySQL 8.0+, use PROCESSLIST_ID instead of OWNER_THREAD_ID
 const backupMetricsQuery = `
 SELECT
     COALESCE(b.physical_backup_active, 0) + COALESCE(b.table_lock_active, 0) + COALESCE(l.logical_backup_active, 0) AS total_backup_active,
     COALESCE(l.logical_backup_active, 0) AS logical_backup_active,
     COALESCE(b.physical_backup_active, 0) AS physical_backup_active,
-    COALESCE(b.table_lock_active, 0) AS table_lock_active,
-    0 AS other_backup_active
+    COALESCE(b.table_lock_active, 0) AS table_lock_active
 FROM (
     SELECT
         -- Physical backups: FLUSH TABLES WITH READ LOCK (MariaBackup, Percona XtraBackup)
@@ -77,14 +74,18 @@ FROM (
                 AND LOCK_STATUS = 'GRANTED'
             THEN OWNER_THREAD_ID
         END) AS physical_backup_active,
-        -- Table locks: LOCK TABLES ... READ/WRITE
-        -- Creates SHARED_READ or SHARED_WRITE locks on user tables
-        -- Includes locks on mysql.* schema as these are common in backup operations
+        -- Table locks: LOCK TABLES ... READ/WRITE (mysqldump --lock-tables, write-lock backups)
+        -- SHARED_READ: read locks (LOCK TABLES t READ)
+        -- SHARED_NO_READ_WRITE/EXCLUSIVE: write locks (LOCK TABLES t WRITE)
+        -- LOCK_DURATION IN ('EXPLICIT', 'TRANSACTION') covers both engines:
+        --   MySQL:   LOCK TABLES creates EXPLICIT duration locks
+        --   MariaDB: LOCK TABLES creates TRANSACTION duration locks
         COUNT(DISTINCT CASE
             WHEN OBJECT_TYPE = 'TABLE'
-                AND LOCK_TYPE IN ('SHARED_READ', 'SHARED_WRITE', 'SHARED_NO_READ_WRITE', 'EXCLUSIVE')
+                AND LOCK_TYPE IN ('SHARED_READ', 'SHARED_NO_READ_WRITE', 'EXCLUSIVE')
                 AND LOCK_STATUS = 'GRANTED'
-                AND OBJECT_SCHEMA NOT IN ('performance_schema', 'information_schema')
+                AND LOCK_DURATION IN ('EXPLICIT', 'TRANSACTION')
+                AND OBJECT_SCHEMA NOT IN ('performance_schema', 'information_schema', 'sys')
             THEN OWNER_THREAD_ID
         END) AS table_lock_active
     FROM performance_schema.metadata_locks
@@ -116,18 +117,18 @@ const backupHistoryMetricsQuery = `
 SELECT
     COALESCE(SUM(CASE WHEN SQL_TEXT LIKE '%START TRANSACTION WITH CONSISTENT SNAPSHOT%' THEN 1 ELSE 0 END), 0)
     + COALESCE(SUM(CASE WHEN SQL_TEXT LIKE '%FLUSH TABLES%WITH READ LOCK%' THEN 1 ELSE 0 END), 0)
-    + COALESCE(SUM(CASE WHEN SQL_TEXT LIKE '%LOCK TABLES%' THEN 1 ELSE 0 END), 0) AS total_backup_history,
-    SUM(CASE WHEN SQL_TEXT LIKE '%START TRANSACTION WITH CONSISTENT SNAPSHOT%' THEN 1 ELSE 0 END) AS logical_backup_count,
-    AVG(CASE WHEN SQL_TEXT LIKE '%START TRANSACTION WITH CONSISTENT SNAPSHOT%' THEN TIMER_WAIT/1000000000000 ELSE NULL END) AS logical_backup_avg_duration,
-    MAX(CASE WHEN SQL_TEXT LIKE '%START TRANSACTION WITH CONSISTENT SNAPSHOT%' THEN TIMER_WAIT/1000000000000 ELSE NULL END) AS logical_backup_max_duration,
-    SUM(CASE WHEN SQL_TEXT LIKE '%FLUSH TABLES%WITH READ LOCK%' THEN 1 ELSE 0 END) AS physical_backup_count,
-    AVG(CASE WHEN SQL_TEXT LIKE '%FLUSH TABLES%WITH READ LOCK%' THEN TIMER_WAIT/1000000000000 ELSE NULL END) AS physical_backup_avg_duration,
-    MAX(CASE WHEN SQL_TEXT LIKE '%FLUSH TABLES%WITH READ LOCK%' THEN TIMER_WAIT/1000000000000 ELSE NULL END) AS physical_backup_max_duration,
-    SUM(CASE WHEN SQL_TEXT LIKE '%LOCK TABLES%' THEN 1 ELSE 0 END) AS table_lock_count,
-    AVG(CASE WHEN SQL_TEXT LIKE '%LOCK TABLES%' THEN TIMER_WAIT/1000000000000 ELSE NULL END) AS table_lock_avg_duration,
-    MAX(CASE WHEN SQL_TEXT LIKE '%LOCK TABLES%' THEN TIMER_WAIT/1000000000000 ELSE NULL END) AS table_lock_max_duration
+    + COALESCE(SUM(CASE WHEN SQL_TEXT LIKE 'LOCK TABLES %' THEN 1 ELSE 0 END), 0) AS total_backup_history,
+    COALESCE(SUM(CASE WHEN SQL_TEXT LIKE '%START TRANSACTION WITH CONSISTENT SNAPSHOT%' THEN 1 ELSE 0 END), 0) AS logical_backup_count,
+    COALESCE(AVG(CASE WHEN SQL_TEXT LIKE '%START TRANSACTION WITH CONSISTENT SNAPSHOT%' THEN TIMER_WAIT/1000000000000 ELSE NULL END), 0) AS logical_backup_avg_duration,
+    COALESCE(MAX(CASE WHEN SQL_TEXT LIKE '%START TRANSACTION WITH CONSISTENT SNAPSHOT%' THEN TIMER_WAIT/1000000000000 ELSE NULL END), 0) AS logical_backup_max_duration,
+    COALESCE(SUM(CASE WHEN SQL_TEXT LIKE '%FLUSH TABLES%WITH READ LOCK%' THEN 1 ELSE 0 END), 0) AS physical_backup_count,
+    COALESCE(AVG(CASE WHEN SQL_TEXT LIKE '%FLUSH TABLES%WITH READ LOCK%' THEN TIMER_WAIT/1000000000000 ELSE NULL END), 0) AS physical_backup_avg_duration,
+    COALESCE(MAX(CASE WHEN SQL_TEXT LIKE '%FLUSH TABLES%WITH READ LOCK%' THEN TIMER_WAIT/1000000000000 ELSE NULL END), 0) AS physical_backup_max_duration,
+    COALESCE(SUM(CASE WHEN SQL_TEXT LIKE 'LOCK TABLES %' THEN 1 ELSE 0 END), 0) AS table_lock_count,
+    COALESCE(AVG(CASE WHEN SQL_TEXT LIKE 'LOCK TABLES %' THEN TIMER_WAIT/1000000000000 ELSE NULL END), 0) AS table_lock_avg_duration,
+    COALESCE(MAX(CASE WHEN SQL_TEXT LIKE 'LOCK TABLES %' THEN TIMER_WAIT/1000000000000 ELSE NULL END), 0) AS table_lock_max_duration
 FROM performance_schema.events_statements_history
-WHERE (SQL_TEXT LIKE '%LOCK TABLES%'
+WHERE (SQL_TEXT LIKE 'LOCK TABLES %'
     OR SQL_TEXT LIKE '%FLUSH TABLES%WITH READ LOCK%'
     OR SQL_TEXT LIKE '%START TRANSACTION WITH CONSISTENT SNAPSHOT%')
 `
@@ -145,18 +146,16 @@ SELECT
     COALESCE(p.table_lock_active, 0) + COALESCE(t.logical_backup_active, 0) AS total_backup_active,
     COALESCE(t.logical_backup_active, 0) AS logical_backup_active,
     0 AS physical_backup_active,
-    COALESCE(p.table_lock_active, 0) AS table_lock_active,
-    0 AS other_backup_active
+    COALESCE(p.table_lock_active, 0) AS table_lock_active
 FROM (
     SELECT
         -- Table locks: Sessions executing LOCK TABLES statements
+        -- Using 'LOCK TABLES %' (starts-with) to avoid matching UNLOCK TABLES statements
         COUNT(DISTINCT CASE
-            WHEN INFO LIKE '%LOCK TABLES%'
-                AND COMMAND != 'Sleep'
+            WHEN INFO LIKE 'LOCK TABLES %'
             THEN ID
         END) AS table_lock_active
     FROM information_schema.processlist
-    WHERE ID IS NOT NULL
 ) p,
 (
     SELECT

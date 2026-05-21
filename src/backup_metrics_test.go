@@ -14,7 +14,6 @@ func TestBackupMetricsMap(t *testing.T) {
 		"db.backupActive.logical",
 		"db.backupActive.physical",
 		"db.backupActive.tableLock",
-		"db.backupActive.other",
 	}
 
 	for _, metricName := range expectedMetrics {
@@ -38,11 +37,11 @@ func TestBackupMetricsQuery(t *testing.T) {
 	assert.Contains(t, backupMetricsQuery, "logical_backup_active", "Query should count logical backups")
 	assert.Contains(t, backupMetricsQuery, "physical_backup_active", "Query should count physical backups")
 	assert.Contains(t, backupMetricsQuery, "table_lock_active", "Query should count table locks")
-	assert.Contains(t, backupMetricsQuery, "other_backup_active", "Query should count other backups")
 	assert.Contains(t, backupMetricsQuery, "performance_schema.metadata_locks", "Query should use metadata_locks for detection")
 	assert.Contains(t, backupMetricsQuery, "information_schema.innodb_trx", "Query should detect logical backups")
 	assert.Contains(t, backupMetricsQuery, "BACKUP_FTWRL%", "Query should detect physical backups via FTWRL backup lock")
 	assert.Contains(t, backupMetricsQuery, "LOCK_TYPE", "Query should detect table locks")
+	assert.Contains(t, backupMetricsQuery, "LOCK_DURATION IN ('EXPLICIT', 'TRANSACTION')", "Query should cover both MySQL (EXPLICIT) and MariaDB (TRANSACTION) LOCK TABLES behaviour")
 	assert.Contains(t, backupMetricsQuery, "OWNER_THREAD_ID", "Query should identify backup sessions by thread ID")
 }
 
@@ -56,7 +55,6 @@ func TestBackupMetricsColumnMapping(t *testing.T) {
 		{"db.backupActive.logical", "logical_backup_active"},
 		{"db.backupActive.physical", "physical_backup_active"},
 		{"db.backupActive.tableLock", "table_lock_active"},
-		{"db.backupActive.other", "other_backup_active"},
 	}
 
 	for _, test := range tests {
@@ -115,7 +113,7 @@ func TestBackupHistoryMetricsQuery(t *testing.T) {
 	assert.Contains(t, backupHistoryMetricsQuery, "performance_schema.events_statements_history", "Query should use events_statements_history")
 	assert.Contains(t, backupHistoryMetricsQuery, "START TRANSACTION WITH CONSISTENT SNAPSHOT", "Query should detect logical backups")
 	assert.Contains(t, backupHistoryMetricsQuery, "FLUSH TABLES%WITH READ LOCK", "Query should detect physical backups")
-	assert.Contains(t, backupHistoryMetricsQuery, "LOCK TABLES", "Query should detect table locks")
+	assert.Contains(t, backupHistoryMetricsQuery, "LOCK TABLES %", "Query should detect table locks without matching UNLOCK TABLES")
 	assert.Contains(t, backupHistoryMetricsQuery, "TIMER_WAIT/1000000000000", "Query should convert timer to seconds")
 }
 
@@ -148,6 +146,6 @@ func TestBackupHistoryMetricsColumnMapping(t *testing.T) {
 
 func TestBackupMetricsCount(t *testing.T) {
 	// Verify the expected number of metrics
-	assert.Equal(t, 5, len(backupMetrics), "Should have 5 active backup metrics")
+	assert.Equal(t, 4, len(backupMetrics), "Should have 4 active backup metrics")
 	assert.Equal(t, 10, len(backupHistoryMetrics), "Should have 10 historical backup metrics")
 }
