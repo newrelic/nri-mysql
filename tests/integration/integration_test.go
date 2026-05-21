@@ -292,6 +292,28 @@ func TestMySQLIntegrationOnlySlaveMetrics(t *testing.T) {
 	}
 }
 
+func testMySQLIntegrationBackupMetrics(t *testing.T, mysqlConfig MysqlConfig) {
+	testName := helpers.GetTestName(t)
+	stdout := runIntegration(t, mysqlConfig.MasterHostname,
+		"METRICS=true",
+		"EXTENDED_BACKUP_METRICS=true",
+		"EXTENDED_BACKUP_HISTORY_METRICS=true",
+		fmt.Sprintf("NRIA_CACHE_PATH=/tmp/%v.json", testName),
+	)
+	schemaDir := fmt.Sprintf("json-schema-files-%s", mysqlConfig.Version)
+	schemaPath := filepath.Join(schemaDir, "mysql-schema-backup-metrics.json")
+	err := jsonschema.Validate(schemaPath, stdout)
+	require.NoError(t, err, "The output of MySQL integration doesn't have expected backup metrics format")
+}
+
+func TestMySQLIntegrationBackupMetrics(t *testing.T) {
+	for _, mysqlConfig := range MysqlConfigs {
+		t.Run(mysqlConfig.Version, func(t *testing.T) {
+			testMySQLIntegrationBackupMetrics(t, mysqlConfig)
+		})
+	}
+}
+
 func runUnconfiguredMysqlPerfConfigTest(t *testing.T, args []string, outputMetricsFile string, expectedError string, testName string) {
 	for _, mysqlUnconfiguredPerfConfig := range MysqlConfigs {
 		if isDBVersionLessThan8(mysqlUnconfiguredPerfConfig.Version) {

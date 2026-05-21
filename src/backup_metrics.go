@@ -2,9 +2,14 @@ package main
 
 import (
 	"database/sql"
+	"sync"
+
 	"github.com/newrelic/infra-integrations-sdk/v3/data/metric"
 	"github.com/newrelic/infra-integrations-sdk/v3/log"
 )
+
+// mdlWarningOnce ensures the MDL instrument warning is logged at most once per process run.
+var mdlWarningOnce sync.Once
 
 // backupMetrics defines metrics for detecting active backup operations
 var backupMetrics = map[string][]interface{}{
@@ -188,9 +193,38 @@ func supportsMetadataLocks(db *sql.DB) bool {
 	return count > 0
 }
 
+// warnIfMDLInstrumentDisabled logs a warning if the MDL instrument is disabled in performance_schema.
+// On MariaDB the instrument is off by default, which leaves metadata_locks empty and causes
+// active backup metrics to report 0. Customers must enable it in their database configuration:
+//
+//	performance-schema-instrument='wait/lock/metadata/sql/mdl=ON'
+func warnIfMDLInstrumentDisabled(db *sql.DB) {
+	var enabled int
+	err := db.QueryRow(`
+		SELECT COUNT(*)
+		FROM performance_schema.setup_instruments
+		WHERE NAME = 'wait/lock/metadata/sql/mdl'
+		  AND ENABLED = 'YES'
+	`).Scan(&enabled)
+	if err != nil {
+		log.Debug("Could not check MDL instrument status: %v", err)
+		return
+	}
+	if enabled > 0 {
+		return
+	}
+	mdlWarningOnce.Do(func() {
+		log.Warn("MDL instrument 'wait/lock/metadata/sql/mdl' is disabled in performance_schema. " +
+			"Active backup metrics (db.backupActive.*) will always report 0. " +
+			"To enable accurate detection, add to your database configuration: " +
+			"performance-schema-instrument='wait/lock/metadata/sql/mdl=ON'")
+	})
+}
+
 // getBackupMetricsQuery returns the appropriate backup metrics query based on database version
 func getBackupMetricsQuery(db *sql.DB) string {
 	if supportsMetadataLocks(db) {
+		warnIfMDLInstrumentDisabled(db)
 		log.Debug("Using metadata_locks-based backup detection (MySQL 8.0+/MariaDB 10.5+)")
 		return backupMetricsQuery
 	}
