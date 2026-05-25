@@ -127,11 +127,7 @@ func getRawData(db dataSource) (map[string]interface{}, map[string]interface{}, 
 		}
 	}
 
-	// Collect historical backup metrics if enabled.
-	// backupHistoryMetricsQuery uses performance_schema.events_statements_history which is
-	// available on all supported versions (MySQL 5.6+ / MariaDB 10.0+), so no version guard
-	// is needed. If performance_schema is disabled or the table is inaccessible, the error
-	// is handled gracefully below.
+	// Collect historical backup metrics if enabled (events_statements_history is available on all supported versions).
 	if args.ExtendedBackupHistoryMetrics {
 		backupHistoryData, err := db.query(backupHistoryMetricsQuery)
 		if err != nil {
