@@ -10,12 +10,15 @@ import (
 )
 
 // PopulateBlockingSessionMetrics retrieves blocking session metrics from the database and populates them into the integration entity.
-func PopulateBlockingSessionMetrics(db utils.DataSource, i *integration.Integration, args arguments.ArgumentList, excludedDatabases []string) {
+func PopulateBlockingSessionMetrics(db utils.DataSource, i *integration.Integration, args arguments.ArgumentList, excludedDatabases []string, querySet utils.QuerySet) {
 	// Get the query count threshold
 	queryCountThreshold := validator.GetValidQueryCountThreshold(args.QueryMonitoringCountThreshold)
 
+	// Use the appropriate blocking sessions query for the database flavor
+	blockingQuery := querySet.BlockingSessionsQuery
+
 	// Prepare the SQL query with the provided parameters
-	query, inputArgs, err := sqlx.In(utils.BlockingSessionsQuery, excludedDatabases, queryCountThreshold)
+	query, inputArgs, err := sqlx.In(blockingQuery, excludedDatabases, queryCountThreshold)
 	if err != nil {
 		log.Error("Failed to prepare blocking sessions query: %v", err)
 		return
@@ -31,6 +34,16 @@ func PopulateBlockingSessionMetrics(db utils.DataSource, i *integration.Integrat
 	// Return if no metrics are collected
 	if len(metrics) == 0 {
 		return
+	}
+
+	// Anonymize query texts in Go — only needed for MariaDB, where the trx_query
+	// fallback returns raw SQL. MySQL always returns DIGEST_TEXT which is already
+	// anonymized by performance_schema.
+	if querySet.NeedsQueryAnonymization {
+		for i := range metrics {
+			metrics[i].BlockedQuery = utils.AnonymizeQueryText(metrics[i].BlockedQuery)
+			metrics[i].BlockingQuery = utils.AnonymizeQueryText(metrics[i].BlockingQuery)
+		}
 	}
 
 	// Set the blocking query metrics in the integration entity and ingest them

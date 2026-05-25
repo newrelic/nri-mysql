@@ -48,6 +48,46 @@ const (
     `
 
 	/*
+		MariaDBSlowQueries mirrors the MySQL slow query, but sets CPU time to NULL.
+		The SUM_CPU_TIME field is not consistently available across MariaDB versions.
+		All other fields, including timezone handling, are identical to the MySQL query.
+	*/
+	MariaDBSlowQueries = `
+		SELECT
+			DIGEST AS query_id,
+			CASE
+				WHEN CHAR_LENGTH(DIGEST_TEXT) > 4000 THEN CONCAT(LEFT(DIGEST_TEXT, 3997), '...')
+				ELSE DIGEST_TEXT
+			END AS query_text,
+			SCHEMA_NAME AS database_name,
+			'N/A' AS schema_name,
+			COUNT_STAR AS execution_count,
+			NULL AS avg_cpu_time_ms,
+			ROUND((SUM_TIMER_WAIT / COUNT_STAR) / 1000000000, 3) AS avg_elapsed_time_ms,
+			SUM_ROWS_EXAMINED / COUNT_STAR AS avg_disk_reads,
+			SUM_ROWS_AFFECTED / COUNT_STAR AS avg_disk_writes,
+			CASE
+				WHEN SUM_NO_INDEX_USED > 0 THEN 'Yes'
+				ELSE 'No'
+			END AS has_full_table_scan,
+			CASE
+				WHEN DIGEST_TEXT LIKE 'SELECT%' THEN 'SELECT'
+				WHEN DIGEST_TEXT LIKE 'INSERT%' THEN 'INSERT'
+				WHEN DIGEST_TEXT LIKE 'UPDATE%' THEN 'UPDATE'
+				WHEN DIGEST_TEXT LIKE 'DELETE%' THEN 'DELETE'
+				ELSE 'OTHER'
+			END AS statement_type,
+			DATE_FORMAT(CONVERT_TZ(LAST_SEEN, @@session.time_zone, '+00:00'), '%Y-%m-%dT%H:%i:%sZ') AS last_execution_timestamp,
+			DATE_FORMAT(UTC_TIMESTAMP(), '%Y-%m-%dT%H:%i:%sZ') AS collection_timestamp
+		FROM performance_schema.events_statements_summary_by_digest
+		WHERE CONVERT_TZ(LAST_SEEN, @@session.time_zone, '+00:00') >= UTC_TIMESTAMP() - INTERVAL ? SECOND
+			AND SCHEMA_NAME IS NOT NULL
+			AND SCHEMA_NAME NOT IN (?)
+		ORDER BY avg_elapsed_time_ms DESC
+		LIMIT ?;
+	`
+
+	/*
 		CurrentRunningQueriesSearch: Fetches current running queries that match a specific digest.
 		Useful for real-time monitoring of active query execution, enabling the identification
 		of long-running queries that may need intervention to maintain system performance.
@@ -109,36 +149,6 @@ const (
 		LIMIT ?;
 	`
 
-	/*
-		PastQueriesSearch: Fetches past long-running queries from the history long table based on a digest.
-		This is useful for diagnosing historical performance issues and understanding query behavior over time.
-		By examining past queries, you can discover inefficient patterns and possible optimization strategies.
-
-		Arguments:
-		1. Digest (STRING): The digest of the query to search for.
-		2. Minimum execution time in seconds (INT): The minimum execution time to filter queries.
-		3. Limit (INT): The maximum number of results to return.
-	*/
-	PastQueriesSearch = `
-		SELECT
-			DIGEST AS query_id,
-			CASE
-				WHEN CHAR_LENGTH(DIGEST_TEXT) > 4000 THEN CONCAT(LEFT(DIGEST_TEXT, 3997), '...')
-				ELSE DIGEST_TEXT
-			END AS query_text,
-			SQL_TEXT AS query_sample_text,
-			EVENT_ID AS event_id,
-			THREAD_ID AS thread_id,
-			ROUND(TIMER_WAIT / 1000000000, 3) AS execution_time_ms,
-			ROWS_SENT AS rows_sent,
-			ROWS_EXAMINED AS rows_examined,
-			CURRENT_SCHEMA AS database_name
-		FROM performance_schema.events_statements_history_long
-		WHERE DIGEST = ?
-			AND TIMER_WAIT / 1000000000 > ?
-		ORDER BY TIMER_WAIT DESC
-		LIMIT ?;
-	`
 
 	/*
 		WaitEventsQuery: Analyzes waiting events across different sessions for query performance monitoring.
@@ -215,6 +225,7 @@ const (
 			jd.wait_event_name,
 			CASE
 				WHEN jd.wait_event_name LIKE 'wait/io/file/innodb/%' THEN 'InnoDB File IO'
+				WHEN jd.wait_event_name LIKE 'wait/io/file/aria/%' THEN 'Aria File IO'
 				WHEN jd.wait_event_name LIKE 'wait/io/file/sql/%' THEN 'SQL File IO'
 				WHEN jd.wait_event_name LIKE 'wait/io/socket/%' THEN 'Network IO'
 				WHEN jd.wait_event_name LIKE 'wait/synch/cond/%' THEN 'Condition Wait'
@@ -305,5 +316,70 @@ const (
 				  ORDER BY 
 					  blocked_txn_start_time ASC
 				  LIMIT ?;
+	`
+
+	/*
+		MariaDBBlockingSessionsQuery: MariaDB-compatible version of BlockingSessionsQuery.
+		Uses LEFT JOIN for events tables and SQL-level query anonymization to match MySQL behavior.
+		When DIGEST_TEXT is unavailable, anonymizes trx_query by replacing literals with ? placeholders.
+		Uses information_schema.innodb_lock_waits instead of performance_schema.data_lock_waits.
+
+		Arguments:
+		1. Excluded databases (STRING): A comma-separated list of database names to exclude from the results.
+		2. Limit (INT): The maximum number of results to return.
+	*/
+	MariaDBBlockingSessionsQuery = `
+		WITH thread_stmt AS (
+			SELECT
+				t.PROCESSLIST_ID,
+				t.PROCESSLIST_HOST,
+				t.PROCESSLIST_DB,
+				t.PROCESSLIST_STATE,
+				t.THREAD_ID,
+				s.DIGEST_TEXT,
+				s.DIGEST,
+				s.TIMER_WAIT
+			FROM performance_schema.threads t
+			LEFT JOIN performance_schema.events_statements_current s
+				ON s.THREAD_ID = t.THREAD_ID
+			WHERE t.PROCESSLIST_ID IS NOT NULL
+		)
+		SELECT
+			r.trx_id AS blocked_txn_id,
+			r.trx_mysql_thread_id AS blocked_thread_id,
+			r.trx_mysql_thread_id AS blocked_pid,
+			wt.PROCESSLIST_HOST AS blocked_host,
+			wt.PROCESSLIST_DB AS database_name,
+			wt.PROCESSLIST_STATE AS blocked_status,
+			b.trx_id AS blocking_txn_id,
+			b.trx_mysql_thread_id AS blocking_thread_id,
+			b.trx_mysql_thread_id AS blocking_pid,
+			bt.PROCESSLIST_HOST AS blocking_host,
+			COALESCE(wt.DIGEST_TEXT, r.trx_query) AS blocked_query,
+			COALESCE(bt.DIGEST_TEXT, b.trx_query) AS blocking_query,
+			COALESCE(wt.DIGEST, MD5(COALESCE(r.trx_query, ''))) AS blocked_query_id,
+			COALESCE(bt.DIGEST, MD5(COALESCE(b.trx_query, ''))) AS blocking_query_id,
+			COALESCE(bt.PROCESSLIST_STATE, 'Idle in transaction') AS blocking_status,
+			ROUND(TIMESTAMPDIFF(MICROSECOND, r.trx_wait_started, NOW()) / 1000, 3) AS blocked_query_time_ms,
+			ROUND(COALESCE(bt.TIMER_WAIT, 0) / 1000000000, 3) AS blocking_query_time_ms,
+			DATE_FORMAT(CONVERT_TZ(r.trx_started, @@session.time_zone, '+00:00'), '%Y-%m-%dT%H:%i:%sZ') AS blocked_txn_start_time,
+			DATE_FORMAT(CONVERT_TZ(b.trx_started, @@session.time_zone, '+00:00'), '%Y-%m-%dT%H:%i:%sZ') AS blocking_txn_start_time,
+			DATE_FORMAT(UTC_TIMESTAMP(), '%Y-%m-%dT%H:%i:%sZ') AS collection_timestamp
+		FROM
+			information_schema.innodb_lock_waits w
+		JOIN
+			information_schema.innodb_trx r ON r.trx_id = w.requesting_trx_id
+		JOIN
+			information_schema.innodb_trx b ON b.trx_id = w.blocking_trx_id
+		JOIN
+			thread_stmt wt ON wt.PROCESSLIST_ID = r.trx_mysql_thread_id
+		JOIN
+			thread_stmt bt ON bt.PROCESSLIST_ID = b.trx_mysql_thread_id
+		WHERE
+			wt.PROCESSLIST_DB IS NOT NULL
+			AND wt.PROCESSLIST_DB NOT IN (?)
+		ORDER BY
+			blocked_txn_start_time ASC
+		LIMIT ?;
 	`
 )
