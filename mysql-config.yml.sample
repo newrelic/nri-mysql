@@ -25,6 +25,8 @@ integrations:
     # Enable additional metrics
     # EXTENDED_INNODB_METRICS: false
     # EXTENDED_MY_ISAM_METRICS: false
+    # EXTENDED_BACKUP_METRICS: false
+    # EXTENDED_BACKUP_HISTORY_METRICS: false
 
     # New users should leave this property as `true`, to identify the
     # monitored entities as `remote`. Setting this property to `false` (the

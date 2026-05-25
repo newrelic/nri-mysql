@@ -17,6 +17,8 @@ type ArgumentList struct {
 	ExtendedMetrics                      bool   `default:"false" help:"Enable collection of extended metrics."`
 	ExtendedInnodbMetrics                bool   `default:"false" help:"Enable collection of extended InnoDB metrics."`
 	ExtendedMyIsamMetrics                bool   `default:"false" help:"Enable collection of extended MyISAM metrics."`
+	ExtendedBackupMetrics                bool   `default:"false" help:"Enable collection of active backup operation metrics."`
+	ExtendedBackupHistoryMetrics         bool   `default:"false" help:"Enable collection of historical backup metrics from performance_schema."`
 	OldPasswords                         bool   `default:"false" help:"Allow the use of old passwords: https://dev.mysql.com/doc/refman/5.6/en/server-system-variables.html#sysvar_old_passwords"`
 	ShowVersion                          bool   `default:"false" help:"Display build information and exit."`
 	EnableQueryMonitoring                bool   `default:"false" help:"Enable collection of detailed query performance metrics."`

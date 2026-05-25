@@ -116,6 +116,32 @@ func (d testdb) query(query string) (map[string]interface{}, error) {
 	}
 	return nil, nil
 }
+func (d testdb) getBackupQuery() string {
+	// For tests, always return the main query (assumes newer version)
+	return backupMetricsQuery
+}
+
+type testdbFallback struct {
+	testdb
+}
+
+func (d testdbFallback) getBackupQuery() string {
+	return backupMetricsQueryFallback
+}
+
+func TestGetBackupQueryFallback(t *testing.T) {
+	db := testdbFallback{}
+	query := db.getBackupQuery()
+
+	assert.Equal(t, backupMetricsQueryFallback, query, "Fallback db should return backupMetricsQueryFallback")
+	assert.Contains(t, query, "information_schema.processlist", "Fallback query should use processlist")
+	assert.Contains(t, query, "information_schema.innodb_trx", "Fallback query should detect logical backups via innodb_trx")
+	assert.Contains(t, query, "total_backup_active", "Fallback query should return total_backup_active")
+	assert.Contains(t, query, "logical_backup_active", "Fallback query should return logical_backup_active")
+	assert.Contains(t, query, "physical_backup_active", "Fallback query should return physical_backup_active")
+	assert.Contains(t, query, "table_lock_active", "Fallback query should return table_lock_active")
+	assert.Contains(t, query, "LOCK TABLES %", "Fallback query should use starts-with pattern to avoid matching UNLOCK TABLES")
+}
 
 func TestGetRawData(t *testing.T) {
 	database := testdb{
