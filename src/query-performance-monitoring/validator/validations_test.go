@@ -352,7 +352,7 @@ func TestEnableEssentialConsumersAndInstruments_ViaExplicitQueries(t *testing.T)
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
-func TestGetMySQLVersion(t *testing.T) {
+func TestGetDatabaseVersion(t *testing.T) {
 	rows := sqlmock.NewRows([]string{"VERSION()"}).
 		AddRow("8.0.23")
 	db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
@@ -363,7 +363,7 @@ func TestGetMySQLVersion(t *testing.T) {
 	mockDataSource := &mockDataSource{db: sqlxDB}
 
 	mock.ExpectQuery(versionQuery).WillReturnRows(rows)
-	version, err := getMySQLVersion(mockDataSource)
+	version, err := getDatabaseVersion(mockDataSource)
 	assert.NoError(t, err)
 	assert.Equal(t, "8.0.23", version)
 }

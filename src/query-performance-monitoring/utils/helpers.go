@@ -25,7 +25,6 @@ var (
 	ErrQueryIDNil      = errors.New("query ID is nil")
 )
 
-// literalAnonymizer matches SQL literal values in a single pass (same approach as nri-mssql
 // AnonymizeQueryText). Priority order matters: strings are matched first so numbers inside
 // quoted values are not double-replaced. Handles:
 //  1. Single-quoted strings — both SQL ('it''s') and MySQL backslash ('O\'Brien') escape styles

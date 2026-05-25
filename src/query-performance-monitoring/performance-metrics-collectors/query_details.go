@@ -147,8 +147,6 @@ func getIndividualQueryList(db utils.DataSource, queryIDList []string, args argu
 }
 
 // deduplicateIndividualQueryMetrics removes duplicate query executions based on EVENT_ID + THREAD_ID combination.
-// This prevents the same query execution from being sent to New Relic multiple times when it appears
-// in multiple Performance Schema tables (current, history). EVENT_ID is auto-incrementing per thread
 // and the (EVENT_ID, THREAD_ID) pair uniquely identifies exactly one execution within a monitoring window.
 // Only skips metrics that are missing EventID or ThreadID (required for deduplication key).
 func deduplicateIndividualQueryMetrics(metrics []utils.IndividualQueryMetrics) []utils.IndividualQueryMetrics {

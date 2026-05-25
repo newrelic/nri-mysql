@@ -56,7 +56,7 @@ type ConsumerStatus struct {
 
 // ValidatePreconditions checks if the necessary preconditions are met for performance monitoring.
 func ValidatePreconditions(db utils.DataSource) (utils.DatabaseProfile, error) {
-	version, err := getMySQLVersion(db)
+	version, err := getDatabaseVersion(db)
 	if err != nil {
 		log.Error("Failed to get MySQL version: %v", err)
 		return utils.DatabaseProfile{}, err
@@ -237,8 +237,8 @@ func logEnablePerformanceSchemaInstructions() {
 	log.Debug("performance_schema=ON")
 }
 
-// getMySQLVersion retrieves the MySQL version from the database.
-func getMySQLVersion(db utils.DataSource) (string, error) {
+// getDatabaseVersion retrieves the database version from MySQL or MariaDB.
+func getDatabaseVersion(db utils.DataSource) (string, error) {
 	rows, err := db.QueryX(versionQuery)
 	if err != nil {
 		return "", fmt.Errorf("failed to execute version query: %w", err)
@@ -306,8 +306,6 @@ func extractMinorFromVersion(version string) (int, error) {
 }
 
 // isMariaDBVersionSupported checks if the MariaDB version is 10.2 or greater.
-// MariaDB 10.2 is the minimum because the WaitEventsQuery uses CTEs (WITH clause)
-// which were introduced in MariaDB 10.2.
 func isMariaDBVersionSupported(version string) bool {
 	major, err := extractMajorFromVersion(version)
 	if err != nil {
