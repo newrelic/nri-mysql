@@ -9,7 +9,9 @@ Unreleased section should follow [Release Toolkit](https://github.com/newrelic/r
 
 ## Unreleased
 
-### Enhancements
+## v1.23.0 - 2026-05-25
+
+### 🚀 Enhancements
 - Added Query Performance Monitoring support for MariaDB
 - Added MariaDB/MySQL backup metrics support via `EXTENDED_BACKUP_METRICS` and `EXTENDED_BACKUP_HISTORY_METRICS` flags, reporting active backup operations (`db.backupActive.*`) and historical backup statistics (`db.backupHistory.*`).
 
