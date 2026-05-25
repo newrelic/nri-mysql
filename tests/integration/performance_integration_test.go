@@ -62,6 +62,18 @@ var (
 			Version:  "9.1.0",
 			Hostname: "mysql_perf_latest-supported",
 		},
+		{
+			Version:  "mariadb-10.6",
+			Hostname: "mariadb_perf_10-6",
+		},
+		{
+			Version:  "mariadb-11.4",
+			Hostname: "mariadb_perf_11-4",
+		},
+		{
+			Version:  "mariadb-12.2",
+			Hostname: "mariadb_perf_12-2",
+		},
 	}
 )
 
@@ -171,6 +183,32 @@ func TestPerfOutputIsValidJSON(t *testing.T) {
 func runValidMysqlPerfConfigTest(t *testing.T, args []string, outputMetricsFile string, testName string) {
 	for _, mysqlPerfConfig := range MysqlPerfConfigs {
 		t.Run(testName+mysqlPerfConfig.Version, func(t *testing.T) {
+			// Detect if this is MariaDB and adjust schema selection accordingly
+			isMariaDB := strings.Contains(mysqlPerfConfig.Version, "mariadb")
+
+			// Smart schema selection: only 4 schemas have MariaDB-specific versions
+			getSchemaFile := func(mysqlSchemaFile string) string {
+				if !isMariaDB {
+					return mysqlSchemaFile
+				}
+
+				// MariaDB-specific schemas (only these 4 have differences)
+				switch mysqlSchemaFile {
+				case "mysql-schema-master.json":
+					return "mariadb-schema-master.json"
+				case "mysql-schema-master-localentity.json":
+					return "mariadb-schema-master-localentity.json"
+				case "mysql-schema-inventory-master.json":
+					return "mariadb-schema-inventory-master.json"
+				case "mysql-schema-slow-queries.json":
+					return "mariadb-schema-slow-queries.json"
+				default:
+					// Use MySQL schema for identical cases: individual-queries, query-execution,
+					// wait-events, blocking-sessions, metrics-master
+					return mysqlSchemaFile
+				}
+			}
+
 			args = append(args, fmt.Sprintf("NRIA_CACHE_PATH=/tmp/%v.json", testName))
 			stdout, stderr, err := runIntegrationAndGetStdoutWithError(t, mysqlPerfConfig.Hostname, args...)
 			if stderr != "" {
@@ -186,7 +224,9 @@ func runValidMysqlPerfConfigTest(t *testing.T, args []string, outputMetricsFile 
 
 						In this testcase metrics flag is disabled. So, validation of the standard json output is being done.
 				*/
-				schemaPath := filepath.Join("json-schema-performance-files", outputMetricsFile)
+				// Select appropriate schema based on database type
+				schemaFile := getSchemaFile(outputMetricsFile)
+				schemaPath := filepath.Join("json-schema-performance-files", schemaFile)
 				// Skip validation if output is empty
 				if len(outputMetricsList) > 0 && strings.TrimSpace(outputMetricsList[0]) != "" {
 					err := jsonschema.Validate(schemaPath, outputMetricsList[0])
@@ -205,8 +245,10 @@ func runValidMysqlPerfConfigTest(t *testing.T, args []string, outputMetricsFile 
 				var outputMetricsConfigs []cfg
 
 				addIfPresent := func(idx int, name, schema string) {
+					// Select appropriate schema based on database type
+					schemaFile := getSchemaFile(schema)
 					if len(outputMetricsList) > idx && strings.TrimSpace(outputMetricsList[idx]) != "" {
-						outputMetricsConfigs = append(outputMetricsConfigs, cfg{name, outputMetricsList[idx], schema})
+						outputMetricsConfigs = append(outputMetricsConfigs, cfg{name, outputMetricsList[idx], schemaFile})
 					} else {
 						if len(outputMetricsList) <= idx {
 							t.Logf("Output line %d missing - skipping schema validation for %s", idx, name)
@@ -216,7 +258,10 @@ func runValidMysqlPerfConfigTest(t *testing.T, args []string, outputMetricsFile 
 					}
 				}
 
-				addIfPresent(0, "DefaultMetrics", outputMetricsFile)
+				// Select appropriate base schema for default metrics
+				defaultMetricsSchema := getSchemaFile(outputMetricsFile)
+
+				addIfPresent(0, "DefaultMetrics", defaultMetricsSchema)
 				addIfPresent(1, "SlowQueryMetrics", "mysql-schema-slow-queries.json")
 				addIfPresent(2, "IndividualQueryMetrics", "mysql-schema-individual-queries.json")
 				addIfPresent(3, "QueryExecutionMetrics", "mysql-schema-query-execution.json")

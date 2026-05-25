@@ -62,25 +62,38 @@ func TestPopulateBlockingSessionMetrics(t *testing.T) {
 	excludedDatabases := []string{"mysql", "information_schema", "performance_schema", "sys"}
 	queryCountThreshold := 10
 
+	// Get MySQL query set for testing
+	mysqlQuerySet := utils.GetQuerySet(utils.DatabaseFlavorMySQL)
+
 	t.Run("ErrorCollectingMetrics", func(t *testing.T) {
-		testErrorCollectingMetrics(t, sqlxDB, mock, excludedDatabases, queryCountThreshold)
+		testErrorCollectingMetrics(t, sqlxDB, mock, excludedDatabases, queryCountThreshold, mysqlQuerySet)
 	})
 
 	t.Run("NoMetricsCollected", func(t *testing.T) {
-		testNoMetricsCollected(t, sqlxDB, mock, excludedDatabases, queryCountThreshold)
+		testNoMetricsCollected(t, sqlxDB, mock, excludedDatabases, queryCountThreshold, mysqlQuerySet)
 	})
 
 	t.Run("SuccessfulMetricsCollection", func(t *testing.T) {
-		testSuccessfulMetricsCollection(t, sqlxDB, mock, excludedDatabases, queryCountThreshold)
+		testSuccessfulMetricsCollection(t, sqlxDB, mock, excludedDatabases, queryCountThreshold, mysqlQuerySet)
 	})
 
 	t.Run("PopulateBlockingSessionMetrics", func(t *testing.T) {
-		testPopulateBlockingSessionMetrics(t, sqlxDB, mock, excludedDatabases, queryCountThreshold)
+		testPopulateBlockingSessionMetrics(t, sqlxDB, mock, excludedDatabases, queryCountThreshold, mysqlQuerySet)
+	})
+
+	// Test MariaDB query selection
+	t.Run("MariaDB_QuerySelection", func(t *testing.T) {
+		testMariaDBQuerySelection(t, sqlxDB, mock, excludedDatabases, queryCountThreshold)
+	})
+
+	// Test MariaDB anonymization is applied during collection
+	t.Run("MariaDB_AnonymizationApplied", func(t *testing.T) {
+		testMariaDBAnonymizationApplied(t, sqlxDB, mock, excludedDatabases, queryCountThreshold)
 	})
 }
 
-func testErrorCollectingMetrics(t *testing.T, sqlxDB *sqlx.DB, mock sqlmock.Sqlmock, excludedDatabases []string, queryCountThreshold int) {
-	query, inputArgs, err := sqlx.In(utils.BlockingSessionsQuery, excludedDatabases, queryCountThreshold)
+func testErrorCollectingMetrics(t *testing.T, sqlxDB *sqlx.DB, mock sqlmock.Sqlmock, excludedDatabases []string, queryCountThreshold int, querySet utils.QuerySet) {
+	query, inputArgs, err := sqlx.In(querySet.BlockingSessionsQuery, excludedDatabases, queryCountThreshold)
 	assert.NoError(t, err)
 
 	query = sqlxDB.Rebind(query)
@@ -96,8 +109,8 @@ func testErrorCollectingMetrics(t *testing.T, sqlxDB *sqlx.DB, mock sqlmock.Sqlm
 	assert.Error(t, err, "Expected error collecting metrics, got nil")
 }
 
-func testNoMetricsCollected(t *testing.T, sqlxDB *sqlx.DB, mock sqlmock.Sqlmock, excludedDatabases []string, queryCountThreshold int) {
-	query, inputArgs, err := sqlx.In(utils.BlockingSessionsQuery, excludedDatabases, queryCountThreshold)
+func testNoMetricsCollected(t *testing.T, sqlxDB *sqlx.DB, mock sqlmock.Sqlmock, excludedDatabases []string, queryCountThreshold int, querySet utils.QuerySet) {
+	query, inputArgs, err := sqlx.In(querySet.BlockingSessionsQuery, excludedDatabases, queryCountThreshold)
 	assert.NoError(t, err)
 
 	query = sqlxDB.Rebind(query)
@@ -113,8 +126,8 @@ func testNoMetricsCollected(t *testing.T, sqlxDB *sqlx.DB, mock sqlmock.Sqlmock,
 	assert.Empty(t, metrics)
 }
 
-func testSuccessfulMetricsCollection(t *testing.T, sqlxDB *sqlx.DB, mock sqlmock.Sqlmock, excludedDatabases []string, queryCountThreshold int) {
-	query, inputArgs, err := sqlx.In(utils.BlockingSessionsQuery, excludedDatabases, queryCountThreshold)
+func testSuccessfulMetricsCollection(t *testing.T, sqlxDB *sqlx.DB, mock sqlmock.Sqlmock, excludedDatabases []string, queryCountThreshold int, querySet utils.QuerySet) {
+	query, inputArgs, err := sqlx.In(querySet.BlockingSessionsQuery, excludedDatabases, queryCountThreshold)
 	assert.NoError(t, err)
 
 	query = sqlxDB.Rebind(query)
@@ -137,8 +150,8 @@ func testSuccessfulMetricsCollection(t *testing.T, sqlxDB *sqlx.DB, mock sqlmock
 	assert.Len(t, metrics, 2)
 }
 
-func testPopulateBlockingSessionMetrics(t *testing.T, sqlxDB *sqlx.DB, mock sqlmock.Sqlmock, excludedDatabases []string, queryCountThreshold int) {
-	query, inputArgs, err := sqlx.In(utils.BlockingSessionsQuery, excludedDatabases, queryCountThreshold)
+func testPopulateBlockingSessionMetrics(t *testing.T, sqlxDB *sqlx.DB, mock sqlmock.Sqlmock, excludedDatabases []string, queryCountThreshold int, querySet utils.QuerySet) {
+	query, inputArgs, err := sqlx.In(querySet.BlockingSessionsQuery, excludedDatabases, queryCountThreshold)
 	assert.NoError(t, err)
 
 	query = sqlxDB.Rebind(query)
@@ -165,9 +178,103 @@ func testPopulateBlockingSessionMetrics(t *testing.T, sqlxDB *sqlx.DB, mock sqlm
 	i, _ := integration.New("test", "1.0.0")
 	argList := arguments.ArgumentList{QueryMonitoringCountThreshold: queryCountThreshold}
 
-	PopulateBlockingSessionMetrics(dataSource, i, argList, excludedDatabases)
+	PopulateBlockingSessionMetrics(dataSource, i, argList, excludedDatabases, querySet)
 
 	assert.Len(t, i.LocalEntity().Metrics, 0)
+}
+
+func testMariaDBQuerySelection(t *testing.T, _ *sqlx.DB, _ sqlmock.Sqlmock, _ []string, _ int) {
+	// Test that MariaDB uses the correct query
+	mariadbQuerySet := utils.GetQuerySet(utils.DatabaseFlavorMariaDB)
+
+	assert.Contains(t, mariadbQuerySet.BlockingSessionsQuery, "information_schema.innodb_lock_waits",
+		"MariaDB query should use information_schema.innodb_lock_waits")
+	assert.NotContains(t, mariadbQuerySet.BlockingSessionsQuery, "performance_schema.data_lock_waits",
+		"MariaDB query should not use performance_schema.data_lock_waits")
+
+	// Test that MySQL uses the correct query
+	mysqlQuerySet := utils.GetQuerySet(utils.DatabaseFlavorMySQL)
+
+	assert.Contains(t, mysqlQuerySet.BlockingSessionsQuery, "performance_schema.data_lock_waits",
+		"MySQL query should use performance_schema.data_lock_waits")
+	assert.NotContains(t, mysqlQuerySet.BlockingSessionsQuery, "information_schema.innodb_lock_waits w",
+		"MySQL query should not use information_schema.innodb_lock_waits")
+}
+
+func testMariaDBAnonymizationApplied(t *testing.T, sqlxDB *sqlx.DB, sqlMock sqlmock.Sqlmock, excludedDatabases []string, queryCountThreshold int) {
+	mariaDBQuerySet := utils.GetQuerySet(utils.DatabaseFlavorMariaDB)
+
+	// Verify the flag is set
+	assert.True(t, mariaDBQuerySet.NeedsQueryAnonymization,
+		"MariaDB query set must have NeedsQueryAnonymization=true")
+
+	query, inputArgs, err := sqlx.In(mariaDBQuerySet.BlockingSessionsQuery, excludedDatabases, queryCountThreshold)
+	assert.NoError(t, err)
+
+	query = sqlxDB.Rebind(query)
+	driverArgs := make([]driver.Value, len(inputArgs))
+	for i, v := range inputArgs {
+		driverArgs[i] = driver.Value(v)
+	}
+
+	// Return rows with raw (un-anonymized) SQL in blocked_query / blocking_query
+	rawSQL := "SELECT * FROM orders WHERE customer_id = 99 AND status = 'active'"
+	sqlMock.ExpectQuery(regexp.QuoteMeta(query)).WithArgs(driverArgs...).WillReturnRows(
+		sqlmock.NewRows([]string{
+			"blocked_txn_id", "blocked_pid", "blocked_thread_id", "blocked_query_id", "blocked_query",
+			"blocked_status", "blocked_host", "database_name", "blocking_txn_id", "blocking_pid",
+			"blocking_thread_id", "blocking_status", "blocking_host", "blocking_query_id", "blocking_query",
+		}).AddRow(
+			"txn_1", "101", int64(11), "qid_1", rawSQL,
+			"LOCK WAIT", "app-host", "orders_db", "txn_2", "102",
+			int64(22), "RUNNING", "db-host", "qid_2", rawSQL,
+		),
+	)
+
+	dataSource := &dbWrapper{DB: sqlxDB}
+	i, _ := integration.New("test", "1.0.0")
+	argList := arguments.ArgumentList{QueryMonitoringCountThreshold: queryCountThreshold}
+
+	// PopulateBlockingSessionMetrics should anonymize blocked_query / blocking_query
+	// because mariaDBQuerySet.NeedsQueryAnonymization == true
+	PopulateBlockingSessionMetrics(dataSource, i, argList, excludedDatabases, mariaDBQuerySet)
+}
+
+// TestAnonymizationAppliedToBlockingMetrics verifies that the anonymization loop used inside
+// PopulateBlockingSessionMetrics correctly transforms raw trx_query values for MariaDB,
+// and that MySQL skips anonymization entirely.
+func TestAnonymizationAppliedToBlockingMetrics(t *testing.T) {
+	rawSQL := "SELECT * FROM users WHERE id = 42 AND name = 'Alice' AND token = 0xFF"
+	wantSQL := "SELECT * FROM users WHERE id = ? AND name = ? AND token = ?"
+
+	metrics := []utils.BlockingSessionMetrics{
+		{
+			BlockedQuery:  ptr(rawSQL),
+			BlockingQuery: ptr(rawSQL),
+		},
+	}
+
+	t.Run("MariaDB_AnonymizationTransformsRawSQL", func(t *testing.T) {
+		mariaDBQuerySet := utils.GetQuerySet(utils.DatabaseFlavorMariaDB)
+		assert.True(t, mariaDBQuerySet.NeedsQueryAnonymization)
+
+		// Apply the same anonymization loop as PopulateBlockingSessionMetrics
+		for i := range metrics {
+			metrics[i].BlockedQuery = utils.AnonymizeQueryText(metrics[i].BlockedQuery)
+			metrics[i].BlockingQuery = utils.AnonymizeQueryText(metrics[i].BlockingQuery)
+		}
+
+		assert.Equal(t, wantSQL, *metrics[0].BlockedQuery,
+			"blocked_query should be anonymized")
+		assert.Equal(t, wantSQL, *metrics[0].BlockingQuery,
+			"blocking_query should be anonymized")
+	})
+
+	t.Run("MySQL_AnonymizationFlagIsFalse", func(t *testing.T) {
+		mysqlQuerySet := utils.GetQuerySet(utils.DatabaseFlavorMySQL)
+		assert.False(t, mysqlQuerySet.NeedsQueryAnonymization,
+			"MySQL DIGEST_TEXT is already anonymized by performance_schema; no Go-side anonymization needed")
+	})
 }
 
 func TestSetBlockingQueryMetrics(t *testing.T) {

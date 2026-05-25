@@ -22,50 +22,51 @@
             "items": {
                 "type": "object",
                 "properties": {
-                    "entity": {
-                        "type": "object",
-                        "properties": {
-                            "name": {
-                                "type": "string"
-                            },
-                            "type": {
-                                "type": "string"
-                            },
-                            "id_attributes": {
-                                "type": "array",
-                                "items": {}
-                            }
-                        },
-                        "required": [
-                            "name",
-                            "type",
-                            "id_attributes"
-                        ]
-                    },
                     "metrics": {
                         "type": "array",
-                        "minItems": 0,
+                        "minItems": 1,
+                        "uniqueItems": true,
                         "items": {
                             "type": "object",
                             "properties": {
+                                "avg_cpu_time_ms": {
+                                    "type": ["number", "null"]
+                                },
+                                "avg_disk_reads": {
+                                    "type": "number"
+                                },
+                                "avg_disk_writes": {
+                                    "type": "number"
+                                },
+                                "avg_elapsed_time_ms": {
+                                    "type": "number"
+                                },
+                                "collection_timestamp": {
+                                    "minLength": 1,
+                                    "type": "string",
+                                    "format": "date-time"
+                                },
                                 "database_name": {
                                     "minLength": 1,
                                     "type": "string"
                                 },
-                                "event_id": {
-                                    "type": "integer"
-                                },
                                 "event_type": {
                                     "minLength": 1,
-                                    "pattern": "^MysqlIndividualQueriesSample$",
+                                    "pattern": "^MysqlSlowQueriesSample$",
                                     "type": "string"
                                 },
-                                "execution_time_ms": {
-                                    "type": "number"
+                                "execution_count": {
+                                    "minimum": 0,
+                                    "type": "integer"
                                 },
-                                "hostname": {
+                                "has_full_table_scan": {
                                     "minLength": 1,
                                     "type": "string"
+                                },
+                                "last_execution_timestamp": {
+                                    "minLength": 1,
+                                    "type": "string",
+                                    "format": "date-time"
                                 },
                                 "port": {
                                     "minLength": 1,
@@ -79,29 +80,29 @@
                                     "minLength": 1,
                                     "type": "string"
                                 },
-                                "query_sample_text": {
+                                "schema_name": {
+                                    "minLength": 1,
                                     "type": "string"
                                 },
-                                "rows_examined": {
-                                    "type": "integer"
-                                },
-                                "rows_sent": {
-                                    "type": "integer"
-                                },
-                                "thread_id": {
-                                    "type": "integer"
+                                "statement_type": {
+                                    "minLength": 1,
+                                    "type": "string"
                                 }
                             },
                             "required": [
+                                "avg_disk_reads",
+                                "avg_disk_writes",
+                                "avg_elapsed_time_ms",
+                                "collection_timestamp",
                                 "database_name",
-                                "event_id",
                                 "event_type",
-                                "execution_time_ms",
+                                "execution_count",
+                                "has_full_table_scan",
+                                "last_execution_timestamp",
                                 "query_id",
                                 "query_text",
-                                "rows_examined",
-                                "rows_sent",
-                                "thread_id"
+                                "schema_name",
+                                "statement_type"
                             ]
                         }
                     },

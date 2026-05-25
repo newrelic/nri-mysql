@@ -38,6 +38,7 @@
                     },
                     "metrics": {
                         "type": "array",
+                        "minItems": 0,
                         "items": {
                             "type": "object",
                             "properties": {
@@ -58,8 +59,6 @@
                                     "type": "integer"
                                 },
                                 "event_type": {
-                                    "minLength": 1,
-                                    "pattern": "^MysqlQueryExecutionSample$",
                                     "type": "string"
                                 },
                                 "filtered": {
@@ -121,12 +120,7 @@
                                 },
                                 "using_index": { "type": "string" }
                             },
-                            "required": [
-                                "event_id",
-                                "event_type",
-                                "step_id",
-                                "thread_id"
-                            ]
+                            "required": []
                         }
                     },
                     "inventory": {

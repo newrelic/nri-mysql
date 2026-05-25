@@ -77,6 +77,19 @@ const (
 	MinVersionParts = 2
 
 	/*
+		MinMariaDBMajorVersion and MinMariaDBMinorVersion define the minimum supported MariaDB release.
+
+		The binding constraint is the WaitEventsQuery, which uses CTEs (WITH clause) introduced in
+		MariaDB 10.2. Other collectors require lower versions:
+		  - Slow queries / Individual queries: 10.0  (events_statements_* tables)
+		  - Execution plans:                   10.1  (EXPLAIN FORMAT=JSON)
+		  - Blocking sessions:                 10.0  (information_schema.innodb_lock_waits)
+		  - Wait events:                       10.2  (CTE / WITH clause) ← minimum
+	*/
+	MinMariaDBMajorVersion = 10
+	MinMariaDBMinorVersion = 2
+
+	/*
 		EssentialConsumersCount defines the number of essential consumers that must be enabled
 		in the performance schema to ensure that the necessary performance data is available.
 

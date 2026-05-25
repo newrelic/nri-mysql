@@ -35,6 +35,39 @@ services:
     links:
       - nri-mysql-perf
 
+  mariadb_perf_10-6:
+    container_name: "mariadb_perf_10-6"
+    restart: always
+    environment:
+      MYSQL_ALLOW_EMPTY_PASSWORD: true
+    build:
+      context: ../../
+      dockerfile: tests/integration/mysql-performance-config/versions/mariadb-10.6.23/Dockerfile
+    links:
+      - nri-mysql-perf
+
+  mariadb_perf_11-4:
+    container_name: "mariadb_perf_11-4"
+    restart: always
+    environment:
+      MYSQL_ALLOW_EMPTY_PASSWORD: true
+    build:
+      context: ../../
+      dockerfile: tests/integration/mysql-performance-config/versions/mariadb-11.4.10/Dockerfile
+    links:
+      - nri-mysql-perf
+
+  mariadb_perf_12-2:
+    container_name: "mariadb_perf_12-2"
+    restart: always
+    environment:
+      MYSQL_ALLOW_EMPTY_PASSWORD: true
+    build:
+      context: ../../
+      dockerfile: tests/integration/mysql-performance-config/versions/mariadb-12.2.2/Dockerfile
+    links:
+      - nri-mysql-perf
+
   nri-mysql-perf:
     container_name: integration_nri-mysql_perf_1
     build:

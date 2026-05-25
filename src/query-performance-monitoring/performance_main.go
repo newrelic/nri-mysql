@@ -25,10 +25,12 @@ func PopulateQueryPerformanceMetrics(args arguments.ArgumentList, e *integration
 	defer db.Close()
 
 	// Validate preconditions before proceeding
-	preValidationErr := validator.ValidatePreconditions(db)
+	profile, preValidationErr := validator.ValidatePreconditions(db)
 	if preValidationErr != nil {
 		infrautils.FatalIfErr(fmt.Errorf("preconditions failed: %w", preValidationErr))
 	}
+
+	querySet := utils.GetQuerySet(profile.Flavor)
 
 	// Get the list of unique excluded databases
 	excludedDatabases := utils.GetExcludedDatabases(args.ExcludedPerformanceDatabases)
@@ -36,14 +38,14 @@ func PopulateQueryPerformanceMetrics(args arguments.ArgumentList, e *integration
 	// Populate metrics for slow queries
 	start := time.Now()
 	log.Debug("Beginning to retrieve slow query metrics")
-	queryIDList := performancemetricscollectors.PopulateSlowQueryMetrics(i, db, args, excludedDatabases)
+	queryIDList := performancemetricscollectors.PopulateSlowQueryMetrics(i, db, args, excludedDatabases, querySet)
 	log.Debug("Completed fetching slow query metrics in %v", time.Since(start))
 
 	if len(queryIDList) > 0 {
 		// Populate metrics for individual queries
 		start = time.Now()
 		log.Debug("Beginning to retrieve individual query metrics")
-		groupQueriesByDatabase, individualQueryDetailsErr := performancemetricscollectors.PopulateIndividualQueryDetails(db, queryIDList, i, args)
+		groupQueriesByDatabase, individualQueryDetailsErr := performancemetricscollectors.PopulateIndividualQueryDetails(db, queryIDList, i, args, querySet)
 		if individualQueryDetailsErr != nil {
 			log.Error("Error populating individual query details: %v", individualQueryDetailsErr)
 		}
@@ -53,7 +55,7 @@ func PopulateQueryPerformanceMetrics(args arguments.ArgumentList, e *integration
 			// Populate execution plan details
 			start = time.Now()
 			log.Debug("Beginning to retrieve query execution plan metrics")
-			performancemetricscollectors.PopulateExecutionPlans(db, groupQueriesByDatabase, i, args)
+			performancemetricscollectors.PopulateExecutionPlans(db, groupQueriesByDatabase, i, args, profile.Flavor)
 			log.Debug("Completed fetching query execution plan metrics in %v", time.Since(start))
 		} else {
 			log.Debug("No individual query metrics to fetch.")
@@ -69,7 +71,7 @@ func PopulateQueryPerformanceMetrics(args arguments.ArgumentList, e *integration
 	// Populate blocking session metrics
 	start = time.Now()
 	log.Debug("Beginning to retrieve blocking session metrics")
-	performancemetricscollectors.PopulateBlockingSessionMetrics(db, i, args, excludedDatabases)
+	performancemetricscollectors.PopulateBlockingSessionMetrics(db, i, args, excludedDatabases, querySet)
 	log.Debug("Completed fetching blocking session metrics in %v", time.Since(start))
 	log.Debug("Query analysis completed.")
 }

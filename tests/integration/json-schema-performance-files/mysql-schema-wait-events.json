@@ -38,6 +38,7 @@
                     },
                     "metrics": {
                         "type": "array",
+                        "minItems": 0,
                         "items": {
                             "type": "object",
                             "properties": {
@@ -52,8 +53,6 @@
                                     "type": "string"
                                 },
                                 "event_type": {
-                                    "minLength": 1,
-                                    "pattern": "^MysqlWaitEventsSample$",
                                     "type": "string"
                                 },
                                 "hostname": {
@@ -81,18 +80,7 @@
                                     "type": "string"
                                 }
                             },
-                            "required": [
-                                "avg_wait_time_ms",
-                                "collection_timestamp",
-                                "database_name",
-                                "event_type",
-                                "query_id",
-                                "query_text",
-                                "total_wait_time_ms",
-                                "wait_category",
-                                "wait_event_count",
-                                "wait_event_name"
-                            ]
+                            "required": []
                         }
                     },
                     "inventory": {

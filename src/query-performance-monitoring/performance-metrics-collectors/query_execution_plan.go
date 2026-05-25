@@ -17,7 +17,7 @@ import (
 )
 
 // PopulateExecutionPlans populates execution plans for the given queries.
-func PopulateExecutionPlans(db utils.DataSource, queryGroups map[string][]utils.IndividualQueryMetrics, i *integration.Integration, args arguments.ArgumentList) {
+func PopulateExecutionPlans(db utils.DataSource, queryGroups map[string][]utils.IndividualQueryMetrics, i *integration.Integration, args arguments.ArgumentList, flavor utils.DatabaseFlavor) {
 	var events []utils.QueryPlanMetrics
 
 	for dbName, queries := range queryGroups {
@@ -31,7 +31,7 @@ func PopulateExecutionPlans(db utils.DataSource, queryGroups map[string][]utils.
 		defer db.Close()
 
 		for _, query := range queries {
-			tableIngestionDataList, err := processExecutionPlanMetrics(db, query)
+			tableIngestionDataList, err := processExecutionPlanMetrics(db, query, flavor)
 			if err != nil {
 				log.Error("Error processing execution plan metrics: %v", err)
 				continue
@@ -54,7 +54,7 @@ func PopulateExecutionPlans(db utils.DataSource, queryGroups map[string][]utils.
 }
 
 // processExecutionPlanMetrics processes the execution plan metrics for a given query.
-func processExecutionPlanMetrics(db utils.DataSource, query utils.IndividualQueryMetrics) ([]utils.QueryPlanMetrics, error) {
+func processExecutionPlanMetrics(db utils.DataSource, query utils.IndividualQueryMetrics, flavor utils.DatabaseFlavor) ([]utils.QueryPlanMetrics, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), constants.QueryPlanTimeoutDuration)
 	defer cancel()
 
@@ -83,7 +83,18 @@ func processExecutionPlanMetrics(db utils.DataSource, query utils.IndividualQuer
 		return []utils.QueryPlanMetrics{}, err
 	}
 
-	escapedJSON, err := escapeAllStringsInJSON(execPlanJSON)
+	// MariaDB's EXPLAIN FORMAT=JSON can produce duplicate keys (e.g., multiple "table" siblings)
+	// which Go's encoding/json silently drops. Pre-process only for MariaDB to rename duplicates.
+	processedJSON := execPlanJSON
+	if flavor == utils.DatabaseFlavorMariaDB {
+		processedJSON, err = deduplicateJSONKeys(execPlanJSON)
+		if err != nil {
+			log.Error("Error deduplicating JSON keys for query '%s': %v", queryText, err)
+			return []utils.QueryPlanMetrics{}, err
+		}
+	}
+
+	escapedJSON, err := escapeAllStringsInJSON(processedJSON)
 	if err != nil {
 		log.Error("Error escaping strings in JSON for query '%s': %v", queryText, err)
 		return []utils.QueryPlanMetrics{}, err
@@ -143,6 +154,103 @@ func executeExplainQuery(ctx context.Context, db utils.DataSource, queryText str
 	}
 
 	return execPlanJSON, nil
+}
+
+// deduplicateJSONKeys renames duplicate keys in a JSON string by appending _N suffixes.
+// MariaDB's EXPLAIN FORMAT=JSON can produce duplicate "table" and "block-nl-join" keys
+// at the same object level for multi-table queries. Go's encoding/json silently drops
+// all but the last occurrence. This function walks the token stream and renames duplicates
+// before any json.Unmarshal call, preserving all table data.
+func deduplicateJSONKeys(jsonStr string) (string, error) {
+	dec := json.NewDecoder(strings.NewReader(jsonStr))
+	dec.UseNumber()
+
+	result, err := deduplicateValue(dec)
+	if err != nil {
+		return "", fmt.Errorf("failed to deduplicate JSON keys: %w", err)
+	}
+
+	out, err := json.Marshal(result)
+	if err != nil {
+		return "", fmt.Errorf("failed to re-encode deduplicated JSON: %w", err)
+	}
+
+	return string(out), nil
+}
+
+// deduplicateValue reads one JSON value (object, array, or primitive) from the decoder.
+func deduplicateValue(dec *json.Decoder) (interface{}, error) {
+	tok, err := dec.Token()
+	if err != nil {
+		return nil, err
+	}
+
+	switch v := tok.(type) {
+	case json.Delim:
+		switch v {
+		case '{':
+			return deduplicateObject(dec)
+		case '[':
+			return deduplicateArray(dec)
+		default:
+			return nil, fmt.Errorf("unexpected delimiter: %v", v)
+		}
+	default:
+		return v, nil
+	}
+}
+
+// deduplicateObject reads an object from the decoder, renaming duplicate keys with _N suffixes.
+func deduplicateObject(dec *json.Decoder) (map[string]interface{}, error) {
+	keyCounts := make(map[string]int)
+	result := make(map[string]interface{})
+
+	for dec.More() {
+		tok, err := dec.Token()
+		if err != nil {
+			return nil, err
+		}
+		key, ok := tok.(string)
+		if !ok {
+			return nil, fmt.Errorf("expected string key, got %T", tok)
+		}
+
+		val, err := deduplicateValue(dec)
+		if err != nil {
+			return nil, err
+		}
+
+		count := keyCounts[key]
+		keyCounts[key] = count + 1
+		if count > 0 {
+			key = fmt.Sprintf("%s_%d", key, count)
+		}
+
+		result[key] = val
+	}
+
+	// consume closing '}'
+	if _, err := dec.Token(); err != nil {
+		return nil, err
+	}
+
+	return result, nil
+}
+
+// deduplicateArray reads an array from the decoder, recursively processing each element.
+func deduplicateArray(dec *json.Decoder) ([]interface{}, error) {
+	var arr []interface{}
+	for dec.More() {
+		val, err := deduplicateValue(dec)
+		if err != nil {
+			return nil, err
+		}
+		arr = append(arr, val)
+	}
+	if _, err := dec.Token(); err != nil {
+		return nil, err
+	}
+	return arr, nil
 }
 
 // escapeAllStringsInJSON recursively escapes all string values in the JSON.
@@ -212,13 +320,39 @@ func extractMetricsFromJSONString(jsonString string, eventID uint64, threadID ui
 }
 
 // extractMetrics recursively retrieves metrics from the query plan.
+// Handles both MySQL and MariaDB JSON formats:
+//   - filtered: MySQL uses string ("100.00"), MariaDB uses number (100) — try String() then Float64()
+//   - rows: MySQL uses rows_examined_per_scan, MariaDB uses rows — fall back to "rows" field
+//   - cost_info: MySQL-only block, gracefully returns empty on MariaDB
+//   - cost: MariaDB 11.4+ flat number at query_block/table level — falls back when cost_info absent
 func extractMetrics(js *simplejson.Json, dbPerformanceEvents []utils.QueryPlanMetrics, eventID uint64, threadID uint64, memo utils.Memo, stepID *int) []utils.QueryPlanMetrics {
 	tableName, _ := js.Get("table_name").String()
-	queryCost, _ := js.Get("cost_info").Get("query_cost").String()
 	accessType, _ := js.Get("access_type").String()
-	rowsExaminedPerScan, _ := js.Get("rows_examined_per_scan").Int64()
+
+	// Query cost: MySQL uses cost_info.query_cost (string), MariaDB 11.4+ uses flat cost (number)
+	queryCost, _ := js.Get("cost_info").Get("query_cost").String()
+	if queryCost == "" {
+		if costVal, err := js.Get("cost").Float64(); err == nil {
+			queryCost = fmt.Sprintf("%.5f", costVal)
+		}
+	}
+
+	// Rows: MySQL uses rows_examined_per_scan, MariaDB uses rows.
+	// Check error (not zero-value) because 0 is a valid MySQL value for const access on empty tables.
+	rowsExaminedPerScan, err := js.Get("rows_examined_per_scan").Int64()
+	if err != nil {
+		rowsExaminedPerScan, _ = js.Get("rows").Int64()
+	}
+
 	rowsProducedPerJoin, _ := js.Get("rows_produced_per_join").Int64()
+
+	// Filtered: MySQL uses string ("100.00"), MariaDB uses number (100)
 	filtered, _ := js.Get("filtered").String()
+	if filtered == "" {
+		if fVal, err := js.Get("filtered").Float64(); err == nil {
+			filtered = fmt.Sprintf("%.2f", fVal)
+		}
+	}
 	readCost, _ := js.Get("cost_info").Get("read_cost").String()
 	evalCost, _ := js.Get("cost_info").Get("eval_cost").String()
 	prefixCost, _ := js.Get("cost_info").Get("prefix_cost").String()
