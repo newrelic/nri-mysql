@@ -9,9 +9,28 @@ Unreleased section should follow [Release Toolkit](https://github.com/newrelic/r
 
 ## Unreleased
 
+## v1.23.0 - 2026-05-25
 
-### security
-- update go to v1.25.9
+### 🚀 Enhancements
+- Added Query Performance Monitoring support for MariaDB
+- Added MariaDB/MySQL backup metrics support via `EXTENDED_BACKUP_METRICS` and `EXTENDED_BACKUP_HISTORY_METRICS` flags, reporting active backup operations (`db.backupActive.*`) and historical backup statistics (`db.backupHistory.*`).
+
+## v1.22.0 - 2026-05-15
+
+### 🛡️ Security notices
+- Updated golang version to v1.25.10
+
+## v1.21.1 - 2026-04-30
+
+### ⛓️ Dependencies
+- Updated github.com/go-sql-driver/mysql to v1.10.0 - [Changelog 🔗](https://github.com/go-sql-driver/mysql/releases/tag/v1.10.0)
+
+## v1.21.0 - 2026-04-27
+
+### 🛡️ Security notices
+- update go to v1.25.8
+- update filippo.io/edwards25519 to v1.1.1
+
 ## v1.20.0 - 2026-03-26
 
 ### 🛡️ Security notices

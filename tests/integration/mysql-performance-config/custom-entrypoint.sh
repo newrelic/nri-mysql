@@ -82,7 +82,7 @@ sleep 5
 
 tmux split-window -t mysql_block_test:0
 
-tmux send-keys -t mysql_block_test:0.1 "docker exec -i mysql_8-0-40 mysql --user=root --password="${MYSQL_ROOT_PASSWORD}" -e \"
+tmux send-keys -t mysql_block_test:0.1 "docker exec -i ${CONTAINER_NAME:-mysql_perf_8-0-40} mysql --user=root --password="${MYSQL_ROOT_PASSWORD}" -e \"
 SET SESSION TRANSACTION ISOLATION LEVEL REPEATABLE READ;
 USE employees;
 START TRANSACTION;

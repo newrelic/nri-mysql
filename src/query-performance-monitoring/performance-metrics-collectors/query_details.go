@@ -14,14 +14,14 @@ import (
 )
 
 // PopulateSlowQueryMetrics collects and sets slow query metrics and returns the list of query IDs
-func PopulateSlowQueryMetrics(i *integration.Integration, db utils.DataSource, args arguments.ArgumentList, excludedDatabases []string) []string {
+func PopulateSlowQueryMetrics(i *integration.Integration, db utils.DataSource, args arguments.ArgumentList, excludedDatabases []string, querySet utils.QuerySet) []string {
 	// Get the slow query fetch interval
 	slowQueryFetchInterval := validator.GetValidSlowQueryFetchIntervalThreshold(args.SlowQueryMonitoringFetchInterval)
 
 	// Get the query count threshold
 	queryCountThreshold := validator.GetValidQueryCountThreshold(args.QueryMonitoringCountThreshold)
 
-	rawMetrics, queryIDList, err := collectGroupedSlowQueryMetrics(db, slowQueryFetchInterval, queryCountThreshold, excludedDatabases)
+	rawMetrics, queryIDList, err := collectGroupedSlowQueryMetrics(db, slowQueryFetchInterval, queryCountThreshold, excludedDatabases, querySet.SlowQueries)
 	if err != nil {
 		log.Error("Failed to collect slow query metrics: %v", err)
 		return []string{}
@@ -43,9 +43,9 @@ func PopulateSlowQueryMetrics(i *integration.Integration, db utils.DataSource, a
 }
 
 // collectGroupedSlowQueryMetrics collects metrics from the performance schema database for slow queries
-func collectGroupedSlowQueryMetrics(db utils.DataSource, slowQueryfetchInterval int, queryCountThreshold int, excludedDatabases []string) ([]utils.SlowQueryMetrics, []string, error) {
+func collectGroupedSlowQueryMetrics(db utils.DataSource, slowQueryfetchInterval int, queryCountThreshold int, excludedDatabases []string, collectionQuery string) ([]utils.SlowQueryMetrics, []string, error) {
 	// Prepare the SQL query with the provided parameters
-	query, args, err := sqlx.In(utils.SlowQueries, slowQueryfetchInterval, excludedDatabases, queryCountThreshold)
+	query, args, err := sqlx.In(collectionQuery, slowQueryfetchInterval, excludedDatabases, queryCountThreshold)
 	if err != nil {
 		return nil, []string{}, err
 	}
@@ -97,9 +97,9 @@ func setSlowQueryMetrics(i *integration.Integration, metrics []utils.SlowQueryMe
 }
 
 // PopulateIndividualQueryDetails collects and sets individual query details
-func PopulateIndividualQueryDetails(db utils.DataSource, queryIDList []string, i *integration.Integration, args arguments.ArgumentList) (map[string][]utils.IndividualQueryMetrics, error) {
+func PopulateIndividualQueryDetails(db utils.DataSource, queryIDList []string, i *integration.Integration, args arguments.ArgumentList, querySet utils.QuerySet) (map[string][]utils.IndividualQueryMetrics, error) {
 	// Retrieve the list of individual queries with combined metrics
-	queryList, err := getIndividualQueryList(db, queryIDList, args)
+	queryList, err := getIndividualQueryList(db, queryIDList, args, querySet)
 	if err != nil {
 		log.Error("Failed to collect query metrics: %v", err)
 		return nil, err
@@ -120,33 +120,70 @@ func PopulateIndividualQueryDetails(db utils.DataSource, queryIDList []string, i
 	return groupQueriesByDatabase, nil
 }
 
-// getIndividualQueryList fetches and combines current, recent, and extensive query metrics
-func getIndividualQueryList(db utils.DataSource, queryIDList []string, args arguments.ArgumentList) ([]utils.IndividualQueryMetrics, error) {
+// getIndividualQueryList fetches and combines current and recent query metrics
+func getIndividualQueryList(db utils.DataSource, queryIDList []string, args arguments.ArgumentList, querySet utils.QuerySet) ([]utils.IndividualQueryMetrics, error) {
 	// Collect current query metrics from the performance schema database for the given query IDs
-	currentQueryMetrics, err := collectIndividualQueryMetrics(db, queryIDList, utils.CurrentRunningQueriesSearch, args)
+	currentQueryMetrics, err := collectIndividualQueryMetrics(db, queryIDList, querySet.CurrentRunningQueriesSearch, args)
 	if err != nil {
 		return nil, fmt.Errorf("failed to collect current query metrics: %w", err)
 	}
 
 	// Collect recent query metrics from the performance schema database for the given query IDs
-	recentQueryMetrics, err := collectIndividualQueryMetrics(db, queryIDList, utils.RecentQueriesSearch, args)
+	recentQueryMetrics, err := collectIndividualQueryMetrics(db, queryIDList, querySet.RecentQueriesSearch, args)
 	if err != nil {
 		return nil, fmt.Errorf("failed to collect recent query metrics: %w", err)
 	}
 
-	// Collect extensive query metrics from the performance schema database for the given query IDs
-	extensiveQueryMetrics, err := collectIndividualQueryMetrics(db, queryIDList, utils.PastQueriesSearch, args)
-	if err != nil {
-		return nil, fmt.Errorf("failed to collect extensive query metrics: %w", err)
-	}
-
-	// Combine all collected metrics into a single list
+	// Combine collected metrics into a single list
 	var allMetrics []utils.IndividualQueryMetrics
 	allMetrics = append(allMetrics, currentQueryMetrics...)
 	allMetrics = append(allMetrics, recentQueryMetrics...)
-	allMetrics = append(allMetrics, extensiveQueryMetrics...)
 
-	return allMetrics, nil
+	// Apply deduplication to handle any overlapping query executions between current and recent tables
+	// Uses EVENT_ID + THREAD_ID which uniquely identifies each execution
+	deduplicatedMetrics := deduplicateIndividualQueryMetrics(allMetrics)
+
+	return deduplicatedMetrics, nil
+}
+
+// deduplicateIndividualQueryMetrics removes duplicate query executions based on EVENT_ID + THREAD_ID combination.
+// and the (EVENT_ID, THREAD_ID) pair uniquely identifies exactly one execution within a monitoring window.
+// Only skips metrics that are missing EventID or ThreadID (required for deduplication key).
+func deduplicateIndividualQueryMetrics(metrics []utils.IndividualQueryMetrics) []utils.IndividualQueryMetrics {
+	if len(metrics) == 0 {
+		return metrics
+	}
+
+	// Use a map to track unique combinations
+	seen := make(map[string]bool)
+	var deduplicated []utils.IndividualQueryMetrics
+
+	for _, metric := range metrics {
+		// Skip metrics with nil fields required for deduplication
+		if metric.EventID == nil || metric.ThreadID == nil {
+			var nilFields []string
+			if metric.EventID == nil {
+				nilFields = append(nilFields, "EventID")
+			}
+			if metric.ThreadID == nil {
+				nilFields = append(nilFields, "ThreadID")
+			}
+			log.Warn("Skipping individual query metric with nil %v - cannot deduplicate", nilFields)
+			continue
+		}
+
+		// Use EVENT_ID + THREAD_ID for deduplication
+		// EVENT_ID is auto-incrementing per thread and uniquely identifies one execution
+		key := fmt.Sprintf("%d_%d", *metric.EventID, *metric.ThreadID)
+
+		// Only include if we haven't seen this combination before
+		if !seen[key] {
+			seen[key] = true
+			deduplicated = append(deduplicated, metric)
+		}
+	}
+
+	return deduplicated
 }
 
 // setupQueryListCopyForReporting prepares the query list by removing unnecessary data

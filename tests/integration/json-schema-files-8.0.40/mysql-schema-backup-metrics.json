@@ -1,0 +1,131 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "description": "Schema for MySQL backup metrics integration output",
+  "properties": {
+    "integration_version": {
+      "minLength": 1,
+      "pattern": "^[0-9]+.[0-9]+.[0-9]+$",
+      "type": "string"
+    },
+    "data": {
+      "type": "array",
+      "items": [
+        {
+          "type": "object",
+          "properties": {
+            "events": {
+              "items": {
+                "properties": {},
+                "required": []
+              },
+              "type": "array"
+            },
+            "inventory": {
+              "properties": {},
+              "required": [],
+              "type": "object"
+            },
+            "metrics": {
+              "items": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "event_type": {
+                      "minLength": 1,
+                      "pattern": "^MysqlSample$",
+                      "type": "string"
+                    },
+                    "db.backupActive.total": {
+                      "type": "number"
+                    },
+                    "db.backupActive.logical": {
+                      "type": "number"
+                    },
+                    "db.backupActive.physical": {
+                      "type": "number"
+                    },
+                    "db.backupActive.tableLock": {
+                      "type": "number"
+                    },
+                    "db.backupHistory.total": {
+                      "type": "number"
+                    },
+                    "db.backupHistory.logical.count": {
+                      "type": "number"
+                    },
+                    "db.backupHistory.logical.avgDuration": {
+                      "type": "number"
+                    },
+                    "db.backupHistory.logical.maxDuration": {
+                      "type": "number"
+                    },
+                    "db.backupHistory.physical.count": {
+                      "type": "number"
+                    },
+                    "db.backupHistory.physical.avgDuration": {
+                      "type": "number"
+                    },
+                    "db.backupHistory.physical.maxDuration": {
+                      "type": "number"
+                    },
+                    "db.backupHistory.tableLock.count": {
+                      "type": "number"
+                    },
+                    "db.backupHistory.tableLock.avgDuration": {
+                      "type": "number"
+                    },
+                    "db.backupHistory.tableLock.maxDuration": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "event_type",
+                    "db.backupActive.total",
+                    "db.backupActive.logical",
+                    "db.backupActive.physical",
+                    "db.backupActive.tableLock",
+                    "db.backupHistory.total",
+                    "db.backupHistory.logical.count",
+                    "db.backupHistory.logical.avgDuration",
+                    "db.backupHistory.logical.maxDuration",
+                    "db.backupHistory.physical.count",
+                    "db.backupHistory.physical.avgDuration",
+                    "db.backupHistory.physical.maxDuration",
+                    "db.backupHistory.tableLock.count",
+                    "db.backupHistory.tableLock.avgDuration",
+                    "db.backupHistory.tableLock.maxDuration"
+                  ]
+                }
+              ],
+              "minItems": 1,
+              "type": "array",
+              "uniqueItems": true
+            }
+          }
+        }
+      ],
+      "required": [
+        "metrics",
+        "inventory",
+        "events"
+      ]
+    },
+    "name": {
+      "minLength": 1,
+      "pattern": "^com.newrelic.mysql$",
+      "type": "string"
+    },
+    "protocol_version": {
+      "minLength": 1,
+      "pattern": "^3$",
+      "type": "string"
+    }
+  },
+  "required": [
+    "name",
+    "protocol_version",
+    "integration_version",
+    "data"
+  ],
+  "type": "object"
+}

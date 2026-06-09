@@ -147,6 +147,99 @@ func TestIngestMetric(t *testing.T) {
 	})
 }
 
+func TestAnonymizeQueryText(t *testing.T) {
+	strPtr := func(s string) *string { return &s }
+
+	tests := []struct {
+		name     string
+		input    *string
+		expected *string
+	}{
+		{
+			name:     "NilInput",
+			input:    nil,
+			expected: nil,
+		},
+		{
+			name:     "AlreadyAnonymized",
+			input:    strPtr("SELECT * FROM users WHERE id = ? AND name = ?"),
+			expected: strPtr("SELECT * FROM users WHERE id = ? AND name = ?"),
+		},
+		{
+			name:     "StringLiterals",
+			input:    strPtr("INSERT INTO t VALUES ('hello', 'world')"),
+			expected: strPtr("INSERT INTO t VALUES (?, ?)"),
+		},
+		{
+			name:     "NumericLiterals",
+			input:    strPtr("SELECT * FROM orders WHERE id = 42 AND status = 1"),
+			expected: strPtr("SELECT * FROM orders WHERE id = ? AND status = ?"),
+		},
+		{
+			name:     "HexLiterals",
+			input:    strPtr("SELECT * FROM t WHERE col = 0xDEADBEEF"),
+			expected: strPtr("SELECT * FROM t WHERE col = ?"),
+		},
+		{
+			name:     "DecimalLiterals",
+			input:    strPtr("SELECT * FROM orders WHERE price > 3.14 AND tax = 0.05"),
+			expected: strPtr("SELECT * FROM orders WHERE price > ? AND tax = ?"),
+		},
+		{
+			name:     "MixedLiterals",
+			input:    strPtr("UPDATE users SET name = 'Alice' WHERE id = 99 AND token = 0xFF"),
+			expected: strPtr("UPDATE users SET name = ? WHERE id = ? AND token = ?"),
+		},
+		{
+			name:     "EmptyString",
+			input:    strPtr(""),
+			expected: strPtr(""),
+		},
+		{
+			name:     "ColumnIdentifiersWithNumbers",
+			input:    strPtr("SELECT col_1, total_2 FROM t WHERE row_id = col_1"),
+			expected: strPtr("SELECT col_1, total_2 FROM t WHERE row_id = col_1"),
+		},
+		{
+			name:     "EscapedQuotesInsideString",
+			input:    strPtr("SELECT * FROM t WHERE name = 'it''s here' AND city = 'O''Brien'"),
+			expected: strPtr("SELECT * FROM t WHERE name = ? AND city = ?"),
+		},
+		{
+			name:     "BackslashEscapeInsideString",
+			input:    strPtr(`SELECT * FROM t WHERE name = 'O\'Brien' AND code = 'foo\\bar'`),
+			expected: strPtr("SELECT * FROM t WHERE name = ? AND code = ?"),
+		},
+		{
+			name:     "MixedEscapeStyles",
+			input:    strPtr(`UPDATE t SET a = 'it''s' WHERE b = 'O\'Brien'`),
+			expected: strPtr("UPDATE t SET a = ? WHERE b = ?"),
+		},
+		{
+			name:     "MariaDBBlockingQuery",
+			input:    strPtr("UPDATE blocking_test SET balance = balance + 3 WHERE account_id = 1001"),
+			expected: strPtr("UPDATE blocking_test SET balance = balance + ? WHERE account_id = ?"),
+		},
+		{
+			name:     "SleepQuery",
+			input:    strPtr("SELECT SLEEP(90)"),
+			expected: strPtr("SELECT SLEEP(?)"),
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := AnonymizeQueryText(tt.input)
+			if tt.expected == nil {
+				assert.Nil(t, result)
+			} else {
+				assert.NotNil(t, result)
+				assert.Equal(t, *tt.expected, *result)
+			}
+		})
+	}
+}
+
 func TestGetExcludedDatabases(t *testing.T) {
 	type testCase struct {
 		Name              string   `json:"name"`

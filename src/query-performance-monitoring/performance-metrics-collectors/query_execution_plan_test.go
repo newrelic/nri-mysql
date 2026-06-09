@@ -2,6 +2,7 @@ package performancemetricscollectors
 
 import (
 	"context"
+	"encoding/json"
 	"testing"
 
 	"github.com/jmoiron/sqlx"
@@ -396,7 +397,7 @@ func TestPopulateExecutionPlans(t *testing.T) {
 			return nil, assert.AnError
 		}
 
-		PopulateExecutionPlans(mockDB, queryGroups, mockIntegration.Integration, mockArgs)
+		PopulateExecutionPlans(mockDB, queryGroups, mockIntegration.Integration, mockArgs, utils.DatabaseFlavorMySQL)
 
 		mockDB.AssertExpectations(t)
 		mockIntegration.AssertExpectations(t)
@@ -405,7 +406,7 @@ func TestPopulateExecutionPlans(t *testing.T) {
 	t.Run("No Metrics Collected", func(t *testing.T) {
 		queryGroups := map[string][]utils.IndividualQueryMetrics{}
 
-		PopulateExecutionPlans(mockDB, queryGroups, mockIntegration.Integration, mockArgs)
+		PopulateExecutionPlans(mockDB, queryGroups, mockIntegration.Integration, mockArgs, utils.DatabaseFlavorMySQL)
 
 		mockDB.AssertExpectations(t)
 		mockIntegration.AssertExpectations(t)
@@ -491,4 +492,321 @@ func TestEscapeAllStringsInJSON_Error(t *testing.T) {
 
 	_, err := escapeAllStringsInJSON(input)
 	assert.Error(t, err, "Expected an error")
+}
+
+// --- MariaDB-specific tests ---
+
+func TestDeduplicateJSONKeys_NoDuplicates(t *testing.T) {
+	input := `{"table_name":"users","access_type":"ALL","rows":100}`
+	output, err := deduplicateJSONKeys(input)
+	assert.NoError(t, err)
+
+	var parsed map[string]interface{}
+	err = json.Unmarshal([]byte(output), &parsed)
+	assert.NoError(t, err)
+	assert.Equal(t, "users", parsed["table_name"])
+	assert.Equal(t, "ALL", parsed["access_type"])
+}
+
+func TestDeduplicateJSONKeys_DuplicateTableKeys(t *testing.T) {
+	// Simulates MariaDB 10.6 JOIN output with duplicate "table" keys
+	input := `{
+		"query_block": {
+			"select_id": 1,
+			"table": {"table_name": "d", "access_type": "ALL", "rows": 4},
+			"table": {"table_name": "e", "access_type": "ref", "rows": 8}
+		}
+	}`
+	output, err := deduplicateJSONKeys(input)
+	assert.NoError(t, err)
+
+	var parsed map[string]interface{}
+	err = json.Unmarshal([]byte(output), &parsed)
+	assert.NoError(t, err)
+
+	qb := parsed["query_block"].(map[string]interface{})
+	table0, ok := qb["table"]
+	assert.True(t, ok, "first table key should be preserved as 'table'")
+	assert.Equal(t, "d", table0.(map[string]interface{})["table_name"])
+
+	table1, ok := qb["table_1"]
+	assert.True(t, ok, "second table key should be renamed to 'table_1'")
+	assert.Equal(t, "e", table1.(map[string]interface{})["table_name"])
+}
+
+func TestDeduplicateJSONKeys_DuplicateBlockNLJoin(t *testing.T) {
+	input := `{
+		"query_block": {
+			"select_id": 1,
+			"table": {"table_name": "t1", "access_type": "ALL"},
+			"block-nl-join": {"table": {"table_name": "t2", "access_type": "ALL"}},
+			"block-nl-join": {"table": {"table_name": "t3", "access_type": "ALL"}}
+		}
+	}`
+	output, err := deduplicateJSONKeys(input)
+	assert.NoError(t, err)
+
+	var parsed map[string]interface{}
+	err = json.Unmarshal([]byte(output), &parsed)
+	assert.NoError(t, err)
+
+	qb := parsed["query_block"].(map[string]interface{})
+	assert.Contains(t, qb, "block-nl-join")
+	assert.Contains(t, qb, "block-nl-join_1")
+}
+
+func TestDeduplicateJSONKeys_ThreeTableJoin(t *testing.T) {
+	input := `{
+		"query_block": {
+			"select_id": 1,
+			"table": {"table_name": "a", "access_type": "ALL", "rows": 10},
+			"table": {"table_name": "b", "access_type": "ref", "rows": 5},
+			"table": {"table_name": "c", "access_type": "eq_ref", "rows": 1}
+		}
+	}`
+	output, err := deduplicateJSONKeys(input)
+	assert.NoError(t, err)
+
+	metrics, err := extractMetricsFromJSONString(output, 1, 1)
+	assert.NoError(t, err)
+	assert.Equal(t, 3, len(metrics), "should extract all 3 tables from deduplicated JSON")
+
+	tableNames := make(map[string]bool)
+	for _, m := range metrics {
+		tableNames[m.TableName] = true
+	}
+	assert.True(t, tableNames["a"])
+	assert.True(t, tableNames["b"])
+	assert.True(t, tableNames["c"])
+}
+
+func TestExtractMetrics_MariaDBFilteredAsNumber(t *testing.T) {
+	jsonString := `{
+		"table_name": "employees",
+		"access_type": "ALL",
+		"rows": 8,
+		"filtered": 100
+	}`
+	js, err := simplejson.NewJson([]byte(jsonString))
+	assert.NoError(t, err)
+
+	memo := utils.Memo{QueryCost: ""}
+	stepID := 0
+	metrics := extractMetrics(js, make([]utils.QueryPlanMetrics, 0), 1, 1, memo, &stepID)
+
+	assert.Equal(t, 1, len(metrics))
+	assert.Equal(t, "100.00", metrics[0].Filtered, "filtered number should be formatted as string")
+}
+
+func TestExtractMetrics_MariaDBRowsFallback(t *testing.T) {
+	jsonString := `{
+		"table_name": "orders",
+		"access_type": "ref",
+		"rows": 42,
+		"filtered": 50.5
+	}`
+	js, err := simplejson.NewJson([]byte(jsonString))
+	assert.NoError(t, err)
+
+	memo := utils.Memo{QueryCost: ""}
+	stepID := 0
+	metrics := extractMetrics(js, make([]utils.QueryPlanMetrics, 0), 1, 1, memo, &stepID)
+
+	assert.Equal(t, 1, len(metrics))
+	assert.Equal(t, int64(42), metrics[0].RowsExaminedPerScan, "should fall back to 'rows' field")
+	assert.Equal(t, "50.50", metrics[0].Filtered)
+}
+
+func TestExtractMetrics_MariaDB114CostField(t *testing.T) {
+	jsonString := `{
+		"query_block": {
+			"select_id": 1,
+			"cost": 0.00723,
+			"nested_loop": [
+				{
+					"table": {
+						"table_name": "employees",
+						"access_type": "range",
+						"possible_keys": ["idx_salary"],
+						"key": "idx_salary",
+						"key_length": "6",
+						"used_key_parts": ["salary"],
+						"rows": 4,
+						"cost": 0.00723,
+						"filtered": 100
+					}
+				}
+			]
+		}
+	}`
+	metrics, err := extractMetricsFromJSONString(jsonString, 1, 1)
+	assert.NoError(t, err)
+	assert.Equal(t, 1, len(metrics))
+	assert.Equal(t, "employees", metrics[0].TableName)
+	assert.Equal(t, "range", metrics[0].AccessType)
+	assert.Equal(t, int64(4), metrics[0].RowsExaminedPerScan)
+	assert.Equal(t, "100.00", metrics[0].Filtered)
+	assert.Equal(t, "idx_salary", metrics[0].Key)
+	assert.Equal(t, "salary", metrics[0].UsedKeyParts)
+	assert.NotEmpty(t, metrics[0].QueryCost, "should extract cost from MariaDB 11.4+ flat cost field")
+}
+
+func TestExtractMetrics_MariaDB106SimpleSelect(t *testing.T) {
+	jsonString := `{
+		"query_block": {
+			"select_id": 1,
+			"table": {
+				"table_name": "employees",
+				"access_type": "ALL",
+				"possible_keys": ["idx_salary"],
+				"rows": 8,
+				"filtered": 100,
+				"attached_condition": "employees.salary > 80000"
+			}
+		}
+	}`
+	metrics, err := extractMetricsFromJSONString(jsonString, 42, 7)
+	assert.NoError(t, err)
+	assert.Equal(t, 1, len(metrics))
+	assert.Equal(t, "employees", metrics[0].TableName)
+	assert.Equal(t, "ALL", metrics[0].AccessType)
+	assert.Equal(t, int64(8), metrics[0].RowsExaminedPerScan)
+	assert.Equal(t, "100.00", metrics[0].Filtered)
+	assert.Equal(t, "idx_salary", metrics[0].PossibleKeys)
+	assert.Equal(t, uint64(42), metrics[0].EventID)
+	assert.Equal(t, uint64(7), metrics[0].ThreadID)
+}
+
+func TestDeduplicateJSONKeys_MariaDB106JoinEndToEnd(t *testing.T) {
+	input := `{
+		"query_block": {
+			"select_id": 1,
+			"table": {
+				"table_name": "d",
+				"access_type": "ALL",
+				"possible_keys": ["PRIMARY"],
+				"rows": 4,
+				"filtered": 100,
+				"attached_condition": "d.budget > 400000"
+			},
+			"block-nl-join": {
+				"table": {
+					"table_name": "e",
+					"access_type": "ALL",
+					"possible_keys": ["idx_dept"],
+					"rows": 8,
+					"filtered": 100
+				},
+				"buffer_type": "flat",
+				"join_type": "BNL",
+				"attached_condition": "e.dept_id = d.id"
+			}
+		}
+	}`
+
+	deduped, err := deduplicateJSONKeys(input)
+	assert.NoError(t, err)
+
+	metrics, err := extractMetricsFromJSONString(deduped, 10, 20)
+	assert.NoError(t, err)
+	assert.Equal(t, 2, len(metrics), "should extract both tables from MariaDB 10.6 JOIN")
+
+	tableNames := make(map[string]bool)
+	for _, m := range metrics {
+		tableNames[m.TableName] = true
+	}
+	assert.True(t, tableNames["d"], "should find table 'd'")
+	assert.True(t, tableNames["e"], "should find table 'e'")
+}
+
+func TestDeduplicateJSONKeys_NestedArraysPreserved(t *testing.T) {
+	input := `{
+		"query_block": {
+			"select_id": 1,
+			"nested_loop": [
+				{"table": {"table_name": "t1", "access_type": "ALL", "rows": 10}},
+				{"table": {"table_name": "t2", "access_type": "ref", "rows": 1}}
+			]
+		}
+	}`
+	output, err := deduplicateJSONKeys(input)
+	assert.NoError(t, err)
+
+	metrics, err := extractMetricsFromJSONString(output, 1, 1)
+	assert.NoError(t, err)
+	assert.Equal(t, 2, len(metrics))
+}
+
+func TestDeduplicateJSONKeys_InvalidJSON(t *testing.T) {
+	_, err := deduplicateJSONKeys(`{"broken": }`)
+	assert.Error(t, err)
+}
+
+func TestDeduplicateJSONKeys_EmptyObject(t *testing.T) {
+	output, err := deduplicateJSONKeys(`{}`)
+	assert.NoError(t, err)
+	assert.Equal(t, "{}", output)
+}
+
+func TestExtractMetrics_MySQLRowsExaminedTakesPrecedence(t *testing.T) {
+	jsonString := `{
+		"table_name": "t1",
+		"access_type": "ALL",
+		"rows_examined_per_scan": 100,
+		"rows": 50,
+		"filtered": "100.00"
+	}`
+	js, err := simplejson.NewJson([]byte(jsonString))
+	assert.NoError(t, err)
+
+	memo := utils.Memo{QueryCost: ""}
+	stepID := 0
+	metrics := extractMetrics(js, make([]utils.QueryPlanMetrics, 0), 1, 1, memo, &stepID)
+
+	assert.Equal(t, 1, len(metrics))
+	assert.Equal(t, int64(100), metrics[0].RowsExaminedPerScan, "MySQL rows_examined_per_scan should take precedence")
+}
+
+func TestDeduplicateJSONKeys_EmptyString(t *testing.T) {
+	_, err := deduplicateJSONKeys("")
+	assert.Error(t, err)
+}
+
+func TestExtractMetrics_MySQLRowsExaminedZeroIsValid(t *testing.T) {
+	// MySQL can legitimately return rows_examined_per_scan: 0 (e.g., const access on empty table).
+	// The fallback to "rows" should NOT trigger in this case.
+	jsonString := `{
+		"table_name": "t1",
+		"access_type": "const",
+		"rows_examined_per_scan": 0,
+		"rows": 99,
+		"filtered": "100.00"
+	}`
+	js, err := simplejson.NewJson([]byte(jsonString))
+	assert.NoError(t, err)
+
+	memo := utils.Memo{QueryCost: ""}
+	stepID := 0
+	metrics := extractMetrics(js, make([]utils.QueryPlanMetrics, 0), 1, 1, memo, &stepID)
+
+	assert.Equal(t, 1, len(metrics))
+	assert.Equal(t, int64(0), metrics[0].RowsExaminedPerScan, "MySQL rows_examined_per_scan=0 should be preserved, not overwritten by rows")
+}
+
+func TestExtractMetrics_FilteredStringTakesPrecedence(t *testing.T) {
+	jsonString := `{
+		"table_name": "t1",
+		"access_type": "ALL",
+		"rows_examined_per_scan": 10,
+		"filtered": "33.33"
+	}`
+	js, err := simplejson.NewJson([]byte(jsonString))
+	assert.NoError(t, err)
+
+	memo := utils.Memo{QueryCost: ""}
+	stepID := 0
+	metrics := extractMetrics(js, make([]utils.QueryPlanMetrics, 0), 1, 1, memo, &stepID)
+
+	assert.Equal(t, 1, len(metrics))
+	assert.Equal(t, "33.33", metrics[0].Filtered, "MySQL string filtered should be used directly")
 }

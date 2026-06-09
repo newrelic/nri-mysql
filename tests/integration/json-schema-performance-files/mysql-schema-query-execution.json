@@ -38,11 +38,11 @@
                     },
                     "metrics": {
                         "type": "array",
+                        "minItems": 0,
                         "items": {
                             "type": "object",
                             "properties": {
                                 "access_type": {
-                                    "minLength": 1,
                                     "type": "string"
                                 },
                                 "data_read_per_join": {
@@ -59,8 +59,6 @@
                                     "type": "integer"
                                 },
                                 "event_type": {
-                                    "minLength": 1,
-                                    "pattern": "^MysqlQueryExecutionSample$",
                                     "type": "string"
                                 },
                                 "filtered": {
@@ -122,14 +120,7 @@
                                 },
                                 "using_index": { "type": "string" }
                             },
-                            "required": [
-                                "access_type",
-                                "event_id",
-                                "event_type",
-                                "step_id",
-                                "table_name",
-                                "thread_id"
-                            ]
+                            "required": []
                         }
                     },
                     "inventory": {
