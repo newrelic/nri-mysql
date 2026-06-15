@@ -81,8 +81,43 @@ integrations:
     # Provide any necessary database exclusions as a JSON array
     # EXCLUDED_PERFORMANCE_DATABASES: '["employees","azure_sys"]' 
     # Note: System databases (mysql, information_schema, performance_schema, sys) are always excluded.
-  interval: 30s 
+  interval: 30s
   labels:
     env: production
     role: performance-monitoring
+  inventory_source: config/mysql
+
+# Example configuration for custom metrics collection
+- name: nri-mysql
+  env:
+    HOSTNAME: localhost
+    PORT: 3306
+    USERNAME: newrelic
+    PASSWORD: <YOUR_SELECTED_PASSWORD>
+
+    # New users should leave this property as `true`, to identify the
+    # monitored entities as `remote`. Setting this property to `false` (the
+    # default value) is deprecated and will be removed soon, disallowing
+    # entities that are identified as `local`.
+    # Please check the documentation to get more information about local
+    # versus remote entities:
+    # https://github.com/newrelic/infra-integrations-sdk/blob/master/docs/entity-definition.md
+    REMOTE_MONITORING: true
+
+    # A SQL query to collect custom metrics
+    # CUSTOM_METRICS_QUERY: >-
+    #   SELECT
+    #     COUNT(*) as active_connections,
+    #     SUM(CASE WHEN command != 'Sleep' THEN 1 ELSE 0 END) as busy_connections
+    #   FROM information_schema.processlist
+
+    # Can be used instead of CUSTOM_METRICS_QUERY to specify the path to a
+    # YAML configuration with one or more custom SQL queries to collect
+    # For more information see mysql-custom-query.yml.sample
+    # CUSTOM_METRICS_CONFIG: /etc/newrelic-infra/mysql-custom-query.yml
+
+  interval: 30s
+  labels:
+    env: production
+    role: custom-metrics
   inventory_source: config/mysql

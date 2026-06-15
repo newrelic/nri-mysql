@@ -47,5 +47,18 @@
           # versus remote entities:
           # https://github.com/newrelic/infra-integrations-sdk/blob/master/docs/entity-definition.md
           REMOTE_MONITORING: true
+
+          # A SQL query to collect custom metrics
+          # CUSTOM_METRICS_QUERY: >-
+          #   SELECT
+          #     COUNT(*) as active_connections,
+          #     SUM(CASE WHEN command != 'Sleep' THEN 1 ELSE 0 END) as busy_connections
+          #   FROM information_schema.processlist
+
+          # Can be used instead of CUSTOM_METRICS_QUERY to specify the path to a
+          # YAML configuration with one or more custom SQL queries to collect
+          # For more information see mysql-custom-query.yml.sample
+          # CUSTOM_METRICS_CONFIG: /etc/newrelic-infra/mysql-custom-query.yml
+
         labels:
           env: production

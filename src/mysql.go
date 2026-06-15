@@ -68,6 +68,18 @@ func main() {
 			args.RemoteMonitoring,
 		)
 		populateMetrics(ms, rawMetrics, dbVersion)
+
+		// Custom metrics processing
+		if args.CustomMetricsQuery != "" {
+			if err := processCustomQuery(db.getDB(), e, args.CustomMetricsQuery, "MysqlCustomSample"); err != nil {
+				log.Warn("Failed to process custom query: %v", err)
+			}
+		}
+		if args.CustomMetricsConfig != "" {
+			if err := processCustomConfigFile(db.getDB(), e, args.CustomMetricsConfig); err != nil {
+				log.Warn("Failed to process custom config file: %v", err)
+			}
+		}
 	}
 	infrautils.FatalIfErr(i.Publish())
 

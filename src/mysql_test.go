@@ -1,8 +1,10 @@
 package main
 
 import (
+	"database/sql"
 	"testing"
 
+	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/newrelic/infra-integrations-sdk/v3/data/inventory"
 	"github.com/newrelic/infra-integrations-sdk/v3/data/metric"
 	"github.com/newrelic/infra-integrations-sdk/v3/integration"
@@ -94,13 +96,36 @@ func TestPopulateInventory(t *testing.T) {
 }
 
 type testdb struct {
-	inventory map[string]interface{}
-	metrics   map[string]interface{}
-	replica   map[string]interface{}
-	version   map[string]interface{}
+	inventory     map[string]interface{}
+	metrics       map[string]interface{}
+	replica       map[string]interface{}
+	version       map[string]interface{}
+	customQueries map[string]map[string]interface{}
+	mockDB        *sql.DB
+	mockSQL       sqlmock.Sqlmock
 }
 
-func (d testdb) close() {}
+func (d testdb) close() {
+	if d.mockDB != nil {
+		d.mockDB.Close()
+	}
+}
+
+func (d testdb) getDB() *sql.DB {
+	// If we have a mock DB, return it for custom query testing
+	if d.mockDB != nil {
+		return d.mockDB
+	}
+
+	// For tests that don't need real DB functionality, create a minimal mock
+	db, _, err := sqlmock.New()
+	if err != nil {
+		// Return nil if mock creation fails (maintains backward compatibility)
+		return nil
+	}
+	return db
+}
+
 func (d testdb) query(query string) (map[string]interface{}, error) {
 	if query == inventoryQuery {
 		return d.inventory, nil
@@ -114,8 +139,17 @@ func (d testdb) query(query string) (map[string]interface{}, error) {
 	if query == dbVersionQuery {
 		return d.version, nil
 	}
+
+	// Handle custom queries for testing
+	if d.customQueries != nil {
+		if result, exists := d.customQueries[query]; exists {
+			return result, nil
+		}
+	}
+
 	return nil, nil
 }
+
 func (d testdb) getBackupQuery() string {
 	// For tests, always return the main query (assumes newer version)
 	return backupMetricsQuery
@@ -225,3 +259,37 @@ func TestPopulateMetricsOfTypePRATE(t *testing.T) {
 	//  db.createdTmpFilesPerSecond metric will be zero because there is no older value for this metric to calculate the PRATE.
 	assert.Equal(t, float64(0), ms.Metrics["db.createdTmpFilesPerSecond"])
 }
+
+func TestCustomQueryIntegration(t *testing.T) {
+	// Create proper test integration following MySQL patterns
+	testIntegration, err := integration.New("test", "1.0.0")
+	assert.NoError(t, err)
+
+	testEntity := testIntegration.LocalEntity()
+
+	// Create mock database
+	db, mock, err := sqlmock.New()
+	assert.NoError(t, err)
+	defer db.Close()
+
+	// Setup mock expectations for custom query
+	rows := sqlmock.NewRows([]string{"user_count", "active_users"}).
+		AddRow(42, 25)
+	mock.ExpectQuery("SELECT COUNT\\(\\*\\) as user_count").
+		WillReturnRows(rows)
+
+	// Test processCustomQuery function
+	err = processCustomQuery(db, testEntity, "SELECT COUNT(*) as user_count, COUNT(*) as active_users FROM users", "MysqlTestSample")
+	assert.NoError(t, err)
+
+	// Verify all expectations were met
+	assert.NoError(t, mock.ExpectationsWereMet())
+
+	// Verify that metrics were created
+	assert.Len(t, testEntity.Metrics, 1)
+	metricSet := testEntity.Metrics[0].Metrics
+	assert.Equal(t, "MysqlTestSample", metricSet["event_type"])
+	assert.Equal(t, float64(42), metricSet["user_count"])
+	assert.Equal(t, float64(25), metricSet["active_users"])
+}
+

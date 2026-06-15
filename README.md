@@ -12,6 +12,38 @@ See our [documentation web site](https://docs.newrelic.com/docs/integrations/hos
 
 For installation and usage instructions, see our [documentation web site](https://docs.newrelic.com/docs/integrations/host-integrations/host-integrations-list/mysql-monitoring-integration).
 
+## Custom Metrics
+
+The MySQL integration supports collecting custom metrics through SQL queries.
+
+### Single Custom Query
+
+Use the `-custom_metrics_query` parameter to execute a single SQL query:
+
+```bash
+./nri-mysql -hostname localhost -username root -password secret \
+  -custom_metrics_query "SELECT COUNT(*) as active_connections FROM information_schema.processlist WHERE command != 'Sleep'"
+```
+
+### Multiple Custom Queries (YAML Configuration)
+
+Create a YAML configuration file with multiple queries:
+
+```yaml
+queries:
+  - query: "SELECT COUNT(*) as active_connections FROM information_schema.processlist"
+    sample_name: "MysqlConnectionsSample"
+  - query: "SELECT SUM(data_length + index_length) as total_size FROM information_schema.tables WHERE table_schema = 'myapp'"
+    sample_name: "MysqlDatabaseSizeSample"
+```
+
+Then use the `-custom_metrics_config` parameter:
+
+```bash
+./nri-mysql -hostname localhost -username root -password secret \
+  -custom_metrics_config /etc/newrelic-infra/mysql-custom-queries.yml
+```
+
 ## Building
 
 Golang is required to build the integration. We recommend Golang 1.11 or higher.
