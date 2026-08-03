@@ -20,7 +20,7 @@ jobs:
     with:
       tag: ${{ github.event.release.tag_name || inputs.tag }}
       agent_type: NRIMysql
-      display_name: "Mysql"
+      display_name: "MySQL"
       monitoring_type: "INFRA"
       oci_registry: "docker.io/newrelic/nri-mysql-artifacts"
       artifacts: |
