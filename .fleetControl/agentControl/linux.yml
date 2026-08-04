@@ -1,0 +1,46 @@
+namespace: newrelic
+name: com.newrelic.infrastructure.nri_mysql
+version: 0.1.0
+platform: host
+operating_system: linux
+protocol_version: "1.0"
+variables:
+  config:
+    description: "nri-mysql integration YAML consumed by the infra-agent"
+    type: yaml
+    required: true
+  version:
+    description: "Agent version"
+    type: string
+    required: true
+  oci:
+    repository:
+      description: "OCI repository name for nri-mysql"
+      type: string
+      required: false
+      default: newrelic/nri-mysql-artifacts
+      variants:
+        ac_config_field: "oci_repository_urls"
+        values: [ "newrelic/nri-mysql-artifacts" ]
+deployment:
+  packages:
+    nri-mysql:
+      download:
+        oci:
+          repository: ${nr-var:oci.repository}
+          version: ${nr-var:version}
+          public_key_url: https://publickeys.newrelic.com/g/agent-control-oci/global/nri-mysql/jwks.json
+  shared_filesystem:
+    infra-agent-ohi-configs:
+      kind: dir
+      entries:
+        nri-mysql.yaml:
+          kind: file
+          text: |
+            ${nr-var:config}
+    infra-agent-ohi-binaries:
+      kind: dir
+      entries:
+        nri-mysql:
+          kind: file
+          copy_from_file: ${nr-sub:packages.nri-mysql.dir}/nri-mysql
