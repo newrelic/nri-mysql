@@ -9,6 +9,9 @@ Unreleased section should follow [Release Toolkit](https://github.com/newrelic/r
 
 ## Unreleased
 
+### Security
+- Added explicit least-privilege `permissions` blocks to GitHub Actions workflows
+
 ## v1.23.2 - 2026-07-13
 
 ### ⛓️ Dependencies
