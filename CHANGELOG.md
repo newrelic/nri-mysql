@@ -9,6 +9,9 @@ Unreleased section should follow [Release Toolkit](https://github.com/newrelic/r
 
 ## Unreleased
 
+### Security
+- Bumped golang.org/x/text to v0.39.0 and golang.org/x/sys to v0.44.0 to patch CVEs
+
 ## v1.23.2 - 2026-07-13
 
 ### ⛓️ Dependencies
