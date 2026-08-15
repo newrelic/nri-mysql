@@ -8,6 +8,7 @@ import (
 	"github.com/newrelic/infra-integrations-sdk/v3/data/inventory"
 	"github.com/newrelic/infra-integrations-sdk/v3/data/metric"
 	"github.com/newrelic/infra-integrations-sdk/v3/integration"
+	arguments "github.com/newrelic/nri-mysql/src/args"
 	infrautils "github.com/newrelic/nri-mysql/src/infrautils"
 	constants "github.com/newrelic/nri-mysql/src/query-performance-monitoring/constants"
 	"github.com/stretchr/testify/assert"
@@ -279,7 +280,7 @@ func TestCustomQueryIntegration(t *testing.T) {
 		WillReturnRows(rows)
 
 	// Test processCustomQuery function
-	err = processCustomQuery(db, testEntity, "SELECT COUNT(*) as user_count, COUNT(*) as active_users FROM users", "MysqlTestSample")
+	err = processCustomQuery(db, testEntity, "SELECT COUNT(*) as user_count, COUNT(*) as active_users FROM users", "MysqlTestSample", "", arguments.ArgumentList{})
 	assert.NoError(t, err)
 
 	// Verify all expectations were met

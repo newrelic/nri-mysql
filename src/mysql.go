@@ -71,12 +71,12 @@ func main() {
 
 		// Custom metrics processing
 		if args.CustomMetricsQuery != "" {
-			if err := processCustomQuery(db.getDB(), e, args.CustomMetricsQuery, "MysqlCustomSample"); err != nil {
+			if err := processCustomQuery(db.getDB(), e, args.CustomMetricsQuery, "MysqlCustomSample", "", args); err != nil {
 				log.Warn("Failed to process custom query: %v", err)
 			}
 		}
 		if args.CustomMetricsConfig != "" {
-			if err := processCustomConfigFile(db.getDB(), e, args.CustomMetricsConfig); err != nil {
+			if err := processCustomConfigFile(db.getDB(), e, args.CustomMetricsConfig, args); err != nil {
 				log.Warn("Failed to process custom config file: %v", err)
 			}
 		}

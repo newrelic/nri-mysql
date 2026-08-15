@@ -11,6 +11,19 @@ queries:
       FROM information_schema.processlist
     sample_name: MysqlConnectionsSample
 
+  # Example: target a specific application database instead of the connection's
+  # default one. When `database` is set, this query runs on a dedicated connection
+  # to that database, leaving the default database used by other queries unaffected.
+  # Repeat this query with a different `database` value to collect the same metric
+  # from multiple databases.
+  - query: >-
+      SELECT
+        COUNT(*) as active_orders
+      FROM orders
+      WHERE status != 'completed'
+    sample_name: MysqlActiveOrdersSample
+    database: myapp_db
+
   # Database size monitoring by schema
   - query: >-
       SELECT

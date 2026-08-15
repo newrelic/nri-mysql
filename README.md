@@ -35,7 +35,15 @@ queries:
     sample_name: "MysqlConnectionsSample"
   - query: "SELECT SUM(data_length + index_length) as total_size FROM information_schema.tables WHERE table_schema = 'myapp'"
     sample_name: "MysqlDatabaseSizeSample"
+  - query: "SELECT COUNT(*) as active_orders FROM orders WHERE status != 'completed'"
+    sample_name: "MysqlActiveOrdersSample"
+    database: "myapp_db"
 ```
+
+Each query optionally accepts a `database` field to run against a specific database instead of the
+integration's default connection. When set, that query runs on its own dedicated connection to the
+given database, so it doesn't affect the default database used by other queries. To collect the same
+metric from multiple databases, repeat the query once per `database` value.
 
 Then use the `-custom_metrics_config` parameter:
 

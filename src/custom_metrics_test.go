@@ -2,11 +2,13 @@ package main
 
 import (
     "database/sql"
+    "fmt"
     "os"
     "testing"
     "github.com/DATA-DOG/go-sqlmock"
     "github.com/newrelic/infra-integrations-sdk/v3/data/metric"
     "github.com/newrelic/infra-integrations-sdk/v3/integration"
+    arguments "github.com/newrelic/nri-mysql/src/args"
     "github.com/stretchr/testify/assert"
     "gopkg.in/yaml.v3"
 )
@@ -62,19 +64,19 @@ func TestInferMetricType(t *testing.T) {
 func TestProcessCustomQuery(t *testing.T) {
     t.Run("Parameter Validation", func(t *testing.T) {
         // Test nil database
-        err := processCustomQuery(nil, &integration.Entity{}, "SELECT 1", "TestSample")
+        err := processCustomQuery(nil, &integration.Entity{}, "SELECT 1", "TestSample", "", arguments.ArgumentList{})
         assert.Error(t, err)
         assert.Contains(t, err.Error(), "invalid parameters")
 
         // Test nil entity
         db, _, _ := sqlmock.New()
         defer db.Close()
-        err = processCustomQuery(db, nil, "SELECT 1", "TestSample")
+        err = processCustomQuery(db, nil, "SELECT 1", "TestSample", "", arguments.ArgumentList{})
         assert.Error(t, err)
         assert.Contains(t, err.Error(), "invalid parameters")
 
         // Test empty query
-        err = processCustomQuery(db, &integration.Entity{}, "", "TestSample")
+        err = processCustomQuery(db, &integration.Entity{}, "", "TestSample", "", arguments.ArgumentList{})
         assert.Error(t, err)
         assert.Contains(t, err.Error(), "invalid parameters")
     })
@@ -98,7 +100,7 @@ func TestProcessCustomQuery(t *testing.T) {
             WillReturnRows(rows)
 
         // Test the actual function
-        err = processCustomQuery(db, testEntity, "SELECT COUNT(*) as user_count, COUNT(*) as active_users FROM users", "MysqlTestSample")
+        err = processCustomQuery(db, testEntity, "SELECT COUNT(*) as user_count, COUNT(*) as active_users FROM users", "MysqlTestSample", "", arguments.ArgumentList{})
         assert.NoError(t, err)
 
         // Verify sqlmock expectations were met
@@ -127,7 +129,7 @@ func TestProcessCustomQuery(t *testing.T) {
             WillReturnError(sql.ErrNoRows)
 
         // Test the function - should return error due to query failure
-        err = processCustomQuery(db, testEntity, "SELECT COUNT(*) FROM nonexistent", "MysqlErrorSample")
+        err = processCustomQuery(db, testEntity, "SELECT COUNT(*) FROM nonexistent", "MysqlErrorSample", "", arguments.ArgumentList{})
         assert.Error(t, err)
         assert.Contains(t, err.Error(), "failed to execute custom query")
 
@@ -135,6 +137,67 @@ func TestProcessCustomQuery(t *testing.T) {
         assert.NoError(t, mock.ExpectationsWereMet())
 
         // Should not have created any metrics due to error
+        assert.Len(t, testEntity.Metrics, 0)
+    })
+}
+
+func TestProcessCustomQueryWithDatabaseOverride(t *testing.T) {
+    t.Run("Runs on a dedicated connection for the given database", func(t *testing.T) {
+        testIntegration, err := integration.New("test", "1.0.0")
+        assert.NoError(t, err)
+        testEntity := testIntegration.LocalEntity()
+
+        // db is the shared pool connection; it must NOT receive the query.
+        sharedDB, sharedMock, err := sqlmock.New()
+        assert.NoError(t, err)
+        defer sharedDB.Close()
+
+        // altDB is the dedicated per-database connection that should receive the query.
+        altDB, altMock, err := sqlmock.New()
+        assert.NoError(t, err)
+        defer altDB.Close()
+
+        var requestedDSN string
+        origOpen := openDatabaseConnection
+        openDatabaseConnection = func(dsn string) (*sql.DB, error) {
+            requestedDSN = dsn
+            return altDB, nil
+        }
+        defer func() { openDatabaseConnection = origOpen }()
+
+        rows := sqlmock.NewRows([]string{"total_orders"}).AddRow(3)
+        altMock.ExpectQuery("SELECT COUNT\\(\\*\\) as total_orders FROM orders").WillReturnRows(rows)
+
+        args := arguments.ArgumentList{Hostname: "localhost", Port: 3306, Username: "newrelic", Password: "secret"}
+        err = processCustomQuery(sharedDB, testEntity, "SELECT COUNT(*) as total_orders FROM orders", "ShopSample", "shopdb", args)
+        assert.NoError(t, err)
+
+        assert.Contains(t, requestedDSN, "/shopdb")
+        assert.NoError(t, altMock.ExpectationsWereMet())
+        assert.NoError(t, sharedMock.ExpectationsWereMet()) // shared connection got zero queries
+
+        assert.Len(t, testEntity.Metrics, 1)
+        assert.Equal(t, float64(3), testEntity.Metrics[0].Metrics["total_orders"])
+    })
+
+    t.Run("Returns an error when the dedicated connection fails to open", func(t *testing.T) {
+        testIntegration, err := integration.New("test", "1.0.0")
+        assert.NoError(t, err)
+        testEntity := testIntegration.LocalEntity()
+
+        db, _, err := sqlmock.New()
+        assert.NoError(t, err)
+        defer db.Close()
+
+        origOpen := openDatabaseConnection
+        openDatabaseConnection = func(dsn string) (*sql.DB, error) {
+            return nil, fmt.Errorf("connection refused")
+        }
+        defer func() { openDatabaseConnection = origOpen }()
+
+        err = processCustomQuery(db, testEntity, "SELECT 1", "ShopSample", "shopdb", arguments.ArgumentList{})
+        assert.Error(t, err)
+        assert.Contains(t, err.Error(), `failed to connect to database "shopdb"`)
         assert.Len(t, testEntity.Metrics, 0)
     })
 }
@@ -157,6 +220,25 @@ queries:
     assert.Equal(t, "TestSample", config.Queries[0].SampleName)
     assert.Equal(t, "SELECT 2 as another_metric", config.Queries[1].Query)
     assert.Equal(t, "AnotherSample", config.Queries[1].SampleName)
+}
+
+func TestParseCustomMetricsConfigDatabaseField(t *testing.T) {
+    yamlContent := `---
+queries:
+  - query: "SELECT COUNT(*) as total_orders FROM orders"
+    sample_name: "ShopRevenueSample"
+    database: shopdb
+  - query: "SELECT 1 as no_database_override"
+    sample_name: "DefaultDbSample"
+`
+
+    var config CustomMetricsConfig
+    err := yaml.Unmarshal([]byte(yamlContent), &config)
+
+    assert.NoError(t, err)
+    assert.Len(t, config.Queries, 2)
+    assert.Equal(t, "shopdb", config.Queries[0].Database)
+    assert.Empty(t, config.Queries[1].Database)
 }
 
 func TestParseCustomMetricsConfigEdgeCases(t *testing.T) {
@@ -285,7 +367,7 @@ func TestProcessCustomConfigFileParameterValidation(t *testing.T) {
 
     for _, tt := range tests {
         t.Run(tt.name, func(t *testing.T) {
-            err := processCustomConfigFile(tt.db, tt.entity, tt.configPath)
+            err := processCustomConfigFile(tt.db, tt.entity, tt.configPath, arguments.ArgumentList{})
             if tt.expectErr {
                 assert.Error(t, err)
                 assert.Contains(t, err.Error(), tt.errContains)
@@ -335,7 +417,7 @@ queries:
             WillReturnRows(orderRows)
 
         // Test the function
-        err = processCustomConfigFile(db, testEntity, tempFile.Name())
+        err = processCustomConfigFile(db, testEntity, tempFile.Name(), arguments.ArgumentList{})
         assert.NoError(t, err)
 
         // Verify all expectations were met
@@ -366,7 +448,7 @@ queries:
         defer db.Close()
 
         // Test with non-existent file
-        err = processCustomConfigFile(db, testEntity, "/nonexistent/config.yml")
+        err = processCustomConfigFile(db, testEntity, "/nonexistent/config.yml", arguments.ArgumentList{})
         assert.Error(t, err)
         assert.Contains(t, err.Error(), "failed to read config file")
     })
@@ -398,7 +480,7 @@ queries:
         defer db.Close()
 
         // Test with invalid YAML
-        err = processCustomConfigFile(db, testEntity, tempFile.Name())
+        err = processCustomConfigFile(db, testEntity, tempFile.Name(), arguments.ArgumentList{})
         assert.Error(t, err)
         assert.Contains(t, err.Error(), "failed to parse YAML config")
     })
@@ -438,7 +520,7 @@ queries:
             WillReturnError(sql.ErrNoRows)
 
         // Test should not return error (fails gracefully)
-        err = processCustomConfigFile(db, testEntity, tempFile.Name())
+        err = processCustomConfigFile(db, testEntity, tempFile.Name(), arguments.ArgumentList{})
         assert.NoError(t, err) // Function continues processing even if individual queries fail
 
         // Verify all expectations were met

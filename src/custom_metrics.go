@@ -9,9 +9,17 @@ import (
 	"github.com/newrelic/infra-integrations-sdk/v3/data/metric"
 	"github.com/newrelic/infra-integrations-sdk/v3/integration"
 	"github.com/newrelic/infra-integrations-sdk/v3/log"
+	arguments "github.com/newrelic/nri-mysql/src/args"
+	dbutils "github.com/newrelic/nri-mysql/src/dbutils"
 	infrautils "github.com/newrelic/nri-mysql/src/infrautils"
 	"gopkg.in/yaml.v3"
 )
+
+// openDatabaseConnection opens a new *sql.DB for a given DSN. It is a package-level
+// variable so tests can substitute a mock connection opener.
+var openDatabaseConnection = func(dsn string) (*sql.DB, error) {
+	return sql.Open("mysql", dsn)
+}
 
 // CustomMetricsConfig represents YAML configuration structure
 type CustomMetricsConfig struct {
@@ -22,6 +30,10 @@ type CustomMetricsConfig struct {
 type CustomQuery struct {
 	Query      string `yaml:"query"`
 	SampleName string `yaml:"sample_name"`
+	// Database overrides the default database the query runs against.
+	// When set, the query runs on a dedicated connection to that database,
+	// leaving the shared connection pool's default database untouched.
+	Database string `yaml:"database"`
 }
 
 // inferMetricType determines New Relic metric type from Go value
@@ -56,13 +68,25 @@ func convertValue(value interface{}) interface{} {
 	return s
 }
 
-// processCustomQuery executes a single custom SQL query and collects metrics
-func processCustomQuery(db *sql.DB, entity *integration.Entity, query string, sampleName string) error {
+// processCustomQuery executes a single custom SQL query and collects metrics.
+// When database is non-empty, the query runs on a dedicated connection to that
+// database instead of the shared pool, so other queries' default database is unaffected.
+func processCustomQuery(db *sql.DB, entity *integration.Entity, query string, sampleName string, database string, args arguments.ArgumentList) error {
 	if db == nil || entity == nil || query == "" {
 		return fmt.Errorf("invalid parameters: db, entity and query are required")
 	}
 
-	rows, err := db.Query(query)
+	targetDB := db
+	if database != "" {
+		altDB, err := openDatabaseConnection(dbutils.GenerateDSN(args, database))
+		if err != nil {
+			return fmt.Errorf("failed to connect to database %q: %w", database, err)
+		}
+		defer altDB.Close()
+		targetDB = altDB
+	}
+
+	rows, err := targetDB.Query(query)
 	if err != nil {
 		return fmt.Errorf("failed to execute custom query: %w", err)
 	}
@@ -106,7 +130,7 @@ func processCustomQuery(db *sql.DB, entity *integration.Entity, query string, sa
 }
 
 // processCustomConfigFile processes multiple custom queries from YAML configuration
-func processCustomConfigFile(db *sql.DB, entity *integration.Entity, configPath string) error {
+func processCustomConfigFile(db *sql.DB, entity *integration.Entity, configPath string, args arguments.ArgumentList) error {
 	if db == nil || entity == nil || configPath == "" {
 		return fmt.Errorf("invalid parameters: db, entity and configPath are required")
 	}
@@ -130,7 +154,7 @@ func processCustomConfigFile(db *sql.DB, entity *integration.Entity, configPath 
 			sampleName = "MysqlCustomSample"
 		}
 
-		if err := processCustomQuery(db, entity, customQuery.Query, sampleName); err != nil {
+		if err := processCustomQuery(db, entity, customQuery.Query, sampleName, customQuery.Database, args); err != nil {
 			log.Warn("Failed to process custom query %d: %v", i, err)
 			// Continue processing other queries even if one fails
 		}
