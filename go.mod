@@ -11,7 +11,7 @@ require (
 	github.com/sirupsen/logrus v1.10.0
 	github.com/stretchr/testify v1.11.1
 	github.com/xeipuuv/gojsonschema v1.2.0
-	golang.org/x/text v0.39.0
+	golang.org/x/text v0.41.0
 )
 
 require (
