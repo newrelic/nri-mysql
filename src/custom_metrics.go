@@ -98,10 +98,7 @@ func processCustomQuery(db *sql.DB, entity *integration.Entity, query string, sa
 		return fmt.Errorf("failed to get column names: %w", err)
 	}
 
-	// Create metric set using existing nri-mysql pattern
-	ms := infrautils.MetricSet(entity, sampleName, "", 0, false)
-
-	// Process each row
+	// Process each row, creating one metric set (event) per row
 	for rows.Next() {
 		// Create slice to hold column values
 		values := make([]interface{}, len(columns))
@@ -114,6 +111,9 @@ func processCustomQuery(db *sql.DB, entity *integration.Entity, query string, sa
 			log.Warn("Failed to scan custom query row: %v", err)
 			continue
 		}
+
+		// Create metric set using existing nri-mysql pattern
+		ms := infrautils.MetricSet(entity, sampleName, args.Hostname, args.Port, args.RemoteMonitoring)
 
 		// Add metrics to the set
 		for i, column := range columns {

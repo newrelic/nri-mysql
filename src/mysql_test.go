@@ -293,4 +293,3 @@ func TestCustomQueryIntegration(t *testing.T) {
 	assert.Equal(t, float64(42), metricSet["user_count"])
 	assert.Equal(t, float64(25), metricSet["active_users"])
 }
-

@@ -1,4 +1,5 @@
 ---
+# Metric names are set to the column names in the query results.
 queries:
   # Monitor active connections and thread states
   - query: >-
@@ -9,6 +10,10 @@ queries:
         SUM(CASE WHEN state = 'Waiting for table metadata lock' THEN 1 ELSE 0 END) as metadata_lock_waits,
         SUM(CASE WHEN state LIKE '%lock%' THEN 1 ELSE 0 END) as lock_waits
       FROM information_schema.processlist
+
+    # database: some_db
+
+    # If unset, sample_name defaults to MysqlCustomSample
     sample_name: MysqlConnectionsSample
 
   # Example: target a specific application database instead of the connection's
@@ -21,10 +26,13 @@ queries:
         COUNT(*) as active_orders
       FROM orders
       WHERE status != 'completed'
-    sample_name: MysqlActiveOrdersSample
     database: myapp_db
 
-  # Database size monitoring by schema
+    # If unset, sample_name defaults to MysqlCustomSample
+    sample_name: MysqlActiveOrdersSample
+
+  # Database size monitoring by schema. Returns one row per schema, so this
+  # produces one MysqlDatabaseSizeSample event per database.
   - query: >-
       SELECT
         table_schema as database_name,
@@ -35,22 +43,14 @@ queries:
       FROM information_schema.tables
       WHERE table_schema NOT IN ('information_schema', 'mysql', 'performance_schema', 'sys')
       GROUP BY table_schema
+
+    database: some_db
+
+    # If unset, sample_name defaults to MysqlCustomSample
     sample_name: MysqlDatabaseSizeSample
 
-  # InnoDB buffer pool efficiency metrics
-  - query: >-
-      SELECT
-        ROUND(
-          (SELECT variable_value FROM information_schema.global_status WHERE variable_name = 'Innodb_buffer_pool_read_requests') /
-          ((SELECT variable_value FROM information_schema.global_status WHERE variable_name = 'Innodb_buffer_pool_read_requests') +
-           (SELECT variable_value FROM information_schema.global_status WHERE variable_name = 'Innodb_buffer_pool_reads')) * 100, 2
-        ) as buffer_pool_hit_ratio_pct,
-        (SELECT variable_value FROM information_schema.global_status WHERE variable_name = 'Innodb_buffer_pool_pages_total') as total_pages,
-        (SELECT variable_value FROM information_schema.global_status WHERE variable_name = 'Innodb_buffer_pool_pages_free') as free_pages,
-        (SELECT variable_value FROM information_schema.global_status WHERE variable_name = 'Innodb_buffer_pool_pages_dirty') as dirty_pages
-    sample_name: MysqlBufferPoolSample
-
-  # Top 5 largest tables by row count and size
+  # Top 5 largest tables by row count and size. Returns up to 5 rows, so this
+  # produces up to 5 MysqlLargestTablesSample events, one per table.
   - query: >-
       SELECT
         table_schema,
@@ -65,73 +65,8 @@ queries:
         AND table_type = 'BASE TABLE'
       ORDER BY table_rows DESC
       LIMIT 5
+
+    database: some_db
+
+    # If unset, sample_name defaults to MysqlCustomSample
     sample_name: MysqlLargestTablesSample
-
-  # Query performance and slow query monitoring
-  - query: >-
-      SELECT
-        (SELECT variable_value FROM information_schema.global_status WHERE variable_name = 'Slow_queries') as slow_query_count,
-        (SELECT variable_value FROM information_schema.global_variables WHERE variable_name = 'long_query_time') as slow_query_threshold_seconds,
-        (SELECT variable_value FROM information_schema.global_status WHERE variable_name = 'Questions') as total_queries,
-        (SELECT variable_value FROM information_schema.global_status WHERE variable_name = 'Queries') as total_statements,
-        (SELECT variable_value FROM information_schema.global_status WHERE variable_name = 'Com_select') as select_queries
-    sample_name: MysqlQueryPerformanceSample
-
-  # Lock and deadlock monitoring
-  - query: >-
-      SELECT
-        (SELECT variable_value FROM information_schema.global_status WHERE variable_name = 'Innodb_row_lock_waits') as row_lock_waits,
-        (SELECT variable_value FROM information_schema.global_status WHERE variable_name = 'Innodb_row_lock_time') as row_lock_time_ms,
-        (SELECT variable_value FROM information_schema.global_status WHERE variable_name = 'Innodb_row_lock_time_avg') as avg_row_lock_time_ms,
-        (SELECT variable_value FROM information_schema.global_status WHERE variable_name = 'Innodb_deadlocks') as deadlock_count,
-        (SELECT variable_value FROM information_schema.global_status WHERE variable_name = 'Table_locks_waited') as table_lock_waits
-    sample_name: MysqlLocksSample
-
-  # Replication lag monitoring (for replica servers)
-  - query: >-
-      SELECT
-        COALESCE(Seconds_Behind_Master, -1) as seconds_behind_master,
-        Master_Host as master_host,
-        Master_Port as master_port,
-        Slave_IO_Running as io_thread_running,
-        Slave_SQL_Running as sql_thread_running,
-        Last_Error as last_error
-      FROM information_schema.replica_host_status
-      WHERE Channel_Name = ''
-    sample_name: MysqlReplicationSample
-
-  # MyISAM key buffer efficiency (if using MyISAM tables)
-  - query: >-
-      SELECT
-        ROUND(
-          (1 - (SELECT variable_value FROM information_schema.global_status WHERE variable_name = 'Key_reads') /
-           (SELECT variable_value FROM information_schema.global_status WHERE variable_name = 'Key_read_requests')) * 100, 2
-        ) as key_buffer_hit_ratio_pct,
-        (SELECT variable_value FROM information_schema.global_status WHERE variable_name = 'Key_reads') as key_reads,
-        (SELECT variable_value FROM information_schema.global_status WHERE variable_name = 'Key_read_requests') as key_read_requests,
-        (SELECT variable_value FROM information_schema.global_variables WHERE variable_name = 'key_buffer_size') as key_buffer_size_bytes
-    sample_name: MysqlMyIsamSample
-
-  # Temporary table usage monitoring
-  - query: >-
-      SELECT
-        (SELECT variable_value FROM information_schema.global_status WHERE variable_name = 'Created_tmp_tables') as tmp_tables_created,
-        (SELECT variable_value FROM information_schema.global_status WHERE variable_name = 'Created_tmp_disk_tables') as tmp_disk_tables_created,
-        ROUND(
-          (SELECT variable_value FROM information_schema.global_status WHERE variable_name = 'Created_tmp_disk_tables') /
-          (SELECT variable_value FROM information_schema.global_status WHERE variable_name = 'Created_tmp_tables') * 100, 2
-        ) as tmp_disk_tables_pct,
-        (SELECT variable_value FROM information_schema.global_variables WHERE variable_name = 'tmp_table_size') as tmp_table_size_bytes
-    sample_name: MysqlTempTablesSample
-
-  # Thread cache efficiency
-  - query: >-
-      SELECT
-        (SELECT variable_value FROM information_schema.global_status WHERE variable_name = 'Threads_created') as threads_created,
-        (SELECT variable_value FROM information_schema.global_status WHERE variable_name = 'Connections') as total_connections,
-        ROUND(
-          (SELECT variable_value FROM information_schema.global_status WHERE variable_name = 'Threads_created') /
-          (SELECT variable_value FROM information_schema.global_status WHERE variable_name = 'Connections') * 100, 2
-        ) as thread_cache_miss_ratio_pct,
-        (SELECT variable_value FROM information_schema.global_variables WHERE variable_name = 'thread_cache_size') as thread_cache_size
-    sample_name: MysqlThreadCacheSample

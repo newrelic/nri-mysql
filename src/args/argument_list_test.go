@@ -1,8 +1,8 @@
 package args
 
 import (
-	"testing"
 	"github.com/stretchr/testify/assert"
+	"testing"
 )
 
 func TestCustomMetricsArguments(t *testing.T) {
