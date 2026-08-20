@@ -11,6 +11,25 @@ Unreleased section should follow [Release Toolkit](https://github.com/newrelic/r
 
 ### Enhancements
 - Added support for custom SQL queries via a YAML configuration file, allowing users to define and collect their own metrics
+## v1.24.0 - 2026-08-17
+
+### 🛡️ Security notices
+- Added explicit least-privilege `permissions` blocks to GitHub Actions workflows
+- Bumped golang.org/x/text to v0.39.0 and golang.org/x/sys to v0.44.0 to patch CVEs
+- Added `security-events: write` permission to the security scan workflow so scan results can be uploaded
+
+### ⛓️ Dependencies
+- Updated github.com/sirupsen/logrus to v1.10.0 - [Changelog 🔗](https://github.com/sirupsen/logrus/releases/tag/v1.10.0)
+
+## v1.23.2 - 2026-07-13
+
+### ⛓️ Dependencies
+- Updated golang patch version to v1.26.5
+
+## v1.23.1 - 2026-06-15
+
+### ⛓️ Dependencies
+- Updated golang patch version to v1.26.4
 
 ## v1.23.0 - 2026-05-25
 
