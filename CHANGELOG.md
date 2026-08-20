@@ -9,6 +9,9 @@ Unreleased section should follow [Release Toolkit](https://github.com/newrelic/r
 
 ## Unreleased
 
+### Enhancements
+- Added support for custom SQL queries via a YAML configuration file, allowing users to define and collect their own metrics
+
 ## v1.23.0 - 2026-05-25
 
 ### 🚀 Enhancements
