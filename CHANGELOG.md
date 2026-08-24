@@ -9,6 +9,12 @@ Unreleased section should follow [Release Toolkit](https://github.com/newrelic/r
 
 ## Unreleased
 
+## v1.24.1 - 2026-08-24
+
+### ⛓️ Dependencies
+- Updated golang patch version to v1.26.6
+- Updated github.com/sirupsen/logrus to v1.10.1 - [Changelog 🔗](https://github.com/sirupsen/logrus/releases/tag/v1.10.1)
+
 ## v1.24.0 - 2026-08-17
 
 ### 🛡️ Security notices
