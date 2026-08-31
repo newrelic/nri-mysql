@@ -9,6 +9,11 @@ Unreleased section should follow [Release Toolkit](https://github.com/newrelic/r
 
 ## Unreleased
 
+## v1.24.2 - 2026-08-31
+
+### ⛓️ Dependencies
+- Updated github.com/sirupsen/logrus to v1.10.2 - [Changelog 🔗](https://github.com/sirupsen/logrus/releases/tag/v1.10.2)
+
 ## v1.24.1 - 2026-08-24
 
 ### ⛓️ Dependencies
