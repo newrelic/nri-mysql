@@ -11,6 +11,26 @@ Unreleased section should follow [Release Toolkit](https://github.com/newrelic/r
 
 ### Enhancements
 - Added support for custom SQL queries via a YAML configuration file, allowing users to define and collect their own metrics
+
+## v1.25.0 - 2026-09-14
+
+### 🛡️ Security notices
+- Signed the Windows `nri-mysql.exe` binary during the installer build, not just the `.msi` wrapper, fixing Defender/VirusTotal false-positive detections.
+
+### ⛓️ Dependencies
+- Updated github.com/go-sql-driver/mysql to v1.10.1 - [Changelog 🔗](https://github.com/go-sql-driver/mysql/releases/tag/v1.10.1)
+
+## v1.24.2 - 2026-08-31
+
+### ⛓️ Dependencies
+- Updated github.com/sirupsen/logrus to v1.10.2 - [Changelog 🔗](https://github.com/sirupsen/logrus/releases/tag/v1.10.2)
+
+## v1.24.1 - 2026-08-24
+
+### ⛓️ Dependencies
+- Updated golang patch version to v1.26.6
+- Updated github.com/sirupsen/logrus to v1.10.1 - [Changelog 🔗](https://github.com/sirupsen/logrus/releases/tag/v1.10.1)
+
 ## v1.24.0 - 2026-08-17
 
 ### 🛡️ Security notices
