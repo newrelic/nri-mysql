@@ -12,6 +12,7 @@ type dataSource interface {
 	close()
 	query(string) (map[string]interface{}, error)
 	getBackupQuery() string
+	getDB() *sql.DB
 }
 
 type database struct {
@@ -42,6 +43,10 @@ func (db *database) close() {
 // Checks if performance_schema.metadata_locks is available and returns the appropriate query
 func (db *database) getBackupQuery() string {
 	return getBackupMetricsQuery(db.source)
+}
+
+func (db *database) getDB() *sql.DB {
+	return db.source
 }
 
 /*
