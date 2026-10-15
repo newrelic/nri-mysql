@@ -9,6 +9,12 @@ Unreleased section should follow [Release Toolkit](https://github.com/newrelic/r
 
 ## Unreleased
 
+### Security
+- Bumped Go to v1.26.9 to patch Go standard library CVEs (CVE-2026-78667, CVE-2026-78669, CVE-2026-97031, CVE-2026-56866, CVE-2026-78663, CVE-2026-94439, CVE-2026-94448, CVE-2026-97032, CVE-2026-56857)
+
+### Dependencies
+- Updated golang patch version to v1.26.9 (`go.mod` and the integration tests Dockerfile builder image)
+
 ## v1.25.0 - 2026-09-14
 
 ### 🛡️ Security notices
