@@ -26,4 +26,6 @@ type ArgumentList struct {
 	QueryMonitoringResponseTimeThreshold int    `default:"1" help:"Threshold in milliseconds for query response time to fetch individual query performance metrics."`
 	QueryMonitoringCountThreshold        int    `default:"20" help:"Query count limit for fetching grouped slow and individual query performance metrics."`
 	ExcludedPerformanceDatabases         string `default:"[]" help:"A JSON array that lists databases to be excluded from performance metrics collection. System databases are always excluded."`
+	CustomMetricsQuery                   string `default:"" help:"A SQL query to collect custom metrics"`
+	CustomMetricsConfig                  string `default:"" help:"YAML configuration file with custom SQL queries"`
 }

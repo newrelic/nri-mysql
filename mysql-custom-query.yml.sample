@@ -1,0 +1,72 @@
+---
+# Metric names are set to the column names in the query results.
+queries:
+  # Monitor active connections and thread states
+  - query: >-
+      SELECT
+        COUNT(*) as total_connections,
+        SUM(CASE WHEN command != 'Sleep' THEN 1 ELSE 0 END) as active_connections,
+        SUM(CASE WHEN command = 'Sleep' THEN 1 ELSE 0 END) as sleeping_connections,
+        SUM(CASE WHEN state = 'Waiting for table metadata lock' THEN 1 ELSE 0 END) as metadata_lock_waits,
+        SUM(CASE WHEN state LIKE '%lock%' THEN 1 ELSE 0 END) as lock_waits
+      FROM information_schema.processlist
+
+    # database: some_db
+
+    # If unset, sample_name defaults to MysqlCustomSample
+    sample_name: MysqlConnectionsSample
+
+  # Example: target a specific application database instead of the connection's
+  # default one. When `database` is set, this query runs on a dedicated connection
+  # to that database, leaving the default database used by other queries unaffected.
+  # Repeat this query with a different `database` value to collect the same metric
+  # from multiple databases.
+  - query: >-
+      SELECT
+        COUNT(*) as active_orders
+      FROM orders
+      WHERE status != 'completed'
+    database: myapp_db
+
+    # If unset, sample_name defaults to MysqlCustomSample
+    sample_name: MysqlActiveOrdersSample
+
+  # Database size monitoring by schema. Returns one row per schema, so this
+  # produces one MysqlDatabaseSizeSample event per database.
+  - query: >-
+      SELECT
+        table_schema as database_name,
+        COUNT(*) as table_count,
+        ROUND(SUM(data_length + index_length) / 1024 / 1024, 2) as total_size_mb,
+        ROUND(SUM(data_length) / 1024 / 1024, 2) as data_size_mb,
+        ROUND(SUM(index_length) / 1024 / 1024, 2) as index_size_mb
+      FROM information_schema.tables
+      WHERE table_schema NOT IN ('information_schema', 'mysql', 'performance_schema', 'sys')
+      GROUP BY table_schema
+
+    database: some_db
+
+    # If unset, sample_name defaults to MysqlCustomSample
+    sample_name: MysqlDatabaseSizeSample
+
+  # Top 5 largest tables by row count and size. Returns up to 5 rows, so this
+  # produces up to 5 MysqlLargestTablesSample events, one per table.
+  - query: >-
+      SELECT
+        table_schema,
+        table_name,
+        table_rows,
+        ROUND(((data_length + index_length) / 1024 / 1024), 2) as total_size_mb,
+        ROUND((data_length / 1024 / 1024), 2) as data_size_mb,
+        ROUND((index_length / 1024 / 1024), 2) as index_size_mb,
+        engine
+      FROM information_schema.tables
+      WHERE table_schema NOT IN ('information_schema', 'mysql', 'performance_schema', 'sys')
+        AND table_type = 'BASE TABLE'
+      ORDER BY table_rows DESC
+      LIMIT 5
+
+    database: some_db
+
+    # If unset, sample_name defaults to MysqlCustomSample
+    sample_name: MysqlLargestTablesSample
