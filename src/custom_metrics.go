@@ -3,8 +3,10 @@ package main
 import (
 	"database/sql"
 	"fmt"
+	"math"
 	"os"
 	"strconv"
+	"strings"
 
 	"github.com/newrelic/infra-integrations-sdk/v3/data/metric"
 	"github.com/newrelic/infra-integrations-sdk/v3/integration"
@@ -50,22 +52,60 @@ func inferMetricType(value interface{}) metric.SourceType {
 	}
 }
 
+// maxExactFloatDigits is the number of significant decimal digits a float64 holds exactly.
+const maxExactFloatDigits = 15
+
 // convertValue converts []byte values from the MySQL driver into typed Go values.
 // The MySQL driver returns all scanned values as []byte when scanning into interface{}.
-// This function parses the byte slice into int64, float64, or string as appropriate.
-func convertValue(value interface{}) interface{} {
+// The conversion is driven by the column's SQL type (dbType, from DatabaseTypeName)
+// rather than by how the value looks, so text such as "0123" or "NaN" is never
+// reinterpreted as a number. Values that cannot be converted safely stay strings.
+func convertValue(value interface{}, dbType string) interface{} {
 	b, ok := value.([]byte)
 	if !ok {
 		return value
 	}
 	s := string(b)
-	if i, err := strconv.ParseInt(s, 10, 64); err == nil {
-		return i
-	}
-	if f, err := strconv.ParseFloat(s, 64); err == nil {
-		return f
+
+	unsigned := strings.HasPrefix(dbType, "UNSIGNED ")
+	switch strings.TrimPrefix(dbType, "UNSIGNED ") {
+	case "TINYINT", "SMALLINT", "MEDIUMINT", "INT", "BIGINT", "YEAR":
+		if i, err := strconv.ParseInt(s, 10, 64); err == nil {
+			return i
+		}
+		if unsigned {
+			if u, err := strconv.ParseUint(s, 10, 64); err == nil {
+				return u
+			}
+		}
+	case "FLOAT", "DOUBLE":
+		if f, err := strconv.ParseFloat(s, 64); err == nil && !math.IsNaN(f) && !math.IsInf(f, 0) {
+			return f
+		}
+	case "DECIMAL":
+		// Only convert when a float64 represents the value exactly; otherwise keep the exact string.
+		if significantDigits(s) <= maxExactFloatDigits {
+			if f, err := strconv.ParseFloat(s, 64); err == nil {
+				return f
+			}
+		}
 	}
 	return s
+}
+
+// significantDigits counts the digits of a decimal string, ignoring sign, decimal point and leading zeros.
+func significantDigits(s string) int {
+	count := 0
+	for _, r := range s {
+		if r < '0' || r > '9' {
+			continue
+		}
+		if count == 0 && r == '0' {
+			continue
+		}
+		count++
+	}
+	return count
 }
 
 // processCustomQuery executes a single custom SQL query and collects metrics.
@@ -98,6 +138,11 @@ func processCustomQuery(db *sql.DB, entity *integration.Entity, query string, sa
 		return fmt.Errorf("failed to get column names: %w", err)
 	}
 
+	columnTypes, err := rows.ColumnTypes()
+	if err != nil {
+		return fmt.Errorf("failed to get column types: %w", err)
+	}
+
 	// Process each row, creating one metric set (event) per row
 	for rows.Next() {
 		// Create slice to hold column values
@@ -117,7 +162,7 @@ func processCustomQuery(db *sql.DB, entity *integration.Entity, query string, sa
 
 		// Add metrics to the set
 		for i, column := range columns {
-			value := convertValue(values[i])
+			value := convertValue(values[i], columnTypes[i].DatabaseTypeName())
 			metricType := inferMetricType(value)
 
 			if err := ms.SetMetric(column, value, metricType); err != nil {

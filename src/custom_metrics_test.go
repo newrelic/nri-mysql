@@ -596,3 +596,62 @@ queries:
 		}
 	}
 }
+
+func TestConvertValue(t *testing.T) {
+	tests := []struct {
+		name     string
+		value    interface{}
+		dbType   string
+		expected interface{}
+	}{
+		{"non-bytes passthrough", int64(7), "BIGINT", int64(7)},
+		{"nil passthrough", nil, "VARCHAR", nil},
+		{"varchar keeps leading zero", []byte("0123"), "VARCHAR", "0123"},
+		{"varchar numeric-looking stays text", []byte("42"), "VARCHAR", "42"},
+		{"varchar NaN stays text", []byte("NaN"), "VARCHAR", "NaN"},
+		{"varchar Infinity stays text", []byte("Infinity"), "TEXT", "Infinity"},
+		{"unknown type stays text", []byte("12"), "", "12"},
+		{"int", []byte("-12"), "INT", int64(-12)},
+		{"bigint", []byte("9223372036854775807"), "BIGINT", int64(9223372036854775807)},
+		{"unsigned bigint within int64", []byte("5"), "UNSIGNED BIGINT", int64(5)},
+		{"unsigned bigint above int64", []byte("18446744073709551615"), "UNSIGNED BIGINT", uint64(18446744073709551615)},
+		{"unparsable int stays text", []byte("abc"), "INT", "abc"},
+		{"double", []byte("1.5"), "DOUBLE", 1.5},
+		{"float", []byte("2.25"), "FLOAT", 2.25},
+		{"double NaN stays text", []byte("NaN"), "DOUBLE", "NaN"},
+		{"short decimal becomes float", []byte("99.90"), "DECIMAL", 99.9},
+		{"high precision decimal stays exact string", []byte("12345678901234567890.1234567891"), "DECIMAL", "12345678901234567890.1234567891"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.expected, convertValue(tt.value, tt.dbType))
+		})
+	}
+}
+
+func TestProcessCustomQueryUsesColumnTypes(t *testing.T) {
+	testIntegration, err := integration.New("test", "1.0.0")
+	assert.NoError(t, err)
+	testEntity := testIntegration.LocalEntity()
+
+	db, mock, err := sqlmock.New()
+	assert.NoError(t, err)
+	defer db.Close()
+
+	rows := sqlmock.NewRowsWithColumnDefinition(
+		sqlmock.NewColumn("zip_code").OfType("VARCHAR", ""),
+		sqlmock.NewColumn("status").OfType("VARCHAR", ""),
+		sqlmock.NewColumn("order_count").OfType("BIGINT", int64(0)),
+	).AddRow([]byte("02134"), []byte("NaN"), []byte("42"))
+	mock.ExpectQuery("SELECT").WillReturnRows(rows)
+
+	err = processCustomQuery(db, testEntity, "SELECT zip_code, status, order_count FROM t", "TestSample", "", arguments.ArgumentList{})
+	assert.NoError(t, err)
+
+	assert.Len(t, testEntity.Metrics, 1)
+	m := testEntity.Metrics[0].Metrics
+	assert.Equal(t, "02134", m["zip_code"])
+	assert.Equal(t, "NaN", m["status"])
+	assert.Equal(t, float64(42), m["order_count"])
+}
