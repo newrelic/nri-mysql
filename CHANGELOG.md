@@ -9,6 +9,8 @@ Unreleased section should follow [Release Toolkit](https://github.com/newrelic/r
 
 ## Unreleased
 
+## v1.26.1 - 2026-10-27
+
 ### 🛡️ Security notices
 - Bumped Go to v1.26.10 to patch Go standard library CVEs (CVE-2026-111943, CVE-2026-78667, CVE-2026-78669, CVE-2026-97031, CVE-2026-56866, CVE-2026-78659, CVE-2026-78660, CVE-2026-78663, CVE-2026-94439, CVE-2026-94440, CVE-2026-94448, CVE-2
 026-97030, CVE-2026-97032, CVE-2026-56857)
