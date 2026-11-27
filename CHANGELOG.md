@@ -9,6 +9,10 @@ Unreleased section should follow [Release Toolkit](https://github.com/newrelic/r
 
 ## Unreleased
 
+### security
+- Bumped Go to v1.27.4 to fix stdlib CVE-2026-97054
+- Updated golang version in `go.mod` and the integration tests Dockerfile builder image
+
 ## v1.27.0 - 2026-11-20
 
 ### 🛡️ Security notices
