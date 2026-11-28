@@ -1,4 +1,4 @@
-FROM mariadb:10.11.20
+FROM mariadb:13.1.2
 # Create and set permissions for log directory
 RUN mkdir -p /var/log/mysql && \
     chown -R mysql:mysql /var/log/mysql
